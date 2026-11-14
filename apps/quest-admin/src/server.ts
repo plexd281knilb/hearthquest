@@ -1,6 +1,6 @@
 import http from "node:http";
 import { probeRtx3080Health } from "@hearthquest/quest-ai-bridge";
-import { PrintFulfillmentPackage } from "@hearthquest/shared-types";
+import { PrintFulfillmentPackage, getBuildMetadata } from "@hearthquest/shared-types";
 import { SRD_51_CC_BY_40_ATTRIBUTION } from "@hearthquest/srd-rules";
 
 const PORT = Number(process.env.PORT || 3001);
@@ -34,7 +34,8 @@ export const PHYSICAL_PACKAGES: PrintFulfillmentPackage[] = [
   },
 ];
 
-function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx3080Health>>): string {
+export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx3080Health>>): string {
+  const buildMeta = getBuildMetadata();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,7 +49,12 @@ function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx3080Health
     <div class="flex items-center gap-3">
       <span class="text-3xl">📦</span>
       <div>
-        <h1 class="text-xl font-extrabold text-amber-300">HearthQuest Command & Storefront</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-extrabold text-amber-300">HearthQuest Command & Storefront</h1>
+          <span id="admin-build-version-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40">
+            ${buildMeta.badgeText}
+          </span>
+        </div>
         <p class="text-xs text-slate-400">Family Quick-Start Guides • Print-on-Demand Fulfillment • RTX 3080 AI Telemetry</p>
       </div>
     </div>
@@ -232,6 +238,7 @@ const server = http.createServer(async (req, res) => {
       JSON.stringify({
         ok: true,
         service: "quest-admin",
+        build: getBuildMetadata(),
         packagesCount: PHYSICAL_PACKAGES.length,
         rtxStatus,
       })

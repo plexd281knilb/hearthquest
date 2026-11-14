@@ -1,7 +1,7 @@
 import http from "node:http";
 import { URL } from "node:url";
 import { generateGmCoPilotWhisper } from "@hearthquest/quest-ai-bridge";
-import { RoomSessionState } from "@hearthquest/shared-types";
+import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
@@ -61,7 +61,14 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/api/health" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, service: "quest-vtt", activeRoomsCount: 1 }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: "quest-vtt",
+        build: getBuildMetadata(),
+        activeRoomsCount: 1,
+      })
+    );
     return;
   }
 

@@ -1,7 +1,8 @@
-import { RoomSessionState } from "@hearthquest/shared-types";
+import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 
 export function renderVttAppHtml(initialState: RoomSessionState): string {
   const serialized = JSON.stringify(initialState).replace(/</g, "\\u003c");
+  const buildMeta = getBuildMetadata();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -35,6 +36,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <h1 class="font-bold text-lg tracking-tight text-amber-300">HearthQuest</h1>
           <span id="room-code-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-indigo-600 text-white border border-indigo-400">
             ROOM: ${initialState.roomCode}
+          </span>
+          <span id="build-version-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40" title="Build updated ${buildMeta.updatedAt}">
+            ${buildMeta.badgeText}
           </span>
         </div>
         <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>

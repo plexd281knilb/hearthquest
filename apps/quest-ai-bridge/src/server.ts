@@ -1,4 +1,5 @@
 import http from "node:http";
+import { getBuildMetadata } from "@hearthquest/shared-types";
 import { createStarterFamilySession } from "@hearthquest/srd-rules";
 import { generateGmCoPilotWhisper, probeRtx3080Health } from "./index";
 
@@ -18,7 +19,14 @@ const server = http.createServer(async (req, res) => {
   if (req.url === "/api/health" && req.method === "GET") {
     const health = await probeRtx3080Health();
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, service: "quest-ai-bridge", ...health }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: "quest-ai-bridge",
+        build: getBuildMetadata(),
+        ...health,
+      })
+    );
     return;
   }
 

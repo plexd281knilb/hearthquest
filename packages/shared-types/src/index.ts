@@ -5,6 +5,8 @@
  * Sibling Spotlight Fairness, Bedtime Snapshots, and Print-on-Demand Kits.
  */
 
+export * from "./version";
+
 export type RulesTier = "STORYBOOK_D6" | "APPRENTICE_5E_LITE" | "STANDARD_5E";
 
 export type ContentRating = "COZY_G" | "ADVENTURE_PG" | "CLASSIC_PG13";

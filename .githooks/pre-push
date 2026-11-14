@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+echo "[GIT HOOK] Running HearthQuest mandatory pre-push verification gate..."
+npx tsx scripts/release-verify.ts

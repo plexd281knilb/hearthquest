@@ -1,9 +1,11 @@
+process.env.NODE_ENV = "test";
+
 import assert from "node:assert";
 import {
   generateGmCoPilotWhisper,
   probeRtx3080Health,
 } from "../apps/quest-ai-bridge/src/index";
-import { PHYSICAL_PACKAGES } from "../apps/quest-admin/src/server";
+import { PHYSICAL_PACKAGES, renderAdminHtml } from "../apps/quest-admin/src/server";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
@@ -13,6 +15,12 @@ import {
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
 } from "../apps/quest-vtt/src/room-store";
+import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
+import {
+  APP_VERSION,
+  BUILD_NUMBER,
+  getBuildMetadata,
+} from "../packages/shared-types/src/index";
 import {
   calculateEncounterAutoBalance,
   computeSiblingSpotlightFairness,
@@ -162,8 +170,26 @@ async function runVerification() {
   assert.strictEqual(getOrCreateRoom("DRGN").heroes.length, 3);
   console.log("✅ PASSED");
 
+  // Suite 9: Build Version & Dev/Beta Channel Badge Verification
+  process.stdout.write("[TEST] Suite 9: Build Version & Dev/Beta Channel Badge Verification... ");
+  assert.ok(/^\d+\.\d+\.\d+$/.test(APP_VERSION), `Invalid APP_VERSION: ${APP_VERSION}`);
+  assert.ok(BUILD_NUMBER >= 1);
+  const devMeta = getBuildMetadata("dev");
+  const betaMeta = getBuildMetadata("beta");
+  assert.ok(devMeta.badgeText.includes(`v${APP_VERSION} • DEV`));
+  assert.ok(betaMeta.badgeText.includes(`v${APP_VERSION} • BETA`));
+
+  const vttHtml = renderVttAppHtml(getOrCreateRoom("DRGN"));
+  assert.ok(vttHtml.includes(`id="build-version-badge"`), "VTT HTML must render #build-version-badge");
+  assert.ok(vttHtml.includes(`v${APP_VERSION}`), "VTT HTML must display current APP_VERSION");
+
+  const adminHtml = renderAdminHtml(health);
+  assert.ok(adminHtml.includes(`id="admin-build-version-badge"`), "Admin HTML must render #admin-build-version-badge");
+  assert.ok(adminHtml.includes(`v${APP_VERSION}`), "Admin HTML must display current APP_VERSION");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 8/8 SUITES PASSED (100% CLEAN)   ");
+  console.log("   VERIFICATION SUMMARY: 9/9 SUITES PASSED (100% CLEAN)   ");
   console.log("==========================================================");
   process.exit(0);
 }

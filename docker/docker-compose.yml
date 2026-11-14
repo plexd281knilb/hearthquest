@@ -11,6 +11,7 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
+      - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:14b-instruct}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
@@ -26,6 +27,7 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
+      - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
     depends_on:
       - quest-ai-bridge
@@ -41,6 +43,7 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
+      - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
     depends_on:
       - quest-ai-bridge
