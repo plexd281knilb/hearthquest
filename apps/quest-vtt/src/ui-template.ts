@@ -12,36 +12,133 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
   <title>HearthQuest VTT — Room ${initialState.roomCode}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
+    /* Dark Mode (Midnight Hearth) */
+    body[data-theme="dark"] {
       background: radial-gradient(circle at top, #1e1b4b 0%, #090d16 100%);
       color: #f8fafc;
       font-family: system-ui, -apple-system, sans-serif;
-      touch-action: manipulation;
     }
+    body[data-theme="dark"] .theme-header {
+      background-color: rgba(9, 13, 22, 0.95);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+    body[data-theme="dark"] .theme-card {
+      background-color: rgba(15, 23, 42, 0.9);
+      border-color: rgba(51, 65, 85, 0.8);
+      color: #f8fafc;
+    }
+    body[data-theme="dark"] .theme-inner-box {
+      background-color: #020617;
+      border-color: #1e293b;
+      color: #cbd5e1;
+    }
+    body[data-theme="dark"] .theme-input {
+      background-color: #020617;
+      border-color: #334155;
+      color: #ffffff;
+    }
+
+    /* Light Mode (Storybook Parchment) */
+    body[data-theme="light"] {
+      background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%);
+      color: #1c1917;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    body[data-theme="light"] .theme-header {
+      background-color: rgba(255, 255, 255, 0.96);
+      border-color: #e2d7c5;
+      box-shadow: 0 2px 10px rgba(180, 83, 9, 0.05);
+    }
+    body[data-theme="light"] .theme-card {
+      background-color: #ffffff !important;
+      border-color: #e5ded2 !important;
+      color: #1c1917 !important;
+      box-shadow: 0 4px 16px rgba(120, 53, 15, 0.06);
+    }
+    body[data-theme="light"] .theme-inner-box {
+      background-color: #fbf9f5 !important;
+      border-color: #e8e0d4 !important;
+      color: #292524 !important;
+    }
+    body[data-theme="light"] .theme-input {
+      background-color: #ffffff !important;
+      border-color: #d6cbba !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] h1,
+    body[data-theme="light"] h2,
+    body[data-theme="light"] h3 {
+      color: #92400e !important;
+    }
+    body[data-theme="light"] .text-slate-400 {
+      color: #78716c !important;
+    }
+    body[data-theme="light"] .text-slate-300 {
+      color: #44403c !important;
+    }
+
+    /* 10x6 Tactical Grid */
     .grid-board {
       display: grid;
       grid-template-columns: repeat(10, minmax(0, 1fr));
       grid-template-rows: repeat(6, minmax(0, 1fr));
       aspect-ratio: 10 / 6;
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Themed Battlemap Backgrounds */
+    .bg-bakery {
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%),
+        repeating-linear-gradient(45deg, #0f172a 0px, #0f172a 20px, #131d33 20px, #131d33 40px);
+    }
+    .bg-treehouse {
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%),
+        repeating-linear-gradient(0deg, #0b1719 0px, #0b1719 25px, #102326 25px, #102326 50px);
+    }
+    .bg-starlight {
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(9, 13, 22, 0.98) 100%),
+        repeating-radial-gradient(circle at 50% 50%, #1e1b4b 0px, #090d16 60px);
+    }
+
+    body[data-theme="light"] .bg-bakery {
+      background: #fbf7ef repeating-linear-gradient(45deg, #fbf7ef 0px, #fbf7ef 20px, #f4ece0 20px, #f4ece0 40px);
+    }
+    body[data-theme="light"] .bg-treehouse {
+      background: #f7f9f4 repeating-linear-gradient(0deg, #f7f9f4 0px, #f7f9f4 25px, #edf3e6 25px, #edf3e6 50px);
+    }
+    body[data-theme="light"] .bg-starlight {
+      background: #fcf8ff repeating-radial-gradient(circle at 50% 50%, #f7efff 0px, #f1e4fc 60px);
+    }
+
+    /* Token Standee Styling */
+    .token-standee {
+      position: relative;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+      cursor: pointer;
+    }
+    .token-standee:hover {
+      transform: scale(1.15) translateY(-3px);
+      z-index: 30;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col" data-theme="dark">
   <!-- Top Navigation & 3-Screen Mode Switcher -->
-  <header class="border-b border-indigo-500/30 bg-slate-950/90 backdrop-blur px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+  <header class="theme-header border-b px-4 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-40 backdrop-blur">
     <div class="flex items-center gap-3">
-      <span class="text-2xl">🛡️</span>
+      <span class="text-2xl animate-pulse">🛡️</span>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="font-bold text-lg tracking-tight text-amber-300">HearthQuest</h1>
-          <span id="room-code-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-indigo-600 text-white border border-indigo-400">
+          <h1 class="font-extrabold text-lg tracking-tight text-amber-400">HearthQuest</h1>
+          <span id="room-code-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-indigo-600 text-white border border-indigo-400 shadow-sm">
             ROOM: ${initialState.roomCode}
           </span>
           <span id="build-version-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40" title="Build updated ${buildMeta.updatedAt}">
             ${buildMeta.badgeText}
           </span>
           <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
-            📲 QR Join Modal
+            📲 QR Join
           </button>
         </div>
         <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>
@@ -49,30 +146,42 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     </div>
 
     <!-- 3-Screen Ecosystem Switcher -->
-    <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-700">
+    <div class="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80">
       <button onclick="setDisplayMode('GM_COMMAND')" id="btn-mode-gm" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">
-        👑 GM Command (Parent)
+        👑 GM Command
       </button>
       <button onclick="setDisplayMode('TABLE_TV_DISPLAY')" id="btn-mode-tv" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">
-        📺 Living Room TV
+        📺 TV Display
       </button>
       <button onclick="setDisplayMode('PLAYER_CONTROLLER')" id="btn-mode-player" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">
-        🎮 Kid Tablet / Phone
+        🎮 Kid Tablet
       </button>
     </div>
 
-    <!-- Rules Tier & Bedtime Freeze -->
+    <!-- Theme, Sound & Settings Controls -->
     <div class="flex items-center gap-2">
-      <select id="select-rules-tier" onchange="changeRoomSettings()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-amber-200">
-        <option value="STORYBOOK_D6">🧸 Storybook (Ages 5-8 • d6)</option>
-        <option value="APPRENTICE_5E_LITE">⚔️ Apprentice (Ages 8-12 • 5e Lite)</option>
-        <option value="STANDARD_5E">🐉 Standard 5e (Teens & Adults)</option>
+      <!-- Theme Toggle (Light / Dark) -->
+      <button onclick="toggleTheme()" id="btn-theme-toggle" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-600 transition flex items-center gap-1.5" title="Switch Theme (Light Parchment vs. Dark Midnight)">
+        🌙 Dark
+      </button>
+
+      <!-- Audio Mute / Unmute Toggle -->
+      <button onclick="toggleAudioMute()" id="btn-audio-toggle" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-600 transition flex items-center gap-1.5" title="Toggle Sound Effects">
+        🔊 Sound: ON
+      </button>
+
+      <select id="select-rules-tier" onchange="changeRoomSettings()" class="theme-input border rounded-lg px-2 py-1.5 text-xs text-amber-300">
+        <option value="STORYBOOK_D6">🧸 Storybook (d6)</option>
+        <option value="APPRENTICE_5E_LITE">⚔️ Apprentice (5e Lite)</option>
+        <option value="STANDARD_5E">🐉 Standard 5e</option>
       </select>
-      <select id="select-content-rating" onchange="changeRoomSettings()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300">
-        <option value="COZY_G">🌈 Cozy G-Rated (Zero Gore)</option>
+
+      <select id="select-content-rating" onchange="changeRoomSettings()" class="theme-input border rounded-lg px-2 py-1.5 text-xs text-emerald-300">
+        <option value="COZY_G">🌈 Cozy G-Rated</option>
         <option value="ADVENTURE_PG">🏰 Adventure PG</option>
         <option value="CLASSIC_PG13">🔥 Classic PG-13</option>
       </select>
+
       <button onclick="toggleBedtime()" id="btn-bedtime" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-950 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/40 transition">
         🌙 Pause for Bedtime
       </button>
@@ -85,39 +194,45 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     <p id="bedtime-recap-text" class="text-xs text-indigo-200 mt-1 max-w-3xl mx-auto"></p>
   </div>
 
+  <!-- Loot Notification Banner -->
+  <div id="loot-toast" class="hidden bg-gradient-to-r from-amber-600 to-orange-500 text-white px-4 py-2.5 text-center text-xs font-extrabold shadow-xl flex items-center justify-center gap-2 transition">
+    <span class="text-lg">🎁</span>
+    <span id="loot-toast-message">You opened a treasure chest!</span>
+  </div>
+
   <!-- Main Workspace Container -->
   <main class="flex-1 p-4 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4">
-    <!-- Left / Center Column: Interactive Tabletop Grid Map (Shown in GM & TV modes, compact in Player mode) -->
+    <!-- Left / Center Column: Interactive Tabletop Grid Map -->
     <section id="map-column" class="lg:col-span-8 flex flex-col gap-4">
-      <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 shadow-2xl">
+      <div class="theme-card rounded-2xl p-4 shadow-2xl border">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
-            <h2 id="active-scene-title" class="text-base font-bold text-amber-300"></h2>
+            <h2 id="active-scene-title" class="text-base font-bold text-amber-400"></h2>
             <p class="text-xs text-slate-400">Tap any square or use the Touch D-Pad to move your hero token across the grid.</p>
           </div>
           <!-- Jackbox-Style Room Join Pill for TV Mode -->
-          <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-amber-500/40">
-            <span class="text-xs text-slate-300">📱 Kids Join on Tablet/Phone:</span>
+          <div class="flex items-center gap-2 theme-inner-box px-3 py-1.5 rounded-xl border">
+            <span class="text-xs text-slate-400">📱 Kids Join:</span>
             <span class="font-mono font-extrabold text-sm text-amber-400">${initialState.roomCode}</span>
           </div>
         </div>
 
         <!-- 10x6 Interactive Tabletop Grid -->
-        <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/40 bg-slate-950 relative select-none"></div>
+        <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative select-none shadow-inner"></div>
 
         <!-- Zone Fog-of-War Controls (GM Only) -->
-        <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold text-slate-400">🗺️ GM Room Fog of War Reveal:</span>
+            <span class="text-xs font-semibold text-slate-400">🗺️ Fog of War Reveal:</span>
             <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <select id="campaign-select" onchange="switchCampaign(this.value)" class="bg-slate-950 border border-indigo-500/40 rounded-lg px-2 py-1 text-xs text-amber-200">
-              <option value="camp-goblin-bakery">🧁 The Great Goblin Bakery Heist</option>
-              <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse Mystery</option>
+            <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
+              <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
+              <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
               <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
             </select>
-            <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+            <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
               🎲 New Procedural Map
             </button>
           </div>
@@ -125,9 +240,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       </div>
 
       <!-- GM Story Branching & Read-Aloud Box Text Panel (GM Only) -->
-      <div id="gm-story-panel" class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4">
+      <div id="gm-story-panel" class="theme-card rounded-2xl p-4 border">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <h3 class="text-sm font-bold text-indigo-300">📖 Zero-Prep Read-Aloud Box Text (Pick Your Tone)</h3>
+          <h3 class="text-sm font-bold text-indigo-400">📖 Zero-Prep Read-Aloud Box Text</h3>
           <div class="flex flex-wrap gap-1 items-center">
             <button onclick="setReadAloudTone('COZY_SILLY')" id="tone-cozy" class="px-2.5 py-1 rounded text-xs font-semibold bg-amber-500 text-slate-950">😂 Cozy & Silly</button>
             <button onclick="setReadAloudTone('ACTION_HEROIC')" id="tone-action" class="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-300">⚔️ Action Heroic</button>
@@ -137,7 +252,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             </button>
           </div>
         </div>
-        <blockquote id="read-aloud-box" class="p-3.5 rounded-xl bg-slate-950 border-l-4 border-amber-400 text-sm text-amber-100 italic leading-relaxed"></blockquote>
+        <blockquote id="read-aloud-box" class="p-3.5 rounded-xl theme-inner-box border-l-4 border-amber-400 text-sm text-amber-200 italic leading-relaxed"></blockquote>
 
         <div class="mt-3">
           <p class="text-xs font-semibold text-slate-400 mb-2">🔀 Branching Story Choices (Tap what the kids decide to do):</p>
@@ -149,46 +264,53 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     <!-- Right Column: Context-Aware Panel (GM Co-Pilot Sidebar OR Kid Tablet Action Controller) -->
     <aside id="side-column" class="lg:col-span-4 flex flex-col gap-4">
       <!-- PANEL A: GM AI Co-Pilot & Sibling Spotlight Tracker -->
-      <div id="gm-copilot-panel" class="bg-slate-900/90 border border-purple-500/40 rounded-2xl p-4 flex flex-col gap-3">
+      <div id="gm-copilot-panel" class="theme-card rounded-2xl p-4 flex flex-col gap-3 border">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-bold text-purple-300 flex items-center gap-1.5">
+          <h3 class="text-sm font-bold text-purple-400 flex items-center gap-1.5">
             <span>🤖</span> AI GM Co-Pilot Whisper
           </h3>
           <span class="text-[11px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700">
-            RTX 3080 + Failover Ready
+            RTX 3080 Ready
           </span>
         </div>
 
         <p class="text-xs text-slate-400">
-          Kids trying something wild? Type what they asked or hit the emergency button:
+          Kids trying something wild? Type what they asked:
         </p>
 
         <div class="flex gap-2">
-          <input id="gm-improv-input" type="text" placeholder="e.g. Can we feed the goblin our cookie?" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white" />
-          <button onclick="askAiCoPilot()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold whitespace-nowrap">
+          <input id="gm-improv-input" type="text" placeholder="e.g. Can we feed the goblin our cookie?" class="flex-1 theme-input border rounded-xl px-3 py-2 text-xs" />
+          <button onclick="askAiCoPilot()" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold whitespace-nowrap shadow">
             ✨ Help Me GM!
           </button>
         </div>
 
-        <div id="copilot-response-box" class="p-3 rounded-xl bg-slate-950/90 border border-purple-500/30 text-xs space-y-2">
-          <p class="text-purple-200 font-semibold">💡 GM Tip for this Scene:</p>
+        <div id="copilot-response-box" class="p-3 rounded-xl theme-inner-box border text-xs space-y-2">
+          <p class="text-purple-300 font-semibold">💡 GM Tip for this Scene:</p>
           <p id="copilot-whisper-text" class="text-slate-300"></p>
         </div>
 
-        <!-- Sibling Spotlight Fairness Meter -->
-        <div class="pt-2 border-t border-slate-800">
-          <h4 class="text-xs font-bold text-amber-300 mb-2">⚖️ Sibling Spotlight Fairness Tracker</h4>
+        <div class="pt-2 border-t border-slate-700/50">
+          <h4 class="text-xs font-bold text-amber-400 mb-1 flex items-center gap-1">
+            <span>⚖️</span> Sibling Spotlight Tracker
+          </h4>
+          <p class="text-[11px] text-slate-400 mb-2">Ensures every child gets equal turns and moments in the spotlight:</p>
           <div id="spotlight-list" class="space-y-1.5"></div>
         </div>
       </div>
 
-      <!-- PANEL B: Kid Tablet / Phone Controller (Hero Picker, Touch D-Pad & Action Cards) -->
-      <div id="player-controller-panel" class="bg-slate-900/90 border border-amber-500/40 rounded-2xl p-4 flex flex-col gap-4">
+      <!-- PANEL B: Kid Tablet / Phone Controller -->
+      <div id="player-controller-panel" class="theme-card rounded-2xl p-4 flex flex-col gap-4 border">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-bold text-amber-300">🎮 Kid Hero Controller</h3>
-          <button onclick="toggleHeroCreatorModal()" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
-            + 5-Min Hero Creator
-          </button>
+          <h3 class="text-sm font-bold text-amber-400">🎮 Kid Hero Controller</h3>
+          <div class="flex gap-1.5">
+            <button onclick="openHeroSheetModal()" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
+              📜 View Sheet
+            </button>
+            <button onclick="toggleHeroCreatorModal()" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+              + New Hero
+            </button>
+          </div>
         </div>
 
         <!-- Select Active Hero on This Tablet/Phone -->
@@ -198,7 +320,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         </div>
 
         <!-- Selected Hero Card & Touch D-Pad -->
-        <div id="active-hero-sheet" class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-3"></div>
+        <div id="active-hero-sheet" class="p-3 rounded-xl theme-inner-box border space-y-3"></div>
 
         <!-- Big Color-Coded Action Cards -->
         <div>
@@ -208,7 +330,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       </div>
 
       <!-- Live Family Dice Roll Feed -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
+      <div class="theme-card rounded-2xl p-4 border">
         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">🎲 Live Table Dice Log</h3>
         <div id="dice-log-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
@@ -217,9 +339,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
   <!-- HYBRID REAL DICE vs. DIGITAL DICE MODAL -->
   <div id="dice-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
-        <h3 id="dice-modal-title" class="text-lg font-extrabold text-amber-300"></h3>
+        <h3 id="dice-modal-title" class="text-lg font-extrabold text-amber-400"></h3>
         <button onclick="closeDiceModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
       <p id="dice-modal-desc" class="text-xs text-slate-300"></p>
@@ -230,8 +352,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       </button>
 
       <!-- Option 2: Roll Real Physical Dice on the Table -->
-      <div class="pt-3 border-t border-slate-800">
-        <p id="physical-dice-prompt" class="text-xs font-bold text-emerald-300 mb-2 text-center">
+      <div class="pt-3 border-t border-slate-700/50">
+        <p id="physical-dice-prompt" class="text-xs font-bold text-emerald-400 mb-2 text-center">
           🎲 Or roll your REAL physical die on the table & tap what you got:
         </p>
         <div id="physical-dice-buttons" class="grid grid-cols-5 gap-1.5"></div>
@@ -239,32 +361,45 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     </div>
   </div>
 
+  <!-- INTERACTIVE CHARACTER SHEET MODAL -->
+  <div id="hero-sheet-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border-2 border-indigo-400 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="modal-hero-title" class="text-lg font-extrabold text-indigo-400">📜 Storybook Character Sheet</h3>
+        <button onclick="closeHeroSheetModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div id="modal-hero-content" class="space-y-3 text-xs"></div>
+    </div>
+  </div>
+
   <!-- 5-MINUTE VISUAL HERO CREATOR MODAL -->
   <div id="hero-creator-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border-2 border-emerald-400 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-3">
+    <div class="theme-card border-2 border-emerald-400 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-extrabold text-emerald-300">✨ 5-Minute Kid Hero Creator</h3>
+        <h3 class="text-lg font-extrabold text-emerald-400">✨ 5-Minute Kid Hero Creator</h3>
         <button onclick="toggleHeroCreatorModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
       <div class="space-y-2 text-xs">
         <label class="block text-slate-300">Kid's First Name & Age:</label>
         <div class="flex gap-2">
-          <input id="new-hero-player" type="text" placeholder="e.g. Sam" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
-          <input id="new-hero-age" type="number" value="8" class="w-20 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+          <input id="new-hero-player" type="text" placeholder="e.g. Sam" class="flex-1 theme-input border rounded-xl px-3 py-2" />
+          <input id="new-hero-age" type="number" value="8" class="w-20 theme-input border rounded-xl px-3 py-2" />
         </div>
         <label class="block text-slate-300">Hero Name:</label>
-        <input id="new-hero-name" type="text" placeholder="e.g. Captain Bramble" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        <input id="new-hero-name" type="text" placeholder="e.g. Captain Bramble" class="w-full theme-input border rounded-xl px-3 py-2" />
         <label class="block text-slate-300">Choose Your Hero Style:</label>
-        <select id="new-hero-archetype" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
-          <option value="🏹|Forest Ranger">🏹 Forest Ranger</option>
-          <option value="🗡️|Sneaky Ninja Rogue">🗡️ Sneaky Ninja Rogue</option>
-          <option value="🎵|Musical Bard">🎵 Musical Bard</option>
-          <option value="🐻|Druid Shapeshifter">🐻 Druid Shapeshifter</option>
+        <select id="new-hero-archetype" class="w-full theme-input border rounded-xl px-3 py-2">
+          <option value="🛡️|Shield Knight">🛡️ Shield Knight (Brave & Protective)</option>
+          <option value="🪄|Starlight Wizard">🪄 Starlight Wizard (Clever & Magical)</option>
+          <option value="🏹|Forest Ranger">🏹 Forest Ranger (Nimble & Acorn Sharpshooter)</option>
+          <option value="🗡️|Sneaky Ninja Rogue">🗡️ Sneaky Ninja Rogue (Acrobatic & Quick)</option>
+          <option value="🎵|Musical Bard">🎵 Musical Bard (Charming & Melodic)</option>
+          <option value="🐻|Druid Shapeshifter">🐻 Druid Shapeshifter (Animal Friend)</option>
         </select>
         <label class="block text-slate-300">Choose Your Pet Companion:</label>
-        <input id="new-hero-pet" type="text" placeholder="e.g. Marshmallow the Baby Dragon" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+        <input id="new-hero-pet" type="text" placeholder="e.g. Marshmallow the Baby Dragon" class="w-full theme-input border rounded-xl px-3 py-2" />
       </div>
-      <button onclick="createNewHero()" class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm">
+      <button onclick="createNewHero()" class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-md">
         🚀 Join the Adventure!
       </button>
     </div>
@@ -272,9 +407,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
   <!-- QR JOIN MODAL -->
   <div id="qr-join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-extrabold text-amber-300">📲 Scan to Join Room ${initialState.roomCode}</h3>
+        <h3 class="text-lg font-extrabold text-amber-400">📲 Scan to Join Room ${initialState.roomCode}</h3>
         <button onclick="toggleQrJoinModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
       <p class="text-xs text-slate-300">
@@ -283,10 +418,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       <div class="flex justify-center">
         <img src="/api/room/qr?room=${initialState.roomCode}" alt="QR Code for Room ${initialState.roomCode}" class="rounded-2xl shadow-lg border border-amber-500/40" />
       </div>
-      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+      <div class="p-3 rounded-xl theme-inner-box border space-y-1">
         <div class="text-xs text-slate-400">4-Letter Room Code:</div>
         <div class="text-2xl font-mono font-extrabold text-amber-400 tracking-widest">${initialState.roomCode}</div>
-        <a href="/?room=${initialState.roomCode}&mode=kid" class="inline-block mt-2 text-xs font-bold text-emerald-300 hover:underline">
+        <a href="/?room=${initialState.roomCode}&mode=kid" class="inline-block mt-2 text-xs font-bold text-emerald-400 hover:underline">
           🔗 Open Direct Kid Tablet Link (/?room=${initialState.roomCode}&mode=kid)
         </a>
       </div>
@@ -302,24 +437,184 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         : rawUrlMode === "TV" || rawUrlMode === "TABLE_TV_DISPLAY"
         ? "TABLE_TV_DISPLAY"
         : "GM_COMMAND";
-    let activeTone = "COZY_SILLY";
-    let selectedHeroId = state.heroes[0]?.id || "";
-    let pendingCardId = "";
 
-    function toggleQrJoinModal() {
-      document.getElementById("qr-join-modal").classList.toggle("hidden");
+    let selectedHeroId = state.heroes[0]?.id || "";
+    let activeCardId = "";
+    let activeTone = "COZY_SILLY";
+
+    /* ==========================================================
+       1. PROCEDURAL WEB AUDIO SYNTHESIS ENGINE (ZERO-DEPENDENCY)
+       ========================================================== */
+    const AudioEngine = {
+      ctx: null,
+      muted: false,
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      },
+      playDiceRoll() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        for (let i = 0; i < 6; i++) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(140 + Math.random() * 260, now + i * 0.04);
+          gain.gain.setValueAtTime(0.18, now + i * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.06);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.04);
+          osc.stop(now + i * 0.04 + 0.07);
+        }
+      },
+      playSuccessChime() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.09;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        });
+      },
+      playFailForwardBoing() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.35);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      },
+      playHeroicRally() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [392, 523.25, 659.25, 783.99]; // G4, C5, E5, G5
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.12;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.65);
+        });
+      },
+      playBedtimeLullaby() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [659.25, 587.33, 523.25, 392, 440, 523.25];
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.2;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        });
+      },
+      playChestOpen() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [440, 554.37, 659.25, 880, 1108.73];
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.06;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        });
+      }
+    };
+
+    function toggleAudioMute() {
+      AudioEngine.muted = !AudioEngine.muted;
+      const btn = document.getElementById("btn-audio-toggle");
+      btn.innerText = AudioEngine.muted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
+      btn.className = AudioEngine.muted
+        ? "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
+        : "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-emerald-300 border border-slate-600";
     }
 
-    function speakReadAloudText() {
-      const textEl = document.getElementById("read-aloud-box");
-      const text = textEl ? textEl.innerText : "";
-      if (!text) return;
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.98;
-        utterance.pitch = activeTone === "COZY_SILLY" ? 1.1 : activeTone === "MYSTERY_ATMOSPHERIC" ? 0.9 : 1.0;
-        window.speechSynthesis.speak(utterance);
+    /* ==========================================================
+       2. LIGHT MODE & DARK MODE THEME SYSTEM
+       ========================================================== */
+    let currentTheme = localStorage.getItem("hearthquest_theme") || "dark";
+    function applyTheme(theme) {
+      currentTheme = theme;
+      localStorage.setItem("hearthquest_theme", theme);
+      document.body.setAttribute("data-theme", theme);
+      const btn = document.getElementById("btn-theme-toggle");
+      if (btn) {
+        btn.innerText = theme === "light" ? "☀️ Light" : "🌙 Dark";
+      }
+    }
+    function toggleTheme() {
+      applyTheme(currentTheme === "light" ? "dark" : "light");
+    }
+    applyTheme(currentTheme);
+
+    /* ==========================================================
+       3. API CALLS & HELPERS
+       ========================================================== */
+    async function apiPost(url, data) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.ok && json.room) {
+          state = json.room;
+          renderAll();
+        }
+        return json;
+      } catch (err) {
+        console.error("API error:", err);
       }
     }
 
@@ -333,106 +628,75 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       renderAll();
     }
 
-    async function apiPost(path, payload) {
-      const res = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode: state.roomCode, ...payload })
-      });
-      const data = await res.json();
-      if (data.room) {
-        state = data.room;
-        renderAll();
-      }
-      return data;
-    }
-
-    function moveSelectedHero(dx, dy) {
-      const token = state.tokens.find(t => t.characterId === selectedHeroId) || state.tokens[0];
-      if (!token) return;
-      apiPost("/api/room/move-token", { tokenId: token.id, deltaX: dx, deltaY: dy });
-    }
-
-    function moveTokenToCell(gx, gy) {
-      const token = state.tokens.find(t => t.characterId === selectedHeroId) || state.tokens[0];
-      if (!token) return;
-      apiPost("/api/room/move-token", { tokenId: token.id, targetX: gx, targetY: gy });
-    }
-
-    function toggleZone(zoneId) {
-      apiPost("/api/room/toggle-zone", { zoneId });
-    }
-
-    function chooseBranch(targetNodeId, consequenceTag) {
-      apiPost("/api/room/advance-story", { targetNodeId, consequenceTag });
-    }
-
-    function changeRoomSettings() {
-      const rulesTier = document.getElementById("select-rules-tier").value;
-      const contentRating = document.getElementById("select-content-rating").value;
-      apiPost("/api/room/settings", { rulesTier, contentRating });
-    }
-
-    function toggleBedtime() {
-      apiPost("/api/room/bedtime", {});
-    }
-
-    async function askAiCoPilot() {
-      const input = document.getElementById("gm-improv-input");
-      const question = input.value || "What happens next?";
-      const res = await apiPost("/api/room/copilot", { question });
-      if (res.whisper) {
-        document.getElementById("copilot-whisper-text").innerText =
-          res.whisper.readAloudOptions.cozySilly + "\\n\\n🎲 Rule Check: " + res.whisper.ruleGuidance;
+    function speakReadAloudText() {
+      const activeNode = state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0];
+      const textToSpeak = activeNode?.readAloudByTone[activeTone] || activeNode?.readAloudByTone.COZY_SILLY || "";
+      if ("speechSynthesis" in window && textToSpeak) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.rate = 0.95;
+        utterance.pitch = 1.05;
+        window.speechSynthesis.speak(utterance);
       }
     }
 
-    function openDiceModal(cardId) {
-      pendingCardId = cardId;
-      const hero = state.heroes.find(h => h.id === selectedHeroId) || state.heroes[0];
-      const card = hero?.actionCards.find(c => c.id === cardId);
-      if (!card) return;
+    async function moveTokenToCell(x, y) {
+      const heroTok = state.tokens.find(t => t.characterId === selectedHeroId) || state.tokens[0];
+      if (!heroTok) return;
 
-      const isStorybook = state.rulesTier === "STORYBOOK_D6";
-      const dieFaces = isStorybook ? 6 : 20;
-      document.getElementById("dice-modal-title").innerText = card.icon + " " + card.title;
-      document.getElementById("dice-modal-desc").innerText = card.description;
-      document.getElementById("physical-dice-prompt").innerText =
-        "🎲 Or roll your REAL physical d" + dieFaces + " on the table & tap what you got:";
-
-      const btnContainer = document.getElementById("physical-dice-buttons");
-      btnContainer.innerHTML = "";
-      for (let i = 1; i <= dieFaces; i++) {
-        const b = document.createElement("button");
-        b.className = "py-2 rounded-xl bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold text-xs border border-slate-700 transition";
-        b.innerText = String(i);
-        b.onclick = () => submitRoll("PHYSICAL_DICE_TABLE", i);
-        btnContainer.appendChild(b);
+      // Check if moving onto a loot chest
+      const chestTok = state.tokens.find(t => t.gridX === x && t.gridY === y && t.isLootChest && !t.isChestOpened);
+      if (chestTok) {
+        await openLootChest(chestTok.id);
       }
 
-      document.getElementById("dice-modal").classList.remove("hidden");
-    }
-
-    function closeDiceModal() {
-      document.getElementById("dice-modal").classList.add("hidden");
-    }
-
-    async function triggerDigitalRoll() {
-      await submitRoll("DIGITAL_3D_ROLLER");
-    }
-
-    async function submitRoll(source, physicalRollValue) {
-      closeDiceModal();
-      await apiPost("/api/room/roll", {
-        characterId: selectedHeroId,
-        cardId: pendingCardId,
-        source,
-        physicalRollValue
+      await apiPost("/api/room/move-token", {
+        roomCode: state.roomCode,
+        tokenId: heroTok.id,
+        targetX: x,
+        targetY: y
       });
     }
 
-    function toggleHeroCreatorModal() {
-      document.getElementById("hero-creator-modal").classList.toggle("hidden");
+    async function openLootChest(tokenId) {
+      AudioEngine.playChestOpen();
+      const res = await apiPost("/api/room/open-chest", {
+        roomCode: state.roomCode,
+        tokenId,
+        characterId: selectedHeroId
+      });
+      if (res && res.rewardedItem) {
+        const toast = document.getElementById("loot-toast");
+        const msg = document.getElementById("loot-toast-message");
+        msg.innerText = \`Treasure Found: \${res.rewardedItem.icon} \${res.rewardedItem.name} — \${res.rewardedItem.description}\`;
+        toast.classList.remove("hidden");
+        setTimeout(() => toast.classList.add("hidden"), 5000);
+      }
+    }
+
+    async function moveSelectedHero(dx, dy) {
+      const heroTok = state.tokens.find(t => t.characterId === selectedHeroId) || state.tokens[0];
+      if (!heroTok) return;
+      const targetX = Math.max(0, Math.min(state.gridCols - 1, heroTok.gridX + dx));
+      const targetY = Math.max(0, Math.min(state.gridRows - 1, heroTok.gridY + dy));
+      await moveTokenToCell(targetX, targetY);
+    }
+
+    async function toggleZone(zoneId) {
+      await apiPost("/api/room/zone-fog", { roomCode: state.roomCode, zoneId });
+    }
+
+    async function chooseBranch(targetNodeId, consequenceTag) {
+      await apiPost("/api/room/story-branch", {
+        roomCode: state.roomCode,
+        targetNodeId,
+        consequenceTag
+      });
+    }
+
+    async function toggleBedtime() {
+      AudioEngine.playBedtimeLullaby();
+      await apiPost("/api/room/bedtime", { roomCode: state.roomCode });
     }
 
     async function switchCampaign(campaignId) {
@@ -441,6 +705,84 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     async function regenerateProceduralMap() {
       await apiPost("/api/room/procedural-map", { roomCode: state.roomCode });
+    }
+
+    async function changeRoomSettings() {
+      const rulesTier = document.getElementById("select-rules-tier").value;
+      const contentRating = document.getElementById("select-content-rating").value;
+      await apiPost("/api/room/settings", {
+        roomCode: state.roomCode,
+        rulesTier,
+        contentRating
+      });
+    }
+
+    async function askAiCoPilot() {
+      const input = document.getElementById("gm-improv-input");
+      const q = input.value.trim();
+      if (!q) return;
+      const res = await apiPost("/api/room/copilot", {
+        roomCode: state.roomCode,
+        question: q
+      });
+      if (res && res.whisper) {
+        document.getElementById("copilot-whisper-text").innerText =
+          (res.whisper.readAloudOptions[activeTone === "ACTION_HEROIC" ? "actionHeroic" : "cozySilly"] || "") +
+          " • Tip: " + res.whisper.ruleGuidance;
+      }
+    }
+
+    function toggleHeroCreatorModal() {
+      document.getElementById("hero-creator-modal").classList.toggle("hidden");
+    }
+
+    function toggleQrJoinModal() {
+      document.getElementById("qr-join-modal").classList.toggle("hidden");
+    }
+
+    function openHeroSheetModal() {
+      const hero = state.heroes.find(h => h.id === selectedHeroId) || state.heroes[0];
+      if (!hero) return;
+      document.getElementById("modal-hero-title").innerHTML = \`\${hero.avatarEmoji} \${hero.name} — Character Sheet\`;
+      const stars = "⭐".repeat(hero.levelStars || 1);
+      const content = document.getElementById("modal-hero-content");
+      content.innerHTML = \`
+        <div class="flex justify-between items-center p-3 rounded-xl theme-inner-box border">
+          <div>
+            <div class="font-extrabold text-sm text-amber-400">\${hero.archetype}</div>
+            <div class="text-slate-400">Played by \${hero.playerName}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-bold text-amber-300">Level: \${stars}</div>
+            <div class="text-xs text-rose-400 font-bold">\${hero.rulesTier === "STORYBOOK_D6" ? "❤️".repeat(hero.storybookStats.hearts) + " Hearts" : "❤️ " + hero.attributes5e.hp + " HP • 🛡️ AC " + hero.attributes5e.armorClass}</div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl theme-inner-box border space-y-1">
+          <div class="font-bold text-amber-400">🐾 Pet Companion: \${hero.companionPet}</div>
+          <p class="text-slate-300">\${hero.petTrait || "Always loyal and ready to assist during family adventures!"}</p>
+        </div>
+
+        <div class="p-3 rounded-xl theme-inner-box border space-y-2">
+          <div class="font-bold text-slate-300">🎒 Inventory & Magical Items:</div>
+          <div class="space-y-1.5">
+            \${hero.inventory.map(item => \`
+              <div class="p-2 rounded-lg bg-black/20 border border-slate-700/50 flex items-center gap-2">
+                <span class="text-xl">\${item.icon}</span>
+                <div>
+                  <div class="font-bold text-amber-300">\${item.name}</div>
+                  <div class="text-[11px] text-slate-400">\${item.description}</div>
+                </div>
+              </div>
+            \`).join("")}
+          </div>
+        </div>
+      \`;
+      document.getElementById("hero-sheet-modal").classList.remove("hidden");
+    }
+
+    function closeHeroSheetModal() {
+      document.getElementById("hero-sheet-modal").classList.add("hidden");
     }
 
     async function createNewHero() {
@@ -461,8 +803,68 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       toggleHeroCreatorModal();
     }
 
+    function openDiceModal(cardId) {
+      activeCardId = cardId;
+      const hero = state.heroes.find(h => h.id === selectedHeroId) || state.heroes[0];
+      const card = hero?.actionCards.find(c => c.id === cardId) || hero?.actionCards[0];
+      if (!card) return;
+
+      document.getElementById("dice-modal-title").innerText = card.icon + " " + card.title;
+      document.getElementById("dice-modal-desc").innerText = card.description;
+
+      const btnGrid = document.getElementById("physical-dice-buttons");
+      btnGrid.innerHTML = "";
+      const maxVal = state.rulesTier === "STORYBOOK_D6" ? 6 : 20;
+      for (let v = 1; v <= maxVal; v++) {
+        const b = document.createElement("button");
+        b.className = "py-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white font-extrabold text-xs transition border border-slate-700";
+        b.innerText = v;
+        b.onclick = () => submitActionRoll("PHYSICAL_DICE_TABLE", v);
+        btnGrid.appendChild(b);
+      }
+
+      document.getElementById("dice-modal").classList.remove("hidden");
+    }
+
+    function closeDiceModal() {
+      document.getElementById("dice-modal").classList.add("hidden");
+    }
+
+    async function triggerDigitalRoll() {
+      AudioEngine.playDiceRoll();
+      await submitActionRoll("DIGITAL_3D_ROLLER");
+    }
+
+    async function submitActionRoll(source, physicalRollValue) {
+      if (source === "DIGITAL_3D_ROLLER") {
+        AudioEngine.playDiceRoll();
+      }
+      closeDiceModal();
+      const res = await apiPost("/api/room/roll", {
+        roomCode: state.roomCode,
+        characterId: selectedHeroId,
+        cardId: activeCardId,
+        source,
+        physicalRollValue
+      });
+
+      if (res && res.roll) {
+        if (res.roll.succeeded) {
+          AudioEngine.playSuccessChime();
+        } else {
+          AudioEngine.playFailForwardBoing();
+        }
+      }
+    }
+
+    /* ==========================================================
+       4. MASTER RENDER DISPATCHER
+       ========================================================== */
     function renderAll() {
-      // Mode buttons
+      // Apply theme
+      applyTheme(currentTheme);
+
+      // Mode switch buttons
       const modes = [
         ["GM_COMMAND", "btn-mode-gm"],
         ["TABLE_TV_DISPLAY", "btn-mode-tv"],
@@ -473,7 +875,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         if (m === displayMode) {
           el.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 text-slate-950 shadow";
         } else {
-          el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white";
+          el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
         }
       }
 
@@ -501,6 +903,15 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       document.getElementById("gm-copilot-panel").style.display =
         displayMode === "GM_COMMAND" ? "flex" : "none";
 
+      // Tactical Battlemap Theme Background
+      const gridEl = document.getElementById("vtt-grid");
+      gridEl.className = "grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 relative select-none shadow-inner " +
+        (state.campaignId === "camp-clockwork-treehouse"
+          ? "bg-treehouse"
+          : state.campaignId === "camp-starlight-otter"
+          ? "bg-starlight"
+          : "bg-bakery");
+
       // Active story node
       const activeNode =
         state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0];
@@ -515,7 +926,6 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       }
 
       // Render Grid Cells (10x6)
-      const gridEl = document.getElementById("vtt-grid");
       gridEl.innerHTML = "";
       for (let y = 0; y < state.gridRows; y++) {
         for (let x = 0; x < state.gridCols; x++) {
@@ -526,12 +936,12 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           const cell = document.createElement("div");
           cell.onclick = () => moveTokenToCell(x, y);
           cell.className =
-            "border border-slate-800/70 relative flex items-center justify-center cursor-pointer transition " +
+            "border border-slate-700/40 relative flex items-center justify-center cursor-pointer transition " +
             (isFogged
-              ? "bg-slate-950"
+              ? "bg-slate-950/90"
               : zone && !zone.isRevealed
               ? "bg-slate-900/60"
-              : "bg-indigo-950/30 hover:bg-indigo-900/40");
+              : "hover:bg-amber-500/10");
 
           if (x === zone?.gridX && y === 0) {
             const label = document.createElement("span");
@@ -555,9 +965,41 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             for (const tok of cellTokens) {
               const badge = document.createElement("div");
               badge.className =
-                "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold transition transform hover:scale-110";
-              badge.style.backgroundColor = tok.color;
-              badge.innerHTML = \`<span>\${tok.avatarEmoji}</span><span class="text-[9px] bg-black/75 px-1 rounded text-white leading-none">\${tok.name.split(" ")[0]}</span>\`;
+                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold";
+              badge.style.backgroundColor = tok.color || "#f59e0b";
+              badge.title = tok.name;
+
+              // Floating status badge
+              let statusOverlay = "";
+              if (tok.isLootChest) {
+                statusOverlay = tok.isChestOpened
+                  ? \`<span class="absolute -top-1.5 -right-1.5 text-xs">✨</span>\`
+                  : \`<span class="absolute -top-1.5 -right-1.5 text-xs animate-bounce">🎁</span>\`;
+              } else if (tok.statusBadge === "INSPIRATION_STAR") {
+                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs">⭐</span>\`;
+              } else if (tok.statusBadge === "SHIELD_GUARD") {
+                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs">🛡️</span>\`;
+              } else if (tok.statusBadge === "BONKED_DIZZY") {
+                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs">💫</span>\`;
+              }
+
+              badge.innerHTML = \`
+                \${statusOverlay}
+                <span>\${tok.avatarEmoji}</span>
+                <span class="text-[8px] bg-black/80 px-1 rounded text-white leading-none truncate max-w-[42px]">\${tok.name.split(" ")[0]}</span>
+              \`;
+
+              // Click to inspect or open chest
+              badge.onclick = (e) => {
+                e.stopPropagation();
+                if (tok.isLootChest && !tok.isChestOpened) {
+                  openLootChest(tok.id);
+                } else if (tok.characterId) {
+                  selectedHeroId = tok.characterId;
+                  openHeroSheetModal();
+                }
+              };
+
               cell.appendChild(badge);
             }
           }
@@ -601,7 +1043,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           "p-2 rounded-lg border text-xs flex flex-col gap-1 " +
           (sp.needsSpotlightNudge
             ? "bg-amber-950/60 border-amber-400 text-amber-200"
-            : "bg-slate-950 border-slate-800 text-slate-300");
+            : "theme-inner-box border text-slate-300");
         row.innerHTML = \`<div class="flex justify-between font-semibold"><span>\${sp.characterName} (\${sp.playerName})</span><span>\${sp.turnsTaken} turns</span></div>\` +
           (sp.suggestedSpotlightHook ? \`<div class="text-[11px] text-amber-300">\${sp.suggestedSpotlightHook}</div>\` : "");
         spotEl.appendChild(row);
@@ -620,8 +1062,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         t.className =
           "p-2 rounded-xl border text-left transition flex items-center gap-2 " +
           (active
-            ? "bg-amber-500/20 border-amber-400 text-white"
-            : "bg-slate-950 border-slate-800 text-slate-400");
+            ? "bg-amber-500/20 border-amber-400 text-amber-300"
+            : "theme-inner-box border text-slate-400");
         t.innerHTML = \`<span class="text-xl">\${h.avatarEmoji}</span><div class="truncate"><div class="text-xs font-bold truncate">\${h.name}</div><div class="text-[10px] text-slate-400">\${h.playerName}</div></div>\`;
         tabsEl.appendChild(t);
       }
@@ -638,18 +1080,18 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         sheetEl.innerHTML = \`
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-sm font-bold text-amber-300">\${currentHero.avatarEmoji} \${currentHero.name}</div>
+              <div class="text-sm font-bold text-amber-400">\${currentHero.avatarEmoji} \${currentHero.name}</div>
               <div class="text-[11px] text-slate-400">\${currentHero.archetype} • Pet: \${currentHero.companionPet}</div>
             </div>
             <div class="text-xs font-bold text-rose-400">\${healthDisplay}</div>
           </div>
-          <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-            <span class="text-xs text-slate-400">🕹️ Touch Move Token:</span>
+          <div class="flex items-center justify-between pt-2 border-t border-slate-700/50">
+            <span class="text-xs text-slate-400">🕹️ Touch D-Pad:</span>
             <div class="flex gap-1.5">
-              <button onclick="moveSelectedHero(-1, 0)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">⬅️</button>
-              <button onclick="moveSelectedHero(0, -1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">⬆️</button>
-              <button onclick="moveSelectedHero(0, 1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">⬇️</button>
-              <button onclick="moveSelectedHero(1, 0)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold">➡️</button>
+              <button onclick="moveSelectedHero(-1, 0)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">⬅️</button>
+              <button onclick="moveSelectedHero(0, -1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">⬆️</button>
+              <button onclick="moveSelectedHero(0, 1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">⬇️</button>
+              <button onclick="moveSelectedHero(1, 0)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">➡️</button>
             </div>
           </div>
         \`;
@@ -662,12 +1104,12 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           const cardBtn = document.createElement("button");
           cardBtn.onclick = () => openDiceModal(c.id);
           cardBtn.className =
-            "w-full p-3 rounded-xl bg-gradient-to-r from-slate-950 to-slate-900 hover:from-indigo-950 hover:to-slate-900 border border-amber-500/40 text-left transition flex items-center justify-between";
+            "w-full p-3 rounded-xl theme-inner-box hover:border-amber-400 border text-left transition flex items-center justify-between";
           cardBtn.innerHTML = \`
             <div class="flex items-center gap-2.5">
               <span class="text-2xl">\${c.icon}</span>
               <div>
-                <div class="text-xs font-extrabold text-amber-300">\${c.title}</div>
+                <div class="text-xs font-extrabold text-amber-400">\${c.title}</div>
                 <div class="text-[11px] text-slate-300">\${c.description}</div>
               </div>
             </div>

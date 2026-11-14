@@ -9,6 +9,7 @@ import {
   generateJoinQrSvg,
   getOrCreateRoom,
   moveRoomToken,
+  openRoomLootChest,
   regenerateRoomProceduralMap,
   submitPlayerActionRoll,
   switchRoomCampaign,
@@ -240,6 +241,19 @@ const server = http.createServer(async (req, res) => {
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/open-chest" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const { room, rewardedItem } = openRoomLootChest({
+      roomCode: body.roomCode || "DRGN",
+      tokenId: body.tokenId,
+      characterId: body.characterId,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room, rewardedItem }));
     return;
   }
 

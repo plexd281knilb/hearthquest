@@ -378,6 +378,7 @@ export function addCustomHeroToRoom(params: {
     hp: 3,
     maxHp: 3,
     isHiddenFromPlayers: false,
+    statusBadge: "INSPIRATION_STAR",
   });
 
   room.spotlightRecords = computeSiblingSpotlightFairness(
@@ -386,6 +387,46 @@ export function addCustomHeroToRoom(params: {
   );
   autoPersistRooms();
   return room;
+}
+
+export function openRoomLootChest(params: {
+  roomCode: string;
+  tokenId: string;
+  characterId?: string;
+}): { room: RoomSessionState; rewardedItem?: { name: string; icon: string; description: string } } {
+  const room = getOrCreateRoom(params.roomCode);
+  const token = room.tokens.find((t) => t.id === params.tokenId);
+  const hero = room.heroes.find((h) => h.id === params.characterId) || room.heroes[0];
+
+  if (!token) return { room };
+
+  token.isLootChest = true;
+  token.isChestOpened = true;
+  token.avatarEmoji = "✨";
+  token.statusBadge = "INSPIRATION_STAR";
+
+  const FUN_LOOT = [
+    { name: "Cookie of Bravery", icon: "🍪", description: "Bite it for an instant burst of confidence!" },
+    { name: "Glowstone of Whispers", icon: "🔮", description: "Softly illuminates dark corners with friendly sparkles." },
+    { name: "Feather-Light Boots", icon: "🥾", description: "Allows the wearer to tiptoe without making a sound." },
+    { name: "Cape of Fluttering", icon: "🧣", description: "Billows heroically even when there is no wind." },
+    { name: "Compass of Wonder", icon: "🧭", description: "Always points toward the nearest exciting family snack!" },
+  ];
+  const item = FUN_LOOT[Math.floor(Math.random() * FUN_LOOT.length)];
+  token.lootRewardName = item.name;
+
+  if (hero) {
+    hero.inventory.push({
+      id: `item_loot_${Date.now()}`,
+      name: item.name,
+      icon: item.icon,
+      description: item.description,
+    });
+    hero.levelStars = Math.min(5, (hero.levelStars || 1) + 1);
+  }
+
+  autoPersistRooms();
+  return { room, rewardedItem: item };
 }
 
 export function switchRoomCampaign(params: {

@@ -13,6 +13,8 @@ export type ContentRating = "COZY_G" | "ADVENTURE_PG" | "CLASSIC_PG13";
 
 export type DisplayMode = "GM_COMMAND" | "TABLE_TV_DISPLAY" | "PLAYER_CONTROLLER";
 
+export type ThemeMode = "DARK_MIDNIGHT" | "LIGHT_PARCHMENT";
+
 export type DiceInputMode = "HYBRID_PHYSICAL_PROMPT" | "DIGITAL_3D";
 
 export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
@@ -85,6 +87,9 @@ export interface CharacterSheet {
     icon: string;
     description: string;
   }>;
+  levelStars?: number;
+  bioStory?: string;
+  petTrait?: string;
 }
 
 export interface MapToken {
@@ -100,6 +105,10 @@ export interface MapToken {
   maxHp: number;
   isHiddenFromPlayers: boolean;
   statusCondition?: string;
+  statusBadge?: "INSPIRATION_STAR" | "BONKED_DIZZY" | "SHIELD_GUARD" | "HEROIC_RALLY" | "NONE";
+  isLootChest?: boolean;
+  isChestOpened?: boolean;
+  lootRewardName?: string;
 }
 
 export interface MapRoomZone {

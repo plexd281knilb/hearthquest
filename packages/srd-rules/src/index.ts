@@ -294,11 +294,14 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
       },
       {
         id: "item-honey-biscuit",
-        name: " Emergency Honey Biscuit",
+        name: "Emergency Honey Biscuit",
         icon: "🍪",
         description: "Restores 1 Heart or calms down one grumpy creature.",
       },
     ],
+    levelStars: 2,
+    bioStory: "A brave little terrier knight in shining armor who protects his family with gentle shield boops.",
+    petTrait: "Wags tail to give an ally +1 on their next heroic roll!",
   },
   {
     id: "hero-lyra",
@@ -367,6 +370,9 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
         description: "Lets you float down gently like a dandelion seed.",
       },
     ],
+    levelStars: 3,
+    bioStory: "A curious star-weaver apprentice who sings lullabies to magical fireflies and knows every constellation.",
+    petTrait: "Spots shiny hidden levers from high up in the air!",
   },
 ];
 
@@ -483,6 +489,20 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         hp: 4,
         maxHp: 4,
         isHiddenFromPlayers: true,
+      },
+      {
+        id: "tok-bakery-chest",
+        name: "Frosted Treasure Chest",
+        type: "PROP",
+        avatarEmoji: "🎁",
+        color: "#f59e0b",
+        gridX: 5,
+        gridY: 2,
+        hp: 1,
+        maxHp: 1,
+        isHiddenFromPlayers: false,
+        isLootChest: true,
+        isChestOpened: false,
       },
     ],
     storyNodes: [

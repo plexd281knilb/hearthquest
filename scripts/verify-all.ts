@@ -14,6 +14,7 @@ import {
   getOrCreateRoom,
   loadRoomsFromDisk,
   moveRoomToken,
+  openRoomLootChest,
   regenerateRoomProceduralMap,
   resetRoomsForTesting,
   saveRoomsToDisk,
@@ -248,8 +249,46 @@ async function runVerification() {
   assert.ok(fs.existsSync(startAllPath), "scripts/start-all.ts must exist");
   console.log("✅ PASSED");
 
+  // Suite 12: Light Mode & Dark Mode Theming
+  process.stdout.write("[TEST] Suite 12: Light Mode & Dark Mode Theming (VTT & Admin)... ");
+  assert.ok(vttHtml.includes("btn-theme-toggle"), "VTT HTML must include theme toggle button");
+  assert.ok(vttHtml.includes("data-theme=\"light\""), "VTT HTML must include light theme styles");
+  assert.ok(vttHtml.includes("data-theme=\"dark\""), "VTT HTML must include dark theme styles");
+  assert.ok(adminHtml.includes("admin-theme-btn"), "Admin HTML must include theme toggle button");
+  assert.ok(adminHtml.includes("hearthquest_theme"), "Theme must be persisted in localStorage");
+  console.log("✅ PASSED");
+
+  // Suite 13: Procedural Web Audio Engine & Interactive Loot Chests
+  process.stdout.write("[TEST] Suite 13: Web Audio Engine & Interactive Loot Chests... ");
+  assert.ok(vttHtml.includes("AudioEngine"), "VTT HTML must include procedural Web Audio engine");
+  assert.ok(vttHtml.includes("playDiceRoll"), "Audio engine must support procedural dice roll sound");
+  assert.ok(vttHtml.includes("playSuccessChime"), "Audio engine must support success chime");
+  assert.ok(vttHtml.includes("playFailForwardBoing"), "Audio engine must support fail-forward boing");
+  assert.ok(vttHtml.includes("btn-audio-toggle"), "VTT HTML must include sound toggle button");
+
+  const starterRoom = getOrCreateRoom("DRGN");
+  const chestToken = starterRoom.tokens.find((t) => t.isLootChest);
+  assert.ok(chestToken, "Starter room must contain an interactive loot chest");
+  assert.strictEqual(chestToken?.isChestOpened, false);
+
+  const lootResult = openRoomLootChest({
+    roomCode: "DRGN",
+    tokenId: chestToken!.id,
+    characterId: starterRoom.heroes[0].id,
+  });
+  const openedChest = lootResult.room.tokens.find((t) => t.id === chestToken!.id);
+  assert.strictEqual(openedChest?.isChestOpened, true);
+  assert.ok(lootResult.rewardedItem?.name, "Opening chest must reward a magical item");
+  assert.ok(lootResult.rewardedItem?.icon, "Rewarded item must have an icon");
+  const heroInventory = starterRoom.heroes[0].inventory;
+  assert.ok(
+    heroInventory.some((i) => i.name === lootResult.rewardedItem?.name),
+    "Hero inventory must receive the rewarded item"
+  );
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 11/11 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 13/13 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

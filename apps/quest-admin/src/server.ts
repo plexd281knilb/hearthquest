@@ -43,8 +43,51 @@ export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx308
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HearthQuest Admin — Family Guides, Storefront & Print-on-Demand</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body[data-theme="dark"] {
+      background-color: #020617;
+      color: #f8fafc;
+    }
+    body[data-theme="light"] {
+      background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%);
+      color: #1c1917;
+    }
+    body[data-theme="light"] header {
+      background-color: #ffffff !important;
+      border-color: #e5ded2 !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] section,
+    body[data-theme="light"] .admin-card {
+      background-color: #ffffff !important;
+      border-color: #e5ded2 !important;
+      color: #1c1917 !important;
+      box-shadow: 0 4px 14px rgba(120, 53, 15, 0.05);
+    }
+    body[data-theme="light"] .admin-inner {
+      background-color: #fbf9f5 !important;
+      border-color: #e8e0d4 !important;
+      color: #292524 !important;
+    }
+    body[data-theme="light"] h1,
+    body[data-theme="light"] h2,
+    body[data-theme="light"] h3 {
+      color: #92400e !important;
+    }
+    body[data-theme="light"] .text-slate-400 {
+      color: #78716c !important;
+    }
+    body[data-theme="light"] .text-slate-300 {
+      color: #44403c !important;
+    }
+    body[data-theme="light"] input {
+      background-color: #ffffff !important;
+      color: #1c1917 !important;
+      border-color: #cbd5e1 !important;
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+<body class="min-h-screen flex flex-col font-sans" data-theme="dark">
   <header class="border-b border-amber-500/30 bg-slate-900/90 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-3">
       <span class="text-3xl">📦</span>
@@ -59,6 +102,9 @@ export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx308
       </div>
     </div>
     <div class="flex items-center gap-3">
+      <button onclick="toggleTheme()" id="admin-theme-btn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold transition">
+        🌙 Dark
+      </button>
       <a href="http://localhost:3000" target="_blank" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs">
         🛡️ Launch Live Family VTT (Port 3000)
       </a>
@@ -206,6 +252,19 @@ export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx308
         if (resultEl) resultEl.innerText = "❌ Probe error";
       }
     }
+
+    let adminTheme = localStorage.getItem("hearthquest_theme") || "dark";
+    function applyAdminTheme(t) {
+      adminTheme = t;
+      localStorage.setItem("hearthquest_theme", t);
+      document.body.setAttribute("data-theme", t);
+      const b = document.getElementById("admin-theme-btn");
+      if (b) b.innerText = t === "light" ? "☀️ Light" : "🌙 Dark";
+    }
+    function toggleTheme() {
+      applyAdminTheme(adminTheme === "light" ? "dark" : "light");
+    }
+    applyAdminTheme(adminTheme);
   </script>
 </body>
 </html>`;
