@@ -1,0 +1,19 @@
+{
+  "name": "@hearthquest/quest-ai-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@hearthquest/shared-types": "*",
+    "@hearthquest/srd-rules": "*"
+  },
+  "scripts": {
+    "dev": "npx tsx src/server.ts",
+    "start": "npx tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

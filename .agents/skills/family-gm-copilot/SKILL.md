@@ -1,36 +1,36 @@
 ---
 name: family-gm-copilot
-description: Artificial Intelligence Dungeon Master & Game Master Co-Pilot for zero-prep family tabletop sessions. Specializes in real-time in-ear whispering, dynamic branching storylines, read-aloud tone generation, and kid-friendly improv.
+description: Artificial Intelligence Game Master Co-Pilot for zero-prep family tabletop sessions. Covers real-time in-ear whispering, Sibling Spotlight fairness tracking, Age-Tiered Content Guardrails (Cozy G, Adventure PG, Classic PG-13), Bedtime Recaps, and kid-friendly improv.
 ---
 
 # Family GM & AI Co-Pilot Expert Guide
 
 ## 1. Core Mission: Zero-Prep Family Tabletop
-The biggest hurdle for families playing tabletop games is the preparation burden placed on the parent (GM). The AI Co-Pilot acts as a silent assistant sitting in the GM's screen:
-1. **Never Replaces the Human GM:** The parent remains the storytelling hero in their kids' eyes; the AI provides the prompts, stats, and ideas.
-2. **Instant Whisper Responses:** Provides 1-sentence prompt options so the parent can glance at their phone/tablet and keep talking naturally without pauses.
-3. **Multi-Tone Read Aloud:** Generates box-text descriptions in 3 distinct tones:
-   - *Atmospheric / Mysterious* (Spooky caves, forgotten ruins)
-   - *Action / Heroic* (Thunderous clashes, racing carriages)
-   - *Silly / Playful* (Dancing goblins, grumpy wizard cats)
+The AI Co-Pilot acts as a quiet assistant on the parent's GM screen:
+1. **Never Replaces the Human GM:** The parent remains the storytelling hero; the AI provides instant read-aloud box text, rules checks, and creative twists.
+2. **Multi-Tone Read Aloud:** Generates scene descriptions in 3 distinct tones:
+   - *Cozy / Silly* (Playful, humorous, zero-scare)
+   - *Action / Heroic* (Dynamic, exciting adventure)
+   - *Atmospheric / Mystery* (Curious puzzles and ancient secrets)
 
 ---
 
-## 2. Real-Time GM Helper Workflows
+## 2. Age-Tiered Content Guardrails
+Every prompt routed through `quest-ai-bridge` enforces the household's selected `ContentRating`:
+- **`COZY_G` (Ages 5–8):** Strictly zero blood, gore, or frightening horror. Defeated monsters *"poof into colorful smoke," "turn into harmless frogs,"* or *"run away dizzy dropping their loot."*
+- **`ADVENTURE_PG` (Ages 9–12):** Classic *Chronicles of Narnia* or *Lord of the Rings* heroic adventure tone. Non-graphic fantasy combat.
+- **`CLASSIC_PG13` (Teens & Adults):** Standard 5e heroic fantasy stakes.
 
-### A. The "What Do I Do Now?" Emergency Button
-When children take an unexpected action (*"Can I feed the troll my candy bar?"*, *"I want to dig through the dirt with my spoon"*):
-- The GM taps one button or speaks into the mic.
-- The AI Co-Pilot returns:
-  1. **Yes, And...:** A creative narrative outcome encouraging their idea.
-  2. **Rule Check:** "Ask them to make a DC 10 Charm or d6 check."
-  3. **Consequence:** If they pass, the troll smiles and trades a shiny pebble. If they fail, the troll sneezes and steals the candy.
+---
 
-### B. Dynamic Branching Tracker
-- Maintains state on which NPCs were helped, spared, or befriended.
-- Generates payoff scenes: An owl the party saved in Scene 1 drops a silver key in Scene 4.
+## 3. Sibling Spotlight Fairness Engine
+- Tracks `turnsTaken` and `lastActionTimestamp` for every child in the party.
+- When a player falls behind in participation (e.g., >10 minutes without a spotlight roll or 2+ fewer turns than siblings), the Co-Pilot generates a **Spotlight Whisper** for the GM:
+  - Targets the quiet player's specific character class, pet, or inventory item so only they can solve the next moment.
 
-### C. Kid-Pacing Heuristics
-- If combat exceeds 20 minutes (4 rounds), the AI triggers a dramatic resolution:
-  - Reinforcements arrive, the monster yields, or an environmental hazard ends the battle.
-- Attention-span alerts: Recommends 10-minute snack breaks or mini-games (riddles, visual puzzles) during long sessions.
+---
+
+## 4. "Pause for Bedtime" & Storybook Keepsake Generator
+- **Bedtime Freeze:** Serializes exact room state, token coordinates, active initiative, and story flags.
+- **"Previously On..." Recap:** Generates a 30-second illustrated narrative summary when resuming a paused session.
+- **Keepsake Comic / Storybook Export:** Compiles the family's session log, critical rolls, and choices into a printable illustrated PDF keepsake.

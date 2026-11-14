@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  quest-ai-bridge:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: hearthquest-ai-bridge
+    command: ["npm", "run", "dev:ai"]
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:14b-instruct}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    restart: unless-stopped
+
+  quest-vtt:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: hearthquest-vtt
+    command: ["npm", "run", "dev:vtt"]
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
+    depends_on:
+      - quest-ai-bridge
+    restart: unless-stopped
+
+  quest-admin:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: hearthquest-admin
+    command: ["npm", "run", "dev:admin"]
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
+    depends_on:
+      - quest-ai-bridge
+    restart: unless-stopped

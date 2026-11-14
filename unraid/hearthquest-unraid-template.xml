@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>HearthQuest-VTT</Name>
+  <Repository>ghcr.io/plexd281knilb/hearthquest:latest</Repository>
+  <Registry>https://github.com/plexd281knilb/hearthquest</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Project>https://github.com/plexd281knilb/hearthquest</Project>
+  <Overview>Zero-Prep Family Tabletop 5e Engine with AI GM Co-Pilot, Jackbox-Style Room Codes, Hybrid Physical/Digital Dice, and Print-on-Demand Kit Export.</Overview>
+  <Category>GameServers: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+  <Config Name="VTT Web Port" Target="3000" Default="3000" Mode="tcp" Description="Family VTT &amp; Tablet Controller Port" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Admin &amp; Storefront Port" Target="3001" Default="3001" Mode="tcp" Description="Guides, Storefront &amp; Printable Kits Port" Type="Port" Display="always" Required="true" Mask="false">3001</Config>
+  <Config Name="AI Bridge Port" Target="8000" Default="8000" Mode="tcp" Description="Local RTX 3080 &amp; Failover Router Port" Type="Port" Display="always" Required="true" Mask="false">8000</Config>
+  <Config Name="RTX 3080 Ollama Host" Target="OLLAMA_HOST" Default="http://192.168.1.100:11434" Mode="" Description="LAN URL of Gaming PC running Ollama" Type="Variable" Display="always" Required="false" Mask="false">http://192.168.1.100:11434</Config>
+</Container>

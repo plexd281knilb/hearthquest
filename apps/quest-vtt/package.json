@@ -1,0 +1,16 @@
+{
+  "name": "@hearthquest/quest-vtt",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/server.ts",
+  "dependencies": {
+    "@hearthquest/shared-types": "*",
+    "@hearthquest/srd-rules": "*",
+    "@hearthquest/quest-ai-bridge": "*"
+  },
+  "scripts": {
+    "dev": "npx tsx src/server.ts",
+    "start": "npx tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}
