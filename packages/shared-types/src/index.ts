@@ -132,8 +132,26 @@ export interface StoryBranchNode {
     ACTION_HEROIC: string;
     MYSTERY_ATMOSPHERIC: string;
   };
+  readAloudByRating?: {
+    COZY_G: string;
+    ADVENTURE_PG: string;
+    CLASSIC_PG13: string;
+  };
   gmWhisperTips: string[];
   choices: StoryBranchChoice[];
+}
+
+export interface FamilyCampaignTemplate {
+  id: string;
+  title: string;
+  theme: "BAKERY" | "FOREST_TREEHOUSE" | "STARLIGHT_SHIP";
+  description: string;
+  defaultRulesTier: RulesTier;
+  defaultContentRating: ContentRating;
+  initialActiveNodeId: string;
+  zones: MapRoomZone[];
+  tokens: MapToken[];
+  storyNodes: StoryBranchNode[];
 }
 
 export interface PlayerSpotlightRecord {

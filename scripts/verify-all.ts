@@ -9,9 +9,15 @@ import { PHYSICAL_PACKAGES, renderAdminHtml } from "../apps/quest-admin/src/serv
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
+  FAMILY_CAMPAIGNS,
+  generateJoinQrSvg,
   getOrCreateRoom,
+  loadRoomsFromDisk,
   moveRoomToken,
+  regenerateRoomProceduralMap,
+  saveRoomsToDisk,
   submitPlayerActionRoll,
+  switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
 } from "../apps/quest-vtt/src/room-store";
@@ -188,8 +194,36 @@ async function runVerification() {
   assert.ok(adminHtml.includes(`v${APP_VERSION}`), "Admin HTML must display current APP_VERSION");
   console.log("✅ PASSED");
 
+  // Suite 10: Multi-Campaign Switcher, Procedural Map Generator, Disk Persistence & QR Join SVG
+  process.stdout.write("[TEST] Suite 10: Campaigns, Procedural Maps, Disk Persistence & QR SVG... ");
+  assert.strictEqual(FAMILY_CAMPAIGNS.length, 3);
+  const treehouseRoom = switchRoomCampaign({
+    roomCode: "TREE",
+    campaignId: "camp-clockwork-treehouse",
+  });
+  assert.strictEqual(treehouseRoom.campaignId, "camp-clockwork-treehouse");
+  assert.ok(treehouseRoom.campaignTitle.includes("Clockwork Treehouse"));
+
+  const procRoom = regenerateRoomProceduralMap({
+    roomCode: "TREE",
+    theme: "STARLIGHT_SHIP",
+  });
+  assert.strictEqual(procRoom.zones.length, 3);
+  assert.ok(procRoom.tokens.length >= 4);
+
+  const savedPath = saveRoomsToDisk();
+  assert.ok(savedPath.endsWith("rooms.json"));
+  const loadedCount = loadRoomsFromDisk();
+  assert.ok(loadedCount >= 1);
+
+  const qrSvg = generateJoinQrSvg("DRGN", "http://localhost:3000/?room=DRGN&mode=kid");
+  assert.ok(qrSvg.includes("<svg"));
+  assert.ok(qrSvg.includes("DRGN"));
+  assert.ok(vttHtml.includes("speakReadAloudText()"), "VTT HTML must include Voice TTS button");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 9/9 SUITES PASSED (100% CLEAN)   ");
+  console.log("   VERIFICATION SUMMARY: 10/10 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

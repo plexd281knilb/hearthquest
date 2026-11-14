@@ -27,7 +27,6 @@ Every feature or fix pushed to `dev`, `beta`, or `main` **MUST** follow this seq
      - **Gate 1**: Version & Build Number consistency across all 6 manifests.
      - **Gate 2**: `npm.cmd run typecheck` (`0` TypeScript errors across all workspaces).
      - **Gate 3**: `npm.cmd run verify` (`9/9` functional & UI build-badge test suites passing).
-3. **Branch Promotion**:
-   - Commit & push to `origin/dev` first (`HEARTHQUEST_CHANNEL=dev` displays `vX.Y.Z • DEV`).
-   - Fast-forward merge `dev` into `beta` and push `origin/beta` for Unraid family testing (`HEARTHQUEST_CHANNEL=beta` displays `vX.Y.Z • BETA`).
-   - Promote `beta` to `main` only for stable commercial releases (`HEARTHQUEST_CHANNEL=main` displays `vX.Y.Z • MAIN`).
+3. **Branch Promotion & Permission Policy**:
+   - **`dev` Branch (Autonomous after Verification)**: You do **NOT** need permission to push to `origin/dev`. As soon as `npm.cmd run verify:push` passes 100%, automatically commit and push the new build (`v0.1.2`, `v0.1.3`, etc.) to `origin/dev`.
+   - **`beta` and `main` (`prod`) Branches (Permission Required)**: You **MUST** ask the user for explicit verification/permission before merging or pushing any build to `origin/beta` or `origin/main`. Never push to `beta` or `main` autonomously.

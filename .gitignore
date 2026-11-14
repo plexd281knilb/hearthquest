@@ -30,6 +30,7 @@ yarn-error.log*
 *.db-shm
 *.db-wal
 prisma/*.db
+data/
 
 # Media & Temporary Assets
 temp/

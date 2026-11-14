@@ -5,9 +5,13 @@ import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
+  FAMILY_CAMPAIGNS,
+  generateJoinQrSvg,
   getOrCreateRoom,
   moveRoomToken,
+  regenerateRoomProceduralMap,
   submitPlayerActionRoll,
+  switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
   updateRoomSettings,
@@ -69,6 +73,19 @@ const server = http.createServer(async (req, res) => {
         activeRoomsCount: 1,
       })
     );
+    return;
+  }
+
+  if (pathname === "/api/room/qr" && req.method === "GET") {
+    const roomCode = (
+      parsedUrl.searchParams.get("room") ||
+      parsedUrl.searchParams.get("roomCode") ||
+      "DRGN"
+    ).toUpperCase();
+    const joinUrl = `/?room=${roomCode}&mode=kid`;
+    const svg = generateJoinQrSvg(roomCode, joinUrl);
+    res.writeHead(200, { "Content-Type": "image/svg+xml; charset=utf-8" });
+    res.end(svg);
     return;
   }
 
@@ -199,6 +216,30 @@ const server = http.createServer(async (req, res) => {
     });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room, whisper }));
+    return;
+  }
+
+  if (pathname === "/api/room/switch-campaign" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = switchRoomCampaign({
+      roomCode: body.roomCode || "DRGN",
+      campaignId: body.campaignId || FAMILY_CAMPAIGNS[0].id,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room, campaigns: FAMILY_CAMPAIGNS }));
+    return;
+  }
+
+  if (pathname === "/api/room/procedural-map" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = regenerateRoomProceduralMap({
+      roomCode: body.roomCode || "DRGN",
+      theme: body.theme,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
     return;
   }
 

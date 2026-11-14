@@ -40,6 +40,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <span id="build-version-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40" title="Build updated ${buildMeta.updatedAt}">
             ${buildMeta.badgeText}
           </span>
+          <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
+            📲 QR Join Modal
+          </button>
         </div>
         <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>
       </div>
@@ -104,8 +107,20 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
         <!-- Zone Fog-of-War Controls (GM Only) -->
         <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
-          <span class="text-xs font-semibold text-slate-400">🗺️ GM Room Fog of War Reveal:</span>
-          <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-400">🗺️ GM Room Fog of War Reveal:</span>
+            <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="campaign-select" onchange="switchCampaign(this.value)" class="bg-slate-950 border border-indigo-500/40 rounded-lg px-2 py-1 text-xs text-amber-200">
+              <option value="camp-goblin-bakery">🧁 The Great Goblin Bakery Heist</option>
+              <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse Mystery</option>
+              <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
+            </select>
+            <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+              🎲 New Procedural Map
+            </button>
+          </div>
         </div>
       </div>
 
@@ -113,10 +128,13 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       <div id="gm-story-panel" class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h3 class="text-sm font-bold text-indigo-300">📖 Zero-Prep Read-Aloud Box Text (Pick Your Tone)</h3>
-          <div class="flex gap-1">
+          <div class="flex flex-wrap gap-1 items-center">
             <button onclick="setReadAloudTone('COZY_SILLY')" id="tone-cozy" class="px-2.5 py-1 rounded text-xs font-semibold bg-amber-500 text-slate-950">😂 Cozy & Silly</button>
             <button onclick="setReadAloudTone('ACTION_HEROIC')" id="tone-action" class="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-300">⚔️ Action Heroic</button>
             <button onclick="setReadAloudTone('MYSTERY_ATMOSPHERIC')" id="tone-mystery" class="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 text-slate-300">🕯️ Mystery</button>
+            <button onclick="speakReadAloudText()" id="btn-read-aloud-tts" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 transition">
+              🔊 Read Aloud (Voice TTS)
+            </button>
           </div>
         </div>
         <blockquote id="read-aloud-box" class="p-3.5 rounded-xl bg-slate-950 border-l-4 border-amber-400 text-sm text-amber-100 italic leading-relaxed"></blockquote>
@@ -252,12 +270,58 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     </div>
   </div>
 
+  <!-- QR JOIN MODAL -->
+  <div id="qr-join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-extrabold text-amber-300">📲 Scan to Join Room ${initialState.roomCode}</h3>
+        <button onclick="toggleQrJoinModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">
+        Kids & family members can scan this QR badge or tap the link to open the Kid Tablet Controller:
+      </p>
+      <div class="flex justify-center">
+        <img src="/api/room/qr?room=${initialState.roomCode}" alt="QR Code for Room ${initialState.roomCode}" class="rounded-2xl shadow-lg border border-amber-500/40" />
+      </div>
+      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+        <div class="text-xs text-slate-400">4-Letter Room Code:</div>
+        <div class="text-2xl font-mono font-extrabold text-amber-400 tracking-widest">${initialState.roomCode}</div>
+        <a href="/?room=${initialState.roomCode}&mode=kid" class="inline-block mt-2 text-xs font-bold text-emerald-300 hover:underline">
+          🔗 Open Direct Kid Tablet Link (/?room=${initialState.roomCode}&mode=kid)
+        </a>
+      </div>
+    </div>
+  </div>
+
   <script>
     let state = ${serialized};
-    let displayMode = new URLSearchParams(window.location.search).get("mode") || "GM_COMMAND";
+    const rawUrlMode = (new URLSearchParams(window.location.search).get("mode") || "").toUpperCase();
+    let displayMode =
+      rawUrlMode === "KID" || rawUrlMode === "PLAYER_CONTROLLER"
+        ? "PLAYER_CONTROLLER"
+        : rawUrlMode === "TV" || rawUrlMode === "TABLE_TV_DISPLAY"
+        ? "TABLE_TV_DISPLAY"
+        : "GM_COMMAND";
     let activeTone = "COZY_SILLY";
     let selectedHeroId = state.heroes[0]?.id || "";
     let pendingCardId = "";
+
+    function toggleQrJoinModal() {
+      document.getElementById("qr-join-modal").classList.toggle("hidden");
+    }
+
+    function speakReadAloudText() {
+      const textEl = document.getElementById("read-aloud-box");
+      const text = textEl ? textEl.innerText : "";
+      if (!text) return;
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.98;
+        utterance.pitch = activeTone === "COZY_SILLY" ? 1.1 : activeTone === "MYSTERY_ATMOSPHERIC" ? 0.9 : 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
 
     function setDisplayMode(mode) {
       displayMode = mode;
@@ -369,6 +433,14 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     function toggleHeroCreatorModal() {
       document.getElementById("hero-creator-modal").classList.toggle("hidden");
+    }
+
+    async function switchCampaign(campaignId) {
+      await apiPost("/api/room/switch-campaign", { roomCode: state.roomCode, campaignId });
+    }
+
+    async function regenerateProceduralMap() {
+      await apiPost("/api/room/procedural-map", { roomCode: state.roomCode });
     }
 
     async function createNewHero() {

@@ -74,10 +74,10 @@ export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx308
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
         <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
           <div class="text-slate-400">Local Gaming Rig (RTX 3080 Ollama)</div>
-          <div class="text-sm font-bold mt-1 ${rtxStatus.rtx3080Online ? "text-emerald-400" : "text-amber-300"}">
+          <div id="rtx-online-badge" class="text-sm font-bold mt-1 ${rtxStatus.rtx3080Online ? "text-emerald-400" : "text-amber-300"}">
             ${rtxStatus.rtx3080Online ? "🟢 ONLINE (" + rtxStatus.activeModel + ")" : "🟡 STANDBY — Auto-Failover Active"}
           </div>
-          <div class="text-[11px] text-slate-500 mt-1">Host: ${rtxStatus.rtx3080ConfiguredHost}</div>
+          <div id="rtx-host-label" class="text-[11px] text-slate-500 mt-1">Host: ${rtxStatus.rtx3080ConfiguredHost}</div>
         </div>
         <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
           <div class="text-slate-400">Fail-Safe Game Night Engine</div>
@@ -89,6 +89,14 @@ export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx308
           <div class="text-sm font-bold text-emerald-300 mt-1">Jackbox Room Codes + Cozy G-Rated Filter</div>
           <div class="text-[11px] text-slate-500 mt-1">Supports TV Display, GM Laptop & Kid Tablets</div>
         </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center gap-3 text-xs">
+        <label for="rtx-host-input" class="text-slate-400 font-semibold">Custom OLLAMA_HOST URL:</label>
+        <input id="rtx-host-input" type="text" value="${rtxStatus.rtx3080ConfiguredHost}" class="flex-1 min-w-[220px] bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs" />
+        <button onclick="testRtxConnection()" id="btn-test-rtx" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition">
+          🔍 Test RTX 3080 Connection Now
+        </button>
+        <span id="rtx-test-result" class="text-xs text-slate-300 font-mono"></span>
       </div>
     </section>
 
@@ -166,6 +174,39 @@ export function renderAdminHtml(rtxStatus: Awaited<ReturnType<typeof probeRtx308
   <footer class="border-t border-slate-800 px-6 py-4 text-center text-[11px] text-slate-500 max-w-5xl mx-auto">
     ${SRD_51_CC_BY_40_ATTRIBUTION}
   </footer>
+  <script>
+    async function testRtxConnection() {
+      const hostInput = document.getElementById("rtx-host-input");
+      const resultEl = document.getElementById("rtx-test-result");
+      const badgeEl = document.getElementById("rtx-online-badge");
+      const hostLabel = document.getElementById("rtx-host-label");
+      const ollamaUrl = hostInput ? hostInput.value.trim() : "";
+      if (resultEl) resultEl.innerText = "⏳ Probing RTX 3080...";
+      try {
+        const res = await fetch("/api/rtx/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ollamaUrl })
+        });
+        const data = await res.json();
+        if (data && data.rtxStatus) {
+          const st = data.rtxStatus;
+          if (badgeEl) {
+            badgeEl.className = "text-sm font-bold mt-1 " + (st.rtx3080Online ? "text-emerald-400" : "text-amber-300");
+            badgeEl.innerText = st.rtx3080Online ? "🟢 ONLINE (" + st.activeModel + ")" : "🟡 STANDBY — Auto-Failover Active";
+          }
+          if (hostLabel) {
+            hostLabel.innerText = "Host: " + st.rtx3080ConfiguredHost;
+          }
+          if (resultEl) {
+            resultEl.innerText = (st.rtx3080Online ? "✅ Connected" : "⚠️ Offline (Failover Ready)") + " • " + st.latencyMs + "ms";
+          }
+        }
+      } catch (err) {
+        if (resultEl) resultEl.innerText = "❌ Probe error";
+      }
+    }
+  </script>
 </body>
 </html>`;
 }
@@ -217,6 +258,22 @@ function renderPrintableKitHtml(): string {
 </html>`;
 }
 
+function readJsonBody(req: http.IncomingMessage): Promise<any> {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+    });
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(raw || "{}"));
+      } catch {
+        resolve({});
+      }
+    });
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.url === "/" && req.method === "GET") {
     const rtxStatus = await probeRtx3080Health();
@@ -228,6 +285,16 @@ const server = http.createServer(async (req, res) => {
   if (req.url === "/printable-kit" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(renderPrintableKitHtml());
+    return;
+  }
+
+  if (req.url === "/api/rtx/test" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const customUrl =
+      body.ollamaUrl || body.host || process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
+    const rtxStatus = await probeRtx3080Health(customUrl);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, rtxStatus }));
     return;
   }
 

@@ -25,9 +25,12 @@ services:
     command: ["npm", "run", "dev:vtt"]
     ports:
       - "3000:3000"
+    volumes:
+      - ./data:/app/data
     environment:
       - PORT=3000
       - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
+      - HEARTHQUEST_DATA_DIR=/app/data
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
     depends_on:
       - quest-ai-bridge
