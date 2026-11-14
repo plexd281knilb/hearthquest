@@ -18,7 +18,7 @@ import {
 } from "./room-store";
 import { renderVttAppHtml } from "./ui-template";
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT_VTT || process.env.PORT || 3000);
 
 const sseSubscribers = new Map<string, Set<http.ServerResponse>>();
 

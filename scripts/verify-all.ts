@@ -15,6 +15,7 @@ import {
   loadRoomsFromDisk,
   moveRoomToken,
   regenerateRoomProceduralMap,
+  resetRoomsForTesting,
   saveRoomsToDisk,
   submitPlayerActionRoll,
   switchRoomCampaign,
@@ -37,6 +38,8 @@ import {
 } from "../packages/srd-rules/src/index";
 
 async function runVerification() {
+  resetRoomsForTesting();
+
   console.log("==========================================================");
   console.log("   HEARTHQUEST FAMILY TABLETOP & AI CO-PILOT VERIFICATION ");
   console.log("==========================================================\n");
@@ -212,7 +215,7 @@ async function runVerification() {
   assert.ok(procRoom.tokens.length >= 4);
 
   const savedPath = saveRoomsToDisk();
-  assert.ok(savedPath.endsWith("rooms.json"));
+  assert.ok(savedPath.endsWith("test-rooms.json") || savedPath.endsWith("rooms.json"));
   const loadedCount = loadRoomsFromDisk();
   assert.ok(loadedCount >= 1);
 
@@ -222,8 +225,31 @@ async function runVerification() {
   assert.ok(vttHtml.includes("speakReadAloudText()"), "VTT HTML must include Voice TTS button");
   console.log("✅ PASSED");
 
+  // Suite 11: GitHub Actions CI/CD Workflows, Unraid Template & All-In-One Runner
+  process.stdout.write("[TEST] Suite 11: GitHub Actions CI/CD, Unraid XML & All-In-One Config... ");
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const rootDir = path.resolve(__dirname, "..");
+  
+  const workflowPath = path.join(rootDir, ".github", "workflows", "docker-publish.yml");
+  assert.ok(fs.existsSync(workflowPath), ".github/workflows/docker-publish.yml must exist");
+  const workflowContent = fs.readFileSync(workflowPath, "utf8");
+  assert.ok(workflowContent.includes("ghcr.io"), "Workflow must publish to ghcr.io");
+  assert.ok(workflowContent.includes("branches: [ \"main\", \"beta\", \"dev\" ]"), "Workflow must trigger on dev, beta, and main");
+  assert.ok(workflowContent.includes("npm run verify"), "Workflow must run verify gate before building");
+
+  const unraidTemplatePath = path.join(rootDir, "unraid", "hearthquest-unraid-template.xml");
+  assert.ok(fs.existsSync(unraidTemplatePath), "Unraid template XML must exist");
+  const unraidContent = fs.readFileSync(unraidTemplatePath, "utf8");
+  assert.ok(unraidContent.includes("ghcr.io/plexd281knilb/hearthquest"), "Unraid template must point to ghcr.io image");
+  assert.ok(unraidContent.includes("3000") && unraidContent.includes("3001") && unraidContent.includes("8000"), "Unraid template must expose ports 3000, 3001, 8000");
+
+  const startAllPath = path.join(rootDir, "scripts", "start-all.ts");
+  assert.ok(fs.existsSync(startAllPath), "scripts/start-all.ts must exist");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 10/10 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 11/11 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

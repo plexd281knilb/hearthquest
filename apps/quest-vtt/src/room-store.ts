@@ -21,8 +21,16 @@ import {
 const rooms = new Map<string, RoomSessionState>();
 
 function getRoomsFilePath(): string {
+  if (process.env.NODE_ENV === "test") {
+    const testDir = path.join(process.cwd(), "data", ".test");
+    return path.join(testDir, "test-rooms.json");
+  }
   const dataDir = process.env.HEARTHQUEST_DATA_DIR || path.join(process.cwd(), "data");
   return path.join(dataDir, "rooms.json");
+}
+
+export function resetRoomsForTesting(): void {
+  rooms.clear();
 }
 
 export function saveRoomsToDisk(): string {

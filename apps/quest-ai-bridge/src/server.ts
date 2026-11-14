@@ -3,7 +3,7 @@ import { getBuildMetadata } from "@hearthquest/shared-types";
 import { createStarterFamilySession } from "@hearthquest/srd-rules";
 import { generateGmCoPilotWhisper, probeRtx3080Health } from "./index";
 
-const PORT = Number(process.env.PORT || 8000);
+const PORT = Number(process.env.PORT_AI || process.env.PORT || 8000);
 
 const server = http.createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");

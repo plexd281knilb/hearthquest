@@ -3,7 +3,7 @@ import { probeRtx3080Health } from "@hearthquest/quest-ai-bridge";
 import { PrintFulfillmentPackage, getBuildMetadata } from "@hearthquest/shared-types";
 import { SRD_51_CC_BY_40_ATTRIBUTION } from "@hearthquest/srd-rules";
 
-const PORT = Number(process.env.PORT || 3001);
+const PORT = Number(process.env.PORT_ADMIN || process.env.PORT || 3001);
 
 export const PHYSICAL_PACKAGES: PrintFulfillmentPackage[] = [
   {
