@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   AmbientLightingMode,
+  AmbientWeatherType,
   CharacterSheet,
   ContentRating,
   DiceInputMode,
@@ -9,6 +10,7 @@ import {
   DieType,
   RoomSessionState,
   RulesTier,
+  SpellTemplate,
   resolveArchetypeAsset,
 } from "@hearthquest/shared-types";
 import {
@@ -157,6 +159,12 @@ export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
   }
   if (!room.walls || room.walls.length === 0) {
     room.walls = createDefaultZoneWalls(room.zones);
+  }
+  if (!room.ambientWeather) {
+    room.ambientWeather = "HEARTH_EMBERS";
+  }
+  if (!room.spellTemplates) {
+    room.spellTemplates = [];
   }
   return room;
 }
@@ -568,6 +576,99 @@ export function submitQuickPolyhedralRoll(params: {
   room.rollHistory = [roll, ...room.rollHistory].slice(0, 15);
   autoPersistRooms();
   return { room, roll };
+}
+
+/**
+ * Updates ambient tabletop weather particles and places/clears Spell AoE Templates (Circle/Cone/Line).
+ */
+export function updateRoomToolsAndWeather(params: {
+  roomCode: string;
+  ambientWeather?: AmbientWeatherType;
+  addTemplate?: Omit<SpellTemplate, "id">;
+  clearTemplates?: boolean;
+}): RoomSessionState {
+  const room = getOrCreateRoom(params.roomCode);
+  if (params.ambientWeather) {
+    room.ambientWeather = params.ambientWeather;
+  }
+  if (params.clearTemplates) {
+    room.spellTemplates = [];
+  }
+  if (params.addTemplate) {
+    const existing = room.spellTemplates || [];
+    const template: SpellTemplate = {
+      id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      ...params.addTemplate,
+    };
+    room.spellTemplates = [...existing.slice(-7), template];
+  }
+  autoPersistRooms();
+  return room;
+}
+
+/**
+ * Returns the Unraid disk directory for personal custom tokens (/app/data/custom-tokens).
+ */
+export function getCustomTokensDir(): string {
+  if (process.env.NODE_ENV === "test") {
+    return path.join(process.cwd(), "data", ".test", "custom-tokens");
+  }
+  const dataDir = process.env.HEARTHQUEST_DATA_DIR || path.join(process.cwd(), "data");
+  return path.join(dataDir, "custom-tokens");
+}
+
+/**
+ * Scans /app/data/custom-tokens for personal token images dropped on Unraid.
+ */
+export function listCustomTokenAssets(): Array<{ filename: string; name: string; url: string }> {
+  try {
+    const dir = getCustomTokensDir();
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const files = fs.readdirSync(dir);
+    const allowedExt = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg"]);
+    return files
+      .filter((f) => allowedExt.has(path.extname(f).toLowerCase()))
+      .map((filename) => ({
+        filename,
+        name: path.basename(filename, path.extname(filename)).replace(/[-_]+/g, " "),
+        url: `/custom-tokens/${encodeURIComponent(filename)}`,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Spawns a custom user token (from Unraid disk drop) onto the tactical battlemap.
+ */
+export function spawnCustomTokenInRoom(params: {
+  roomCode: string;
+  name: string;
+  assetUrl: string;
+  type?: "HERO" | "NPC" | "MONSTER" | "PROP";
+  gridX?: number;
+  gridY?: number;
+}): RoomSessionState {
+  const room = getOrCreateRoom(params.roomCode);
+  room.tokens.push({
+    id: `tok_custom_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+    name: params.name || "Custom Companion",
+    type: params.type || "NPC",
+    avatarEmoji: "🖼️",
+    assetPath: params.assetUrl,
+    color: params.type === "MONSTER" ? "#ef4444" : "#38bdf8",
+    gridX: typeof params.gridX === "number" ? params.gridX : 2,
+    gridY: typeof params.gridY === "number" ? params.gridY : 2,
+    hp: 3,
+    maxHp: 3,
+    isHiddenFromPlayers: false,
+    lightRadius: params.type === "HERO" ? 3.5 : 0,
+    lightColor: "#38bdf8",
+  });
+  autoPersistRooms();
+  return room;
 }
 
 export { FAMILY_CAMPAIGNS };

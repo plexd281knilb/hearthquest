@@ -1,6 +1,7 @@
 import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import { renderDice3DEngineScript, renderDice3DOverlayHtml } from "./dice-3d-engine";
 import { renderLighting2DEngineScript, renderLightingControlsHtml } from "./lighting-engine";
+import { renderTabletopToolsControlsHtml, renderToolsAndWeatherEngineScript } from "./tools-weather-engine";
 
 export function renderVttAppHtml(initialState: RoomSessionState): string {
   const serialized = JSON.stringify(initialState).replace(/</g, "\\u003c");
@@ -245,13 +246,14 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           </div>
         </div>
 
-        <!-- 10x6 Interactive Tabletop Grid + 2D Raycast Dynamic Lighting Overlay -->
+        <!-- 10x6 Interactive Tabletop Grid + 2D Raycast Lighting + Ruler/Templates/Weather Canvas -->
         <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-inner">
           <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative select-none"></div>
           <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
+          <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
         </div>
 
-        <!-- Zone Fog-of-War Controls (GM Only) -->
+        <!-- Zone Fog-of-War, Dynamic Lighting, Ruler/Templates & Unraid Custom Tokens (GM Only) -->
         <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
@@ -270,6 +272,19 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             </div>
           </div>
           ${renderLightingControlsHtml()}
+          ${renderTabletopToolsControlsHtml()}
+          <!-- Custom Unraid Token Drop Folder Bar -->
+          <div id="custom-tokens-bar" class="mt-1 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-bold text-purple-400">📂 Unraid Custom Tokens:</span>
+              <select id="select-custom-token" class="theme-input border rounded-lg px-2 py-1 text-xs">
+                <option value="">Scanning /app/data/custom-tokens...</option>
+              </select>
+              <button onclick="spawnSelectedCustomToken()" class="px-2.5 py-1 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">➕ Spawn on Map</button>
+              <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
+            </div>
+            <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
+          </div>
         </div>
       </div>
 
@@ -648,6 +663,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     ${renderLighting2DEngineScript()}
 
+    ${renderToolsAndWeatherEngineScript()}
+
     /* ==========================================================
        3. API CALLS & HELPERS
        ========================================================== */
@@ -685,6 +702,77 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       await apiPost("/api/room/lighting", {
         roomCode: state.roomCode,
         toggleDoorId
+      });
+    }
+
+    function setTabletopTool(toolName) {
+      ToolsWeatherEngine.setTool(toolName);
+      const btns = [
+        ["MOVE", "tool-btn-move"],
+        ["RULER", "tool-btn-ruler"],
+        ["TEMPLATE_CIRCLE", "tool-btn-circle"],
+        ["TEMPLATE_CONE", "tool-btn-cone"],
+        ["TEMPLATE_LINE", "tool-btn-line"]
+      ];
+      for (const [t, id] of btns) {
+        const b = document.getElementById(id);
+        if (b) {
+          b.className = t === toolName
+            ? "px-2 py-1 rounded-lg font-bold border bg-sky-500 text-slate-950 border-sky-400 shadow-sm"
+            : "px-2 py-1 rounded-lg font-semibold border bg-slate-800 text-slate-300 border-slate-700 hover:border-sky-400/50";
+        }
+      }
+    }
+
+    async function clearSpellTemplates() {
+      await apiPost("/api/room/tools", {
+        roomCode: state.roomCode,
+        clearTemplates: true
+      });
+    }
+
+    async function setAmbientWeather(ambientWeather) {
+      await apiPost("/api/room/tools", {
+        roomCode: state.roomCode,
+        ambientWeather
+      });
+    }
+
+    async function refreshCustomTokens() {
+      try {
+        const res = await fetch("/api/custom-tokens");
+        const json = await res.json();
+        const sel = document.getElementById("select-custom-token");
+        if (!sel) return;
+        sel.innerHTML = "";
+        const items = (json && json.tokens) || [];
+        if (items.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.innerText = "(No custom tokens in folder yet)";
+          sel.appendChild(opt);
+        } else {
+          for (const tok of items) {
+            const opt = document.createElement("option");
+            opt.value = tok.url + "|" + tok.name;
+            opt.innerText = "🖼️ " + tok.name;
+            sel.appendChild(opt);
+          }
+        }
+      } catch {}
+    }
+
+    async function spawnSelectedCustomToken() {
+      const sel = document.getElementById("select-custom-token");
+      if (!sel || !sel.value) return;
+      const [assetUrl, name] = sel.value.split("|");
+      await apiPost("/api/room/spawn-custom-token", {
+        roomCode: state.roomCode,
+        name: name || "Custom Token",
+        assetUrl,
+        type: "NPC",
+        gridX: 2,
+        gridY: 3
       });
     }
 
@@ -1128,8 +1216,13 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         zBtns.appendChild(b);
       }
 
-      // Dynamic Lighting controls & Door buttons
+      // Dynamic Lighting controls, Tools, Weather & Door buttons
       Lighting2DEngine.init();
+      ToolsWeatherEngine.init();
+      const weatherSel = document.getElementById("select-ambient-weather");
+      if (weatherSel && state.ambientWeather) {
+        weatherSel.value = state.ambientWeather;
+      }
       const lightModes = [
         ["BRIGHT_DAYLIGHT", "btn-light-day"],
         ["COZY_TWILIGHT", "btn-light-twilight"],
@@ -1313,6 +1406,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     };
 
     renderAll();
+    refreshCustomTokens();
   </script>
 </body>
 </html>`;

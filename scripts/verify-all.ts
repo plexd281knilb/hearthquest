@@ -18,12 +18,16 @@ import {
   regenerateRoomProceduralMap,
   resetRoomsForTesting,
   saveRoomsToDisk,
+  getCustomTokensDir,
+  listCustomTokenAssets,
+  spawnCustomTokenInRoom,
   submitPlayerActionRoll,
   submitQuickPolyhedralRoll,
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
   updateRoomLighting,
+  updateRoomToolsAndWeather,
 } from "../apps/quest-vtt/src/room-store";
 import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
 import {
@@ -37,6 +41,7 @@ import {
 } from "../packages/shared-types/src/index";
 import {
   calculateEncounterAutoBalance,
+  calculateGridDistanceFeet,
   computeRaySegmentIntersection,
   computeSiblingSpotlightFairness,
   computeVisibilityPolygon,
@@ -509,8 +514,93 @@ async function runVerification() {
   );
   console.log("✅ PASSED");
 
+  // Suite 18: Tabletop Ruler (5ft), Spell AoE Templates, Ambient Weather & Unraid Custom Tokens
+  process.stdout.write("18. Testing Tabletop 5ft Ruler, Spell AoE Templates, Weather & Unraid Custom Tokens... ");
+  assert.ok(vttHtml.includes("vtt-tools-canvas"), "VTT HTML must mount tools & weather overlay canvas");
+  assert.ok(vttHtml.includes("ToolsWeatherEngine"), "VTT HTML must embed ToolsWeatherEngine runtime");
+  assert.ok(vttHtml.includes("select-ambient-weather"), "VTT HTML must include ambient weather selector");
+  assert.ok(vttHtml.includes("custom-tokens-bar"), "VTT HTML must include custom Unraid token bar");
+
+  // 3-4-5 right triangle grid distance = 5 squares = 25 ft
+  const dist25 = calculateGridDistanceFeet(1, 1, 4, 5);
+  assert.strictEqual(dist25.squares, 5);
+  assert.strictEqual(dist25.feet, 25);
+
+  const toolsRoom = getOrCreateRoom("TOOL");
+  const afterTools = updateRoomToolsAndWeather({
+    roomCode: "TOOL",
+    ambientWeather: "STARLIGHT_DUST",
+    addTemplate: {
+      id: "tpl-cone-1",
+      shape: "CONE",
+      originX: 2,
+      originY: 2,
+      targetX: 5,
+      targetY: 2,
+      radiusSquares: 3,
+      color: "#f97316",
+      label: "Burning Hands (15 ft)",
+    },
+  });
+  assert.strictEqual(afterTools.ambientWeather, "STARLIGHT_DUST");
+  assert.strictEqual(afterTools.spellTemplates?.length, 1);
+
+  const afterCircle = updateRoomToolsAndWeather({
+    roomCode: "TOOL",
+    addTemplate: {
+      id: "tpl-circle-1",
+      shape: "CIRCLE",
+      originX: 5,
+      originY: 3,
+      targetX: 8,
+      targetY: 3,
+      radiusSquares: 3,
+      color: "#ef4444",
+      label: "Fireball (15 ft)",
+    },
+  });
+  assert.strictEqual(afterCircle.spellTemplates?.length, 2);
+
+  const clearedTools = updateRoomToolsAndWeather({
+    roomCode: "TOOL",
+    clearTemplates: true,
+  });
+  assert.strictEqual(clearedTools.spellTemplates?.length, 0);
+
+  // Test Unraid custom-tokens folder scanning & token spawning
+  const nodeFs = await import("fs");
+  const nodePath = await import("path");
+  const customDir = getCustomTokensDir();
+  nodeFs.mkdirSync(customDir, { recursive: true });
+  const testTokenFile = nodePath.join(customDir, "test_mimic_chest.svg");
+  nodeFs.writeFileSync(testTokenFile, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#b45309"/></svg>`, "utf-8");
+  try {
+    const scanned = listCustomTokenAssets();
+    const found = scanned.find((t) => t.filename === "test_mimic_chest.svg");
+    assert.ok(found, "Expected custom-tokens folder scanner to discover test_mimic_chest.svg");
+    assert.strictEqual(found?.url, "/custom-tokens/test_mimic_chest.svg");
+
+    const beforeTokenCount = toolsRoom.tokens.length;
+    const afterSpawn = spawnCustomTokenInRoom({
+      roomCode: "TOOL",
+      name: found!.name,
+      assetUrl: found!.url,
+      type: "MONSTER",
+      gridX: 4,
+      gridY: 3,
+    });
+    assert.strictEqual(afterSpawn.tokens.length, beforeTokenCount + 1);
+    const spawnedToken = afterSpawn.tokens[afterSpawn.tokens.length - 1];
+    assert.strictEqual(spawnedToken.assetPath, "/custom-tokens/test_mimic_chest.svg");
+  } finally {
+    if (nodeFs.existsSync(testTokenFile)) {
+      nodeFs.unlinkSync(testTokenFile);
+    }
+  }
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 17/17 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 18/18 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

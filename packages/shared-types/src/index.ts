@@ -18,6 +18,21 @@ export type ThemeMode = "DARK_MIDNIGHT" | "LIGHT_PARCHMENT";
 
 export type AmbientLightingMode = "BRIGHT_DAYLIGHT" | "COZY_TWILIGHT" | "TORCHLIT_DUNGEON";
 
+export type AmbientWeatherType = "NONE" | "HEARTH_EMBERS" | "FOREST_FIREFLIES" | "STARLIGHT_DUST";
+
+export interface SpellTemplate {
+  id: string;
+  shape: "CIRCLE" | "CONE" | "LINE";
+  label: string;
+  originX: number;
+  originY: number;
+  targetX: number;
+  targetY: number;
+  radiusSquares: number;
+  color: string;
+  casterName?: string;
+}
+
 export interface WallSegment {
   id: string;
   x1: number;
@@ -274,4 +289,6 @@ export interface RoomSessionState {
   spotlightRecords: PlayerSpotlightRecord[];
   ambientLightMode?: AmbientLightingMode;
   walls?: WallSegment[];
+  ambientWeather?: AmbientWeatherType;
+  spellTemplates?: SpellTemplate[];
 }

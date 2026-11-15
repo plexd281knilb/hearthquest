@@ -1,6 +1,7 @@
 import {
   ActionCard,
   AmbientLightingMode,
+  AmbientWeatherType,
   BedtimeFreezeSnapshot,
   CharacterSheet,
   ContentRating,
@@ -1255,6 +1256,22 @@ export function computeVisibilityPolygon(
 }
 
 /**
+ * Computes 5e grid ruler distance between two board coordinates (1 square = 5 ft).
+ */
+export function calculateGridDistanceFeet(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { squares: number; feet: number } {
+  const dist = Math.hypot(x2 - x1, y2 - y1);
+  return {
+    squares: Math.round(dist * 10) / 10,
+    feet: Math.round(dist * 5),
+  };
+}
+
+/**
  * Creates a room session loaded with the requested campaign (defaulting to camp-goblin-bakery).
  */
 export function createCampaignSession(
@@ -1268,6 +1285,12 @@ export function createCampaignSession(
   const clonedTokens: MapToken[] = enrichTokensWithLighting(
     JSON.parse(JSON.stringify(campaign.tokens))
   );
+  const defaultWeather: AmbientWeatherType =
+    campaign.theme === "FOREST_TREEHOUSE"
+      ? "FOREST_FIREFLIES"
+      : campaign.theme === "STARLIGHT_SHIP"
+      ? "STARLIGHT_DUST"
+      : "HEARTH_EMBERS";
 
   return {
     roomCode,
@@ -1292,6 +1315,8 @@ export function createCampaignSession(
     walls: campaign.walls
       ? JSON.parse(JSON.stringify(campaign.walls))
       : createDefaultZoneWalls(clonedZones),
+    ambientWeather: defaultWeather,
+    spellTemplates: [],
   };
 }
 

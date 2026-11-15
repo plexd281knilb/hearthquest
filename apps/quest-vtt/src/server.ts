@@ -9,10 +9,13 @@ import {
   advanceRoomStoryNode,
   FAMILY_CAMPAIGNS,
   generateJoinQrSvg,
+  getCustomTokensDir,
   getOrCreateRoom,
+  listCustomTokenAssets,
   moveRoomToken,
   openRoomLootChest,
   regenerateRoomProceduralMap,
+  spawnCustomTokenInRoom,
   submitPlayerActionRoll,
   submitQuickPolyhedralRoll,
   switchRoomCampaign,
@@ -20,6 +23,7 @@ import {
   toggleRoomZoneFog,
   updateRoomLighting,
   updateRoomSettings,
+  updateRoomToolsAndWeather,
 } from "./room-store";
 import { renderVttAppHtml } from "./ui-template";
 
@@ -125,6 +129,41 @@ const server = http.createServer(async (req, res) => {
         return;
       }
     }
+  }
+
+  if (pathname.startsWith("/custom-tokens/") && req.method === "GET") {
+    const filename = decodeURIComponent(pathname.replace(/^\/custom-tokens\//, ""));
+    const safeName = path.basename(filename);
+    const customDir = getCustomTokensDir();
+    const filePath = path.join(customDir, safeName);
+    if (filePath.startsWith(customDir) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType =
+        ext === ".svg"
+          ? "image/svg+xml"
+          : ext === ".png"
+          ? "image/png"
+          : ext === ".jpg" || ext === ".jpeg"
+          ? "image/jpeg"
+          : ext === ".webp"
+          ? "image/webp"
+          : "application/octet-stream";
+      res.writeHead(200, { "Content-Type": contentType, "Cache-Control": "public, max-age=3600" });
+      res.end(fs.readFileSync(filePath));
+      return;
+    }
+  }
+
+  if (pathname === "/api/custom-tokens" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        directory: getCustomTokensDir(),
+        tokens: listCustomTokenAssets(),
+      })
+    );
+    return;
   }
 
   if (pathname === "/api/health" && req.method === "GET") {
@@ -236,6 +275,36 @@ const server = http.createServer(async (req, res) => {
       roomCode: body.roomCode || "DRGN",
       ambientLightMode: body.ambientLightMode,
       toggleDoorId: body.toggleDoorId,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/tools" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = updateRoomToolsAndWeather({
+      roomCode: body.roomCode || "DRGN",
+      ambientWeather: body.ambientWeather,
+      addTemplate: body.addTemplate,
+      clearTemplates: Boolean(body.clearTemplates),
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/spawn-custom-token" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = spawnCustomTokenInRoom({
+      roomCode: body.roomCode || "DRGN",
+      name: body.name || "Custom Token",
+      assetUrl: body.assetUrl || "/assets/tokens/heroes/knight-shield.svg",
+      type: body.type || "NPC",
+      gridX: body.gridX,
+      gridY: body.gridY,
     });
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
