@@ -1,6 +1,7 @@
 process.env.NODE_ENV = "test";
 
 import assert from "node:assert";
+import http from "node:http";
 import {
   generateGmCoPilotWhisper,
   probeRtx3080Health,
@@ -67,12 +68,15 @@ import {
 } from "../apps/quest-vtt/src/room-store";
 import {
   activateLicenseOnVttAccount,
+  ensureAccountSessionRoom,
   evaluateVttSessionProgressionGate,
   getVttAccountByToken,
   loginVttAccount,
   registerVttAccount,
   updateVttAccountPreferences,
 } from "../apps/quest-vtt/src/auth-store";
+import { encodeQrMatrix } from "../apps/quest-vtt/src/qr-encoder";
+import { server as vttServer } from "../apps/quest-vtt/src/server";
 import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
 import {
   APP_VERSION,
@@ -1418,9 +1422,242 @@ async function runVerification() {
   assert.strictEqual(lockedDoorBump.isLockedDoor, true);
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // Suite 28: Scannable ISO/IEC 18004 QR Code Matrix & Per-User Isolated Sessions
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 28/28] Scannable ISO/IEC 18004 QR Code Matrix & Per-User Private Sessions ... ");
+  const fullUrl = "http://192.168.1.42:3000/?room=K7P2&mode=kid";
+  const qr = encodeQrMatrix(fullUrl);
+  assert.ok(qr.version >= 2 && qr.version <= 10, "Full LAN join URL must select valid QR Version 2..10");
+  assert.strictEqual(qr.size, 17 + qr.version * 4, "QR matrix size must match ISO 17 + 4*version");
+  // Verify exact 7x7 Top-Left, Top-Right, and Bottom-Left Finder Patterns + Dark Module + Timing
+  for (let i = 0; i < 7; i++) {
+    assert.strictEqual(qr.modules[0][i], true, "TL finder top border dark");
+    assert.strictEqual(qr.modules[i][0], true, "TL finder left border dark");
+    assert.strictEqual(qr.modules[0][qr.size - 7 + i], true, "TR finder top border dark");
+    assert.strictEqual(qr.modules[qr.size - 7][i], true, "BL finder top border dark");
+  }
+  assert.strictEqual(qr.modules[qr.size - 8][8], true, "Standard ISO dark module must be set");
+  assert.strictEqual(qr.modules[6][8], true, "Timing row col 8 dark");
+  assert.strictEqual(qr.modules[6][9], false, "Timing row col 9 light");
+
+  const realQrSvg = generateJoinQrSvg("K7P2", fullUrl);
+  assert.ok(
+    realQrSvg.includes('shape-rendering="crispEdges"') &&
+      realQrSvg.includes("ROOM CODE: K7P2") &&
+      !realQrSvg.includes('x="45" y="75" width="100" height="40"'),
+    "QR SVG must draw crisp ISO modules with ZERO obscuring center box"
+  );
+
+  // Two distinct users registering must each get their own isolated roomCode and session
+  const userA = registerVttAccount({
+    email: "alice.family@hearthquest.test",
+    familyName: "Alice Family",
+    password: "PasswordAlice123!",
+    preferredRulesTier: "STORYBOOK_D6",
+    preferredAgeGroup: "AGES_5_7",
+  });
+  const userB = registerVttAccount({
+    email: "bob.family@hearthquest.test",
+    familyName: "Bob Family",
+    password: "PasswordBob123!",
+    preferredRulesTier: "STANDARD_5E",
+    preferredAgeGroup: "TEENS_13_PLUS",
+  });
+  assert.notStrictEqual(
+    userA.account.trialRoomCode,
+    userB.account.trialRoomCode,
+    "Each user account must receive a unique private room code"
+  );
+  assert.notStrictEqual(userA.account.trialRoomCode, "DRGN");
+  assert.notStrictEqual(userB.account.trialRoomCode, "DRGN");
+
+  // Signing back in resolves THAT user's own room session via ensureAccountSessionRoom / loginVttAccount
+  const aliceLogin = loginVttAccount({
+    email: "alice.family@hearthquest.test",
+    password: "PasswordAlice123!",
+  });
+  assert.strictEqual(aliceLogin.room.roomCode, userA.account.trialRoomCode);
+  assert.strictEqual(aliceLogin.room.rulesTier, "STORYBOOK_D6");
+  const bobSession = ensureAccountSessionRoom(userB.account);
+  assert.strictEqual(bobSession.roomCode, userB.account.trialRoomCode);
+  assert.strictEqual(bobSession.rulesTier, "STANDARD_5E");
+
+  // Unauthenticated "/" HTML & HTTP Isolation Verification against live VTT server handler
+  const httpCall = (
+    urlStr: string,
+    opts?: { method?: string; headers?: Record<string, string>; body?: string }
+  ): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: string }> =>
+    new Promise((resolve, reject) => {
+      const u = new URL(urlStr);
+      const req = http.request(
+        {
+          hostname: u.hostname,
+          port: Number(u.port),
+          path: `${u.pathname}${u.search}`,
+          method: opts?.method || "GET",
+          headers: { ...(opts?.headers || {}), Connection: "close" },
+          agent: false,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+          res.on("end", () =>
+            resolve({
+              status: res.statusCode || 0,
+              headers: res.headers,
+              body: Buffer.concat(chunks).toString("utf8"),
+            })
+          );
+        }
+      );
+      req.on("error", reject);
+      if (opts?.body) req.write(opts.body);
+      req.end();
+    });
+
+  await new Promise<void>((resolve, reject) => {
+    const runHttpChecks = async (port: number, startedHere: boolean) => {
+      try {
+        const base = `http://127.0.0.1:${port}`;
+
+        // 1. Unauthenticated GET / must show standalone Login Gate with ZERO game board
+        const rootRes = await httpCall(`${base}/`);
+        assert.strictEqual(rootRes.status, 200);
+        assert.ok(
+          rootRes.body.includes("vtt-login-gate") && !rootRes.body.includes("vtt-grid-wrapper"),
+          "Unauthenticated root GET / must require login before exposing any tabletop board"
+        );
+
+        // 2. Unauthenticated room API call must fail 401
+        const unauthMove = await httpCall(`${base}/api/room/move-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomCode: userA.account.trialRoomCode, deltaX: 1, deltaY: 0 }),
+        });
+        assert.strictEqual(unauthMove.status, 401, "Unauthenticated room mutation must return 401");
+
+        // 3. Authenticated User A can fetch valid QR SVG for User A's room and move hero in own room
+        const qrRes = await httpCall(`${base}/api/room/qr?room=${userA.account.trialRoomCode}`, {
+          headers: { Authorization: `Bearer ${userA.token}` },
+        });
+        assert.strictEqual(qrRes.status, 200);
+        const qrSvgHttp = qrRes.body;
+        assert.ok(
+          qrSvgHttp.includes(`ROOM CODE: ${userA.account.trialRoomCode}`) &&
+            qrSvgHttp.includes("mode=kid&amp;invite="),
+          "Authenticated /api/room/qr must serve real QR SVG with full origin URL & invite signature"
+        );
+
+        // Extract invite signature cleanly and verify Kid Guest invite scoping
+        const inviteMatch = qrSvgHttp.match(/invite=([a-f0-9]+)/i);
+        assert.ok(inviteMatch && inviteMatch[1], "QR SVG must embed HMAC invite signature");
+        const kidJoinRes = await httpCall(
+          `${base}/?room=${userA.account.trialRoomCode}&mode=kid&invite=${inviteMatch[1]}`
+        );
+        assert.strictEqual(kidJoinRes.status, 200);
+        const rawSetCookie = kidJoinRes.headers["set-cookie"];
+        const setCookieHeader = Array.isArray(rawSetCookie)
+          ? rawSetCookie.join("; ")
+          : String(rawSetCookie || "");
+        const guestMatch = setCookieHeader.match(/hq_vtt_guest=([^;]+)/);
+        assert.ok(guestMatch && guestMatch[1], "Valid QR kid invite must mint scoped guest token");
+        const guestTok = decodeURIComponent(guestMatch[1]);
+
+        // Kid guest can move hero inside User A's room, but is BLOCKED 403 from GM-only endpoints and User B's room
+        const heroA = userA.room.tokens.find((t) => t.type === "HERO");
+        const kidMove = await httpCall(`${base}/api/room/move-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-HearthQuest-Guest": guestTok,
+          },
+          body: JSON.stringify({
+            roomCode: userA.account.trialRoomCode,
+            tokenId: heroA?.id,
+            targetX: 2,
+            targetY: 2,
+          }),
+        });
+        assert.strictEqual(kidMove.status, 200);
+
+        const kidGmForbidden = await httpCall(`${base}/api/room/lighting`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-HearthQuest-Guest": guestTok,
+          },
+          body: JSON.stringify({ roomCode: userA.account.trialRoomCode, ambientLightMode: "MIDNIGHT" }),
+        });
+        assert.strictEqual(kidGmForbidden.status, 403, "Kid guest must be blocked from GM controls");
+
+        // 4. User B trying to access or mutate User A's room MUST be blocked 403!
+        const crossUserBlocked = await httpCall(`${base}/api/room/move-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${userB.token}`,
+          },
+          body: JSON.stringify({
+            roomCode: userA.account.trialRoomCode,
+            tokenId: heroA?.id,
+            targetX: 2,
+            targetY: 3,
+          }),
+        });
+        assert.strictEqual(
+          crossUserBlocked.status,
+          403,
+          "User B must NEVER access or mutate User A's isolated session instance"
+        );
+
+        // Authenticated GET / renders VTT directly for User A's room without login gate
+        const authedRootRes = await httpCall(`${base}/`, {
+          headers: { Authorization: `Bearer ${userA.token}` },
+        });
+        assert.ok(
+          authedRootRes.body.includes("vtt-grid-wrapper") &&
+            authedRootRes.body.includes(userA.account.trialRoomCode),
+          "Authenticated GET / must load only the signed-in user's isolated session"
+        );
+
+        if (startedHere) {
+          vttServer.closeAllConnections?.();
+          vttServer.close(() => resolve());
+        } else {
+          vttServer.closeAllConnections?.();
+          resolve();
+        }
+      } catch (err) {
+        if (startedHere) {
+          vttServer.closeAllConnections?.();
+          vttServer.close(() => reject(err));
+        } else {
+          vttServer.closeAllConnections?.();
+          reject(err);
+        }
+      }
+    };
+
+    if (vttServer.listening) {
+      const addr = vttServer.address() as { port: number };
+      runHttpChecks(addr.port, false);
+    } else {
+      vttServer.listen(0, "127.0.0.1", () => {
+        const addr = vttServer.address() as { port: number };
+        runHttpChecks(addr.port, true);
+      });
+    }
+  });
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 27/27 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 28/28 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
+  if (vttServer.listening) {
+    vttServer.closeAllConnections?.();
+    await new Promise<void>((r) => vttServer.close(() => r()));
+  }
   process.exit(0);
 }
 

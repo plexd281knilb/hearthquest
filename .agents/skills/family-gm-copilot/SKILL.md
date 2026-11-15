@@ -23,6 +23,6 @@ description: AI Game Master Co-Pilot for zero-prep family tabletop sessions: in-
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.18` (Build `#19`)
-- **Updated At**: `2026-11-15T03:51:00.877Z`
+- **Last Verified Build**: `v0.1.19` (Build `#20`)
+- **Updated At**: `2026-11-15T04:05:12.005Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

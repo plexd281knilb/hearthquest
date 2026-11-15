@@ -15,6 +15,7 @@ import {
   generateOneShotInRoom,
   getCustomTokensDir,
   getOrCreateRoom,
+  hasRoomInStore,
   listCustomTokenAssets,
   moveRoomToken,
   openRoomLootChest,
@@ -35,24 +36,45 @@ import {
 } from "./room-store";
 import {
   activateLicenseOnVttAccount,
+  authorizeRoomAccess,
+  computeRoomInviteSig,
+  ensureAccountSessionRoom,
   evaluateVttSessionProgressionGate,
   getVttAccountByToken,
   loginVttAccount,
   registerVttAccount,
+  signRoomGuestToken,
   updateVttAccountPreferences,
+  verifyRoomInviteSig,
   verifyVttLicenseKey,
 } from "./auth-store";
-import { renderVttAppHtml } from "./ui-template";
+import { renderVttAppHtml, renderVttLoginGateHtml } from "./ui-template";
 
 export {
   activateLicenseOnVttAccount,
+  authorizeRoomAccess,
+  computeRoomInviteSig,
+  ensureAccountSessionRoom,
   evaluateVttSessionProgressionGate,
   getVttAccountByToken,
   loginVttAccount,
   registerVttAccount,
+  signRoomGuestToken,
   updateVttAccountPreferences,
+  verifyRoomInviteSig,
   verifyVttLicenseKey,
 };
+
+function extractCookie(req: http.IncomingMessage, cookieName: string): string {
+  const cookieHeader = String(req.headers.cookie || "");
+  for (const part of cookieHeader.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === cookieName) {
+      return decodeURIComponent(rest.join("="));
+    }
+  }
+  return "";
+}
 
 function extractSessionToken(req: http.IncomingMessage, body?: any): string {
   const authHeader = String(req.headers.authorization || "");
@@ -62,15 +84,34 @@ function extractSessionToken(req: http.IncomingMessage, body?: any): string {
   if (body?.authToken) {
     return String(body.authToken).trim();
   }
-  const cookieHeader = String(req.headers.cookie || "");
-  for (const part of cookieHeader.split(";")) {
-    const [k, ...rest] = part.trim().split("=");
-    if (k === "hq_vtt_session") {
-      return decodeURIComponent(rest.join("="));
-    }
-  }
-  return "";
+  return extractCookie(req, "hq_vtt_session");
 }
+
+function extractGuestToken(req: http.IncomingMessage, body?: any, parsedUrl?: URL): string {
+  const header = req.headers["x-hearthquest-guest"];
+  if (typeof header === "string" && header.trim()) {
+    return header.trim();
+  }
+  if (body?.guestToken) {
+    return String(body.guestToken).trim();
+  }
+  const queryGuest = parsedUrl?.searchParams.get("guest");
+  if (queryGuest) {
+    return queryGuest.trim();
+  }
+  return extractCookie(req, "hq_vtt_guest");
+}
+
+const PLAYER_ALLOWED_ROOM_POSTS = new Set([
+  "/api/room/move-token",
+  "/api/room/door-interact",
+  "/api/room/skill-roll",
+  "/api/room/roll",
+  "/api/room/quick-roll",
+  "/api/room/open-chest",
+  "/api/room/rp-prompt",
+  "/api/room/add-hero",
+]);
 
 const PORT = Number(process.env.PORT_VTT || process.env.PORT || 3000);
 
@@ -110,10 +151,48 @@ const server = http.createServer(async (req, res) => {
   const pathname = parsedUrl.pathname;
 
   if (pathname === "/" && req.method === "GET") {
-    const roomCode = parsedUrl.searchParams.get("room") || "DRGN";
-    const room = getOrCreateRoom(roomCode);
+    const requestedRoom = (parsedUrl.searchParams.get("room") || "").trim().toUpperCase().slice(0, 4);
+    const modeParam = (parsedUrl.searchParams.get("mode") || "").trim().toUpperCase();
+    const inviteSig = (parsedUrl.searchParams.get("invite") || "").trim();
+    const isInviteMode =
+      Boolean(requestedRoom) &&
+      (modeParam === "KID" || modeParam === "PLAYER_CONTROLLER" || modeParam === "TV" || modeParam === "TABLE_TV_DISPLAY");
+
+    const account = getVttAccountByToken(extractSessionToken(req));
+    const isAccountOwnRoom =
+      Boolean(account) &&
+      Boolean(requestedRoom) &&
+      (requestedRoom === account!.trialRoomCode ||
+        (hasRoomInStore(requestedRoom) && getOrCreateRoom(requestedRoom).householdId === account!.id));
+
+    if (
+      isInviteMode &&
+      hasRoomInStore(requestedRoom) &&
+      (isAccountOwnRoom || verifyRoomInviteSig(requestedRoom, inviteSig))
+    ) {
+      const guestMode =
+        modeParam === "TV" || modeParam === "TABLE_TV_DISPLAY"
+          ? "TABLE_TV_DISPLAY"
+          : "PLAYER_CONTROLLER";
+      const guestToken = signRoomGuestToken(requestedRoom, guestMode);
+      const room = getOrCreateRoom(requestedRoom);
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Set-Cookie": `hq_vtt_guest=${encodeURIComponent(guestToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`,
+      });
+      res.end(renderVttAppHtml(room, { guestToken }));
+      return;
+    }
+
+    if (account) {
+      const room = ensureAccountSessionRoom(account);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(renderVttAppHtml(room));
+      return;
+    }
+
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderVttAppHtml(room));
+    res.end(renderVttLoginGateHtml());
     return;
   }
 
@@ -225,20 +304,70 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/qr" && req.method === "GET") {
-    const roomCode = (
+    const requestedRoom = (
       parsedUrl.searchParams.get("room") ||
       parsedUrl.searchParams.get("roomCode") ||
-      "DRGN"
-    ).toUpperCase();
-    const joinUrl = `/?room=${roomCode}&mode=kid`;
+      ""
+    )
+      .toUpperCase()
+      .slice(0, 4);
+    const inviteParam = (parsedUrl.searchParams.get("invite") || "").trim();
+    const auth = authorizeRoomAccess({
+      requestedRoomCode: requestedRoom,
+      account: getVttAccountByToken(extractSessionToken(req)),
+      guestToken: extractGuestToken(req, undefined, parsedUrl),
+      requireGmOwner: false,
+    });
+    const roomCode = auth.authorized ? auth.resolvedRoomCode : requestedRoom;
+    const allowedBySig = Boolean(roomCode) && verifyRoomInviteSig(roomCode, inviteParam);
+    if (!auth.authorized && !allowedBySig) {
+      res.writeHead(auth.status, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: auth.error || "Sign in required to generate room QR.",
+        })
+      );
+      return;
+    }
+
+    const explicitOrigin = (parsedUrl.searchParams.get("origin") || "").trim();
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+      .split(",")[0]
+      .trim();
+    const proto = forwardedProto || "http";
+    const hostHeader = String(req.headers.host || `127.0.0.1:${PORT}`).trim();
+    const origin =
+      explicitOrigin && /^https?:\/\/[^/\s]+$/i.test(explicitOrigin)
+        ? explicitOrigin
+        : `${proto}://${hostHeader}`;
+    const inviteSig = computeRoomInviteSig(roomCode);
+    const joinUrl = `${origin}/?room=${roomCode}&mode=kid&invite=${inviteSig}`;
     const svg = generateJoinQrSvg(roomCode, joinUrl);
-    res.writeHead(200, { "Content-Type": "image/svg+xml; charset=utf-8" });
+    res.writeHead(200, {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "no-store",
+    });
     res.end(svg);
     return;
   }
 
   if (pathname === "/api/room/stream" && req.method === "GET") {
-    const roomCode = (parsedUrl.searchParams.get("roomCode") || "DRGN").toUpperCase();
+    const requestedRoom = (parsedUrl.searchParams.get("roomCode") || "")
+      .toUpperCase()
+      .slice(0, 4);
+    const auth = authorizeRoomAccess({
+      requestedRoomCode: requestedRoom,
+      account: getVttAccountByToken(extractSessionToken(req)),
+      guestToken: extractGuestToken(req, undefined, parsedUrl),
+      requireGmOwner: false,
+    });
+    if (!auth.authorized) {
+      res.writeHead(auth.status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: auth.error }));
+      return;
+    }
+    const roomCode = auth.resolvedRoomCode;
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
@@ -259,51 +388,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (pathname === "/api/room/move-token" && req.method === "POST") {
-    const body = await readJsonBody(req);
-    const result = attemptMoveRoomToken({
-      roomCode: body.roomCode || "DRGN",
-      tokenId: body.tokenId,
-      deltaX: body.deltaX,
-      deltaY: body.deltaY,
-      targetX: body.targetX,
-      targetY: body.targetY,
-      ignoreWalls: Boolean(body.ignoreWalls),
-    });
-    if (result.moved) {
-      broadcastRoomUpdate(result.room);
-    }
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        ok: result.moved,
-        moved: result.moved,
-        blockedMessage: result.blockedMessage,
-        blockedByWallId: result.blockedByWallId,
-        blockedByDoorId: result.blockedByDoorId,
-        isLockedDoor: result.isLockedDoor,
-        room: result.room,
-      })
-    );
-    return;
-  }
-
-  if ((pathname === "/api/room/toggle-zone" || pathname === "/api/room/zone-fog") && req.method === "POST") {
-    const body = await readJsonBody(req);
-    const room = toggleRoomZoneFog({
-      roomCode: body.roomCode || "DRGN",
-      zoneId: body.zoneId,
-    });
-    broadcastRoomUpdate(room);
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, room }));
-    return;
-  }
-
   if (pathname === "/api/auth/me" && req.method === "GET") {
     const account = getVttAccountByToken(extractSessionToken(req));
+    const room = account ? ensureAccountSessionRoom(account) : null;
+    const inviteSig = room ? computeRoomInviteSig(room.roomCode) : null;
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, account }));
+    res.end(JSON.stringify({ ok: true, account, room, inviteSig }));
     return;
   }
 
@@ -317,11 +407,12 @@ const server = http.createServer(async (req, res) => {
         preferredRulesTier: body.preferredRulesTier,
         preferredAgeGroup: body.preferredAgeGroup,
       });
+      const inviteSig = computeRoomInviteSig(room.roomCode);
       res.writeHead(200, {
         "Content-Type": "application/json",
         "Set-Cookie": `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
       });
-      res.end(JSON.stringify({ ok: true, account, token, room }));
+      res.end(JSON.stringify({ ok: true, account, token, room, inviteSig }));
     } catch (err: any) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: err?.message || "Registration failed" }));
@@ -336,11 +427,12 @@ const server = http.createServer(async (req, res) => {
         email: body.email || "",
         password: body.password || "",
       });
+      const inviteSig = computeRoomInviteSig(room.roomCode);
       res.writeHead(200, {
         "Content-Type": "application/json",
         "Set-Cookie": `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
       });
-      res.end(JSON.stringify({ ok: true, account, token, room }));
+      res.end(JSON.stringify({ ok: true, account, token, room, inviteSig }));
     } catch (err: any) {
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: err?.message || "Invalid login credentials" }));
@@ -351,7 +443,10 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/auth/logout" && req.method === "POST") {
     res.writeHead(200, {
       "Content-Type": "application/json",
-      "Set-Cookie": "hq_vtt_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+      "Set-Cookie": [
+        "hq_vtt_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+        "hq_vtt_guest=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+      ],
     });
     res.end(JSON.stringify({ ok: true }));
     return;
@@ -390,27 +485,115 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: "Sign in or create an account first." }));
         return;
       }
+      const prefAuth = authorizeRoomAccess({
+        requestedRoomCode: body.roomCode || account.trialRoomCode,
+        account,
+        requireGmOwner: true,
+      });
+      if (!prefAuth.authorized) {
+        res.writeHead(prefAuth.status, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: prefAuth.error }));
+        return;
+      }
       const result = updateVttAccountPreferences({
         accountId: account.id,
         preferredRulesTier: body.preferredRulesTier || account.preferredRulesTier,
         preferredAgeGroup: body.preferredAgeGroup || account.preferredAgeGroup,
-        roomCode: body.roomCode || account.trialRoomCode,
+        roomCode: prefAuth.resolvedRoomCode,
         regenerateRoom: body.regenerateRoom !== false,
       });
+      const inviteSig = computeRoomInviteSig(result.room.roomCode);
       broadcastRoomUpdate(result.room);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, account: result.account, room: result.room }));
+      res.end(
+        JSON.stringify({
+          ok: true,
+          account: result.account,
+          room: result.room,
+          inviteSig,
+        })
+      );
     } catch (err: any) {
       res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: false, error: err?.message || "Failed to update account preferences" }));
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: err?.message || "Failed to update account preferences",
+        })
+      );
     }
     return;
   }
 
+  // Enforce authentication & strict per-user room isolation across ALL /api/room/* mutations
+  let authedBody: any = null;
+  if (pathname.startsWith("/api/room/") && req.method === "POST") {
+    authedBody = await readJsonBody(req);
+    const auth = authorizeRoomAccess({
+      requestedRoomCode: authedBody.roomCode,
+      account: getVttAccountByToken(extractSessionToken(req, authedBody)),
+      guestToken: extractGuestToken(req, authedBody, parsedUrl),
+      requireGmOwner: !PLAYER_ALLOWED_ROOM_POSTS.has(pathname),
+    });
+    if (!auth.authorized) {
+      res.writeHead(auth.status, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          authRequired: auth.status === 401,
+          error: auth.error,
+        })
+      );
+      return;
+    }
+    authedBody.roomCode = auth.resolvedRoomCode;
+  }
+
+  if (pathname === "/api/room/move-token" && req.method === "POST") {
+    const body = authedBody;
+    const result = attemptMoveRoomToken({
+      roomCode: body.roomCode,
+      tokenId: body.tokenId,
+      deltaX: body.deltaX,
+      deltaY: body.deltaY,
+      targetX: body.targetX,
+      targetY: body.targetY,
+      ignoreWalls: Boolean(body.ignoreWalls),
+    });
+    if (result.moved) {
+      broadcastRoomUpdate(result.room);
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: result.moved,
+        moved: result.moved,
+        blockedMessage: result.blockedMessage,
+        blockedByWallId: result.blockedByWallId,
+        blockedByDoorId: result.blockedByDoorId,
+        isLockedDoor: result.isLockedDoor,
+        room: result.room,
+      })
+    );
+    return;
+  }
+
+  if ((pathname === "/api/room/toggle-zone" || pathname === "/api/room/zone-fog") && req.method === "POST") {
+    const body = authedBody;
+    const room = toggleRoomZoneFog({
+      roomCode: body.roomCode,
+      zoneId: body.zoneId,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
   if (pathname === "/api/room/rp-prompt" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = triggerRoomRpPrompt({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       promptId: body.promptId,
       dismiss: Boolean(body.dismiss),
       playerReply: body.playerReply,
@@ -422,8 +605,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if ((pathname === "/api/room/advance-story" || pathname === "/api/room/story-branch") && req.method === "POST") {
-    const body = await readJsonBody(req);
-    const roomCode = body.roomCode || "DRGN";
+    const body = authedBody;
+    const roomCode = body.roomCode;
     const existingRoom = getOrCreateRoom(roomCode);
     const account = getVttAccountByToken(extractSessionToken(req, body));
     const gate = evaluateVttSessionProgressionGate({
@@ -456,9 +639,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/settings" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = updateRoomSettings({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       rulesTier: body.rulesTier,
       contentRating: body.contentRating,
       diceInputMode: body.diceInputMode,
@@ -470,9 +653,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/lighting" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = updateRoomLighting({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       ambientLightMode: body.ambientLightMode,
       toggleDoorId: body.toggleDoorId,
       toggleLockDoorId: body.toggleLockDoorId,
@@ -485,9 +668,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/door-interact" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const result = attemptInteractDoor({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       doorId: body.doorId,
       characterId: body.characterId,
       rawRollOverride:
@@ -500,9 +683,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/tools" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = updateRoomToolsAndWeather({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       ambientWeather: body.ambientWeather,
       addTemplate: body.addTemplate,
       clearTemplates: Boolean(body.clearTemplates),
@@ -514,9 +697,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/spawn-custom-token" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = spawnCustomTokenInRoom({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       name: body.name || "Custom Token",
       assetUrl: body.assetUrl || "/assets/tokens/heroes/knight-shield.svg",
       type: body.type || "NPC",
@@ -530,9 +713,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/combat" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = updateRoomCombat({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       action: body.action || "ROLL_INITIATIVE",
     });
     broadcastRoomUpdate(room);
@@ -542,9 +725,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/skill-roll" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const result = submitHeroSkillRoll({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       characterId: body.characterId,
       skillId: body.skillId || "perception",
     });
@@ -555,9 +738,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/atmosphere" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = updateRoomAtmosphere({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       ambientSoundscape: body.ambientSoundscape,
       sceneBackdrop: body.sceneBackdrop,
     });
@@ -568,9 +751,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/forge-actor" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const forged = forgeActorAndTokenInRoom({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       actorType: body.actorType === "MONSTER" ? "MONSTER" : "HERO",
       name: body.name || "Forged Actor",
       archetype: body.archetype,
@@ -604,9 +787,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/roll" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const { room, roll } = submitPlayerActionRoll({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       characterId: body.characterId,
       cardId: body.cardId,
       source: body.source || "DIGITAL_3D_ROLLER",
@@ -619,9 +802,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/quick-roll" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const { room, roll } = submitQuickPolyhedralRoll({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       dieType: body.dieType || "d20",
       characterId: body.characterId,
     });
@@ -632,8 +815,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/bedtime" && req.method === "POST") {
-    const body = await readJsonBody(req);
-    const room = toggleRoomBedtimeFreeze(body.roomCode || "DRGN");
+    const body = authedBody;
+    const room = toggleRoomBedtimeFreeze(body.roomCode);
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room }));
@@ -641,9 +824,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/add-hero" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = addCustomHeroToRoom({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       name: body.name,
       playerName: body.playerName,
       playerAge: body.playerAge,
@@ -658,8 +841,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/copilot" && req.method === "POST") {
-    const body = await readJsonBody(req);
-    const room = getOrCreateRoom(body.roomCode || "DRGN");
+    const body = authedBody;
+    const room = getOrCreateRoom(body.roomCode);
     const whisper = await generateGmCoPilotWhisper({
       question: body.question || "What happens next?",
       session: room,
@@ -670,9 +853,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/switch-campaign" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = switchRoomCampaign({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       campaignId: body.campaignId || FAMILY_CAMPAIGNS[0].id,
     });
     broadcastRoomUpdate(room);
@@ -682,9 +865,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/procedural-map" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const room = regenerateRoomProceduralMap({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       theme: body.theme,
     });
     broadcastRoomUpdate(room);
@@ -694,8 +877,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/generate-oneshot" && req.method === "POST") {
-    const body = await readJsonBody(req);
-    const generated = generateOneShotInRoom(body.roomCode || "DRGN");
+    const body = authedBody;
+    const generated = generateOneShotInRoom(body.roomCode);
     broadcastRoomUpdate(generated.room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -710,9 +893,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/room/open-chest" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    const body = authedBody;
     const { room, rewardedItem } = openRoomLootChest({
-      roomCode: body.roomCode || "DRGN",
+      roomCode: body.roomCode,
       tokenId: body.tokenId,
       characterId: body.characterId,
     });

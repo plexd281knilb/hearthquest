@@ -1,5 +1,6 @@
 import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import { HEARTHQUEST_SKILLS } from "@hearthquest/srd-rules";
+import { computeRoomInviteSig } from "./auth-store";
 import {
   renderAtmosphereControlsHtml,
   renderCombatAndAmbientAudioScript,
@@ -10,9 +11,162 @@ import { renderLighting2DEngineScript, renderLightingControlsHtml } from "./ligh
 import { renderTabletopToolsControlsHtml, renderToolsAndWeatherEngineScript } from "./tools-weather-engine";
 import { renderTokenForgeClientScript, renderTokenForgeModalHtml } from "./token-forge-engine";
 
-export function renderVttAppHtml(initialState: RoomSessionState): string {
+export function renderVttLoginGateHtml(): string {
+  const buildMeta = getBuildMetadata();
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HearthQuest VTT — Sign In</title>
+  <link rel="icon" type="image/png" href="/assets/hearthquest-icon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+  <div id="vtt-login-gate" class="w-full max-w-md bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 shadow-2xl space-y-5">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <img src="/assets/hearthquest-icon.png" alt="HearthQuest" class="w-10 h-10 rounded-xl shadow-md" />
+        <div>
+          <h1 class="text-xl font-extrabold text-amber-400 leading-tight">HearthQuest VTT</h1>
+          <p class="text-[11px] text-slate-400">Private Family Tabletop Instances</p>
+        </div>
+      </div>
+      <span class="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">${buildMeta.badgeText}</span>
+    </div>
+
+    <div class="p-3 rounded-xl bg-amber-950/50 border border-amber-500/40 text-xs text-amber-200 leading-relaxed">
+      🔐 <strong>Sign In Required:</strong> Each user gets their own private room code, custom tailored story hook, heroes, and saved progression isolated from other groups.
+    </div>
+
+    <div class="flex gap-2 text-xs">
+      <button type="button" onclick="switchGateTab('login')" id="gate-tab-login" class="flex-1 py-2 rounded-xl bg-indigo-600 text-white font-extrabold">🔑 Sign In</button>
+      <button type="button" onclick="switchGateTab('register')" id="gate-tab-register" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold">✨ Create Account</button>
+    </div>
+
+    <form id="gate-form-login" onsubmit="submitGateLogin(event)" class="space-y-3 text-xs">
+      <input id="gate-login-email" type="email" required placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100" />
+      <input id="gate-login-password" type="password" required placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100" />
+      <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">🔓 Sign In to My Session</button>
+    </form>
+
+    <form id="gate-form-register" onsubmit="submitGateRegister(event)" class="hidden space-y-2.5 text-xs">
+      <input id="gate-reg-family" type="text" required placeholder="Family / Group Name (e.g., The Miller Family)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
+      <input id="gate-reg-email" type="email" required placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
+      <input id="gate-reg-password" type="password" required minlength="6" placeholder="Password (6+ characters)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 mb-1">Game System</label>
+          <select id="gate-reg-tier" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-semibold">
+            <option value="STORYBOOK_D6">📖 Storybook (Easy D6)</option>
+            <option value="APPRENTICE_5E_LITE">🛡️ Apprentice (5e Lite)</option>
+            <option value="STANDARD_5E">🐉 Standard 5e (Tactical)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-slate-400 mb-1">Age Group</label>
+          <select id="gate-reg-age" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-slate-100 font-semibold">
+            <option value="AGES_5_7">🐣 Ages 5–7</option>
+            <option value="AGES_8_10" selected>🧭 Ages 8–10</option>
+            <option value="AGES_11_13">⚔️ Ages 11–13</option>
+            <option value="TEENS_13_PLUS">🔥 Teens 13+</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">🎮 Create My Account &amp; Launch Private Session</button>
+    </form>
+
+    <div id="gate-feedback" class="text-xs font-semibold min-h-[1rem]"></div>
+    <p class="text-[11px] text-slate-400 text-center">
+      📱 Joining as a Kid Tablet or Living Room TV? Scan the host's QR Join code from their signed-in screen.
+    </p>
+  </div>
+
+  <script>
+    function switchGateTab(tab) {
+      const isReg = tab === "register";
+      document.getElementById("gate-form-login").classList.toggle("hidden", isReg);
+      document.getElementById("gate-form-register").classList.toggle("hidden", !isReg);
+      document.getElementById("gate-tab-login").className = !isReg
+        ? "flex-1 py-2 rounded-xl bg-indigo-600 text-white font-extrabold"
+        : "flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold";
+      document.getElementById("gate-tab-register").className = isReg
+        ? "flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 font-extrabold"
+        : "flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold";
+    }
+
+    // If local token exists from prior browser session, verify cleanly via /api/auth/me cookie-sync
+    (async () => {
+      const existingToken = localStorage.getItem("hq_vtt_auth_token");
+      if (existingToken) {
+        const res = await fetch("/api/auth/me", { headers: { Authorization: "Bearer " + existingToken } });
+        const data = await res.json();
+        if (data && data.ok && data.account) {
+          window.location.assign("/");
+        } else {
+          localStorage.removeItem("hq_vtt_auth_token");
+        }
+      }
+    })();
+
+    async function submitGateLogin(e) {
+      e.preventDefault();
+      const fb = document.getElementById("gate-feedback");
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: document.getElementById("gate-login-email").value.trim(),
+          password: document.getElementById("gate-login-password").value,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        fb.className = "text-xs font-semibold text-rose-400";
+        fb.innerText = data.error || "Sign in failed";
+        return;
+      }
+      localStorage.setItem("hq_vtt_auth_token", data.token);
+      window.location.assign("/");
+    }
+
+    async function submitGateRegister(e) {
+      e.preventDefault();
+      const fb = document.getElementById("gate-feedback");
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyName: document.getElementById("gate-reg-family").value.trim(),
+          email: document.getElementById("gate-reg-email").value.trim(),
+          password: document.getElementById("gate-reg-password").value,
+          preferredRulesTier: document.getElementById("gate-reg-tier").value,
+          preferredAgeGroup: document.getElementById("gate-reg-age").value,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        fb.className = "text-xs font-semibold text-rose-400";
+        fb.innerText = data.error || "Account creation failed";
+        return;
+      }
+      localStorage.setItem("hq_vtt_auth_token", data.token);
+      window.location.assign("/");
+    }
+  </script>
+</body>
+</html>`;
+}
+
+export function renderVttAppHtml(
+  initialState: RoomSessionState,
+  options?: { requireAuthLogin?: boolean; guestToken?: string }
+): string {
   const serialized = JSON.stringify(initialState).replace(/</g, "\\u003c");
   const buildMeta = getBuildMetadata();
+  const requireAuthLogin = Boolean(options?.requireAuthLogin);
+  const initialInviteSig = computeRoomInviteSig(initialState.roomCode);
+  const initialGuestToken = options?.guestToken || "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -273,7 +427,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <!-- Jackbox-Style Room Join Pill for TV Mode -->
           <div class="flex items-center gap-2 theme-inner-box px-3 py-1.5 rounded-xl border">
             <span class="text-xs text-slate-400">📱 Kids Join:</span>
-            <span class="font-mono font-extrabold text-sm text-amber-400">${initialState.roomCode}</span>
+            <span id="kids-join-room-code" class="font-mono font-extrabold text-sm text-amber-400">${initialState.roomCode}</span>
           </div>
         </div>
 
@@ -546,19 +700,19 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
   <div id="qr-join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-extrabold text-amber-400">📲 Scan to Join Room ${initialState.roomCode}</h3>
+        <h3 id="qr-modal-title" class="text-lg font-extrabold text-amber-400">📲 Scan to Join Room ${initialState.roomCode}</h3>
         <button onclick="toggleQrJoinModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
       <p class="text-xs text-slate-300">
         Kids & family members can scan this QR badge or tap the link to open the Kid Tablet Controller:
       </p>
       <div class="flex justify-center">
-        <img src="/api/room/qr?room=${initialState.roomCode}" alt="QR Code for Room ${initialState.roomCode}" class="rounded-2xl shadow-lg border border-amber-500/40" />
+        <img id="qr-modal-img" src="/api/room/qr?room=${initialState.roomCode}" alt="QR Code for Room ${initialState.roomCode}" class="rounded-2xl shadow-lg border border-amber-500/40 bg-white max-w-full h-auto" />
       </div>
       <div class="p-3 rounded-xl theme-inner-box border space-y-1">
         <div class="text-xs text-slate-400">4-Letter Room Code:</div>
-        <div class="text-2xl font-mono font-extrabold text-amber-400 tracking-widest">${initialState.roomCode}</div>
-        <a href="/?room=${initialState.roomCode}&mode=kid" class="inline-block mt-2 text-xs font-bold text-emerald-400 hover:underline">
+        <div id="qr-modal-code" class="text-2xl font-mono font-extrabold text-amber-400 tracking-widest">${initialState.roomCode}</div>
+        <a id="qr-modal-link" href="/?room=${initialState.roomCode}&mode=kid" class="inline-block mt-2 text-xs font-bold text-emerald-400 hover:underline break-all">
           🔗 Open Direct Kid Tablet Link (/?room=${initialState.roomCode}&mode=kid)
         </a>
       </div>
@@ -569,8 +723,11 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
   <div id="vtt-auth-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="theme-card border rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-extrabold text-amber-400">👤 HearthQuest Demo Account</h3>
-        <button onclick="toggleVttAuthModal(false)" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <h3 class="text-lg font-extrabold text-amber-400">👤 Sign In for Your Private VTT Session</h3>
+        <button id="btn-close-auth-modal" onclick="toggleVttAuthModal(false)" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div id="vtt-auth-required-banner" class="hidden p-2.5 rounded-xl bg-amber-950/70 border border-amber-500/50 text-[11px] font-semibold text-amber-200">
+        🔐 Each user must sign in (or create a free account) to get their own isolated room code &amp; saved adventure!
       </div>
       <div id="vtt-account-summary" class="hidden p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-2"></div>
 
@@ -938,9 +1095,19 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
        3. API CALLS & HELPERS
        ========================================================== */
     let vttAuthToken = localStorage.getItem("hq_vtt_auth_token") || "";
+    let vttGuestToken = ${JSON.stringify(initialGuestToken)};
+    let roomInviteSig = ${JSON.stringify(initialInviteSig)};
     let currentAccount = null;
+    const enforceAccountLoginGate = ${requireAuthLogin};
+
+    function isAuthRequiredGateActive() {
+      return enforceAccountLoginGate && !currentAccount && displayMode === "GM_COMMAND";
+    }
 
     function toggleVttAuthModal(open) {
+      if (!open && isAuthRequiredGateActive()) {
+        return;
+      }
       document.getElementById("vtt-auth-modal").classList.toggle("hidden", !open);
     }
 
@@ -960,8 +1127,13 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       const btn = document.getElementById("btn-vtt-account");
       const summary = document.getElementById("vtt-account-summary");
       const prefsBox = document.getElementById("vtt-account-preferences-box");
+      const closeBtn = document.getElementById("btn-close-auth-modal");
+      const reqBanner = document.getElementById("vtt-auth-required-banner");
+      const gateActive = isAuthRequiredGateActive();
+      if (closeBtn) closeBtn.classList.toggle("hidden", gateActive);
+      if (reqBanner) reqBanner.classList.toggle("hidden", !gateActive);
       if (!currentAccount) {
-        if (btn) btn.innerText = "👤 Sign Up / Demo Account";
+        if (btn) btn.innerText = "🔐 Sign In / Get Private Session";
         if (summary) summary.classList.add("hidden");
         if (prefsBox) prefsBox.classList.add("hidden");
         return;
@@ -988,13 +1160,38 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       }
     }
 
+    function applyAuthenticatedRoomSession(room, inviteSig) {
+      if (!room || !room.roomCode) return;
+      state = room;
+      if (inviteSig) roomInviteSig = inviteSig;
+      selectedHeroId = (state.heroes && state.heroes[0] && state.heroes[0].id) || "";
+      selectedTokenId = (state.tokens && state.tokens.find(t => t.characterId === selectedHeroId)?.id) || "";
+      lastSeenRpPromptId = "";
+      connectRoomStream(state.roomCode);
+      renderAll();
+    }
+
     async function loadVttAuthStatus() {
+      if (vttGuestToken && displayMode !== "GM_COMMAND") {
+        return;
+      }
       const headers = vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {};
       const res = await fetch("/api/auth/me", { headers });
       const data = await res.json();
       if (data && data.account) {
         currentAccount = data.account;
         updateAccountUi();
+        if (data.room && displayMode === "GM_COMMAND" && (data.room.roomCode !== state.roomCode || data.inviteSig)) {
+          applyAuthenticatedRoomSession(data.room, data.inviteSig);
+        }
+        toggleVttAuthModal(false);
+        return;
+      }
+      currentAccount = null;
+      updateAccountUi();
+      if (isAuthRequiredGateActive()) {
+        switchAuthTab("login");
+        toggleVttAuthModal(true);
       }
     }
 
@@ -1023,9 +1220,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       currentAccount = data.account;
       updateAccountUi();
       if (data.room) {
-        state = data.room;
-        document.getElementById("room-code-badge").innerText = "ROOM: " + state.roomCode;
-        renderAll();
+        applyAuthenticatedRoomSession(data.room, data.inviteSig);
       }
       feedback.className = "text-[11px] font-semibold text-emerald-400";
       feedback.innerText = "🎉 Account ready! Custom adventure generated for your game system & age group!";
@@ -1056,9 +1251,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       currentAccount = data.account;
       updateAccountUi();
       if (data.room) {
-        lastSeenRpPromptId = "";
-        state = data.room;
-        renderAll();
+        applyAuthenticatedRoomSession(data.room, data.inviteSig);
       }
       toggleVttAuthModal(false);
     }
@@ -1085,9 +1278,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       currentAccount = data.account;
       updateAccountUi();
       if (data.room) {
-        state = data.room;
-        document.getElementById("room-code-badge").innerText = "ROOM: " + state.roomCode;
-        renderAll();
+        applyAuthenticatedRoomSession(data.room, data.inviteSig);
       }
       toggleVttAuthModal(false);
     }
@@ -1118,9 +1309,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     async function logoutVttAccountUi() {
       await fetch("/api/auth/logout", { method: "POST" });
       vttAuthToken = "";
+      vttGuestToken = "";
       localStorage.removeItem("hq_vtt_auth_token");
       currentAccount = null;
-      updateAccountUi();
+      window.location.assign("/");
     }
 
     async function apiPost(url, data) {
@@ -1130,10 +1322,16 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           headers: {
             "Content-Type": "application/json",
             ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+            ...(vttGuestToken ? { "X-HearthQuest-Guest": vttGuestToken } : {}),
           },
           body: JSON.stringify(data)
         });
         const json = await res.json();
+        if (res.status === 401 || json.authRequired) {
+          switchAuthTab("login");
+          document.getElementById("vtt-auth-modal").classList.remove("hidden");
+          return json;
+        }
         if (json.paywallRequired) {
           const reasonEl = document.getElementById("vtt-paywall-reason");
           if (reasonEl && json.error) reasonEl.innerText = json.error;
@@ -1693,7 +1891,36 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       document.getElementById("hero-creator-modal").classList.toggle("hidden");
     }
 
+    function syncQrJoinModalUi() {
+      const code = state.roomCode || "DRGN";
+      const origin = window.location.origin;
+      const inviteQuery = roomInviteSig ? "&invite=" + encodeURIComponent(roomInviteSig) : "";
+      const kidUrl = origin + "/?room=" + encodeURIComponent(code) + "&mode=kid" + inviteQuery;
+      const qrSrc = "/api/room/qr?room=" + encodeURIComponent(code) + "&origin=" + encodeURIComponent(origin) + inviteQuery;
+      const titleEl = document.getElementById("qr-modal-title");
+      const imgEl = document.getElementById("qr-modal-img");
+      const codeEl = document.getElementById("qr-modal-code");
+      const linkEl = document.getElementById("qr-modal-link");
+      const topRoomBadge = document.getElementById("room-code-badge");
+      const kidsJoinBadge = document.getElementById("kids-join-room-code");
+      document.title = "HearthQuest VTT - Room " + code;
+      if (topRoomBadge) topRoomBadge.innerText = "ROOM: " + code;
+      if (kidsJoinBadge) kidsJoinBadge.innerText = code;
+      if (titleEl) titleEl.innerText = "📲 Scan to Join Room " + code;
+      if (imgEl && imgEl.getAttribute("data-qr-src") !== qrSrc) {
+        imgEl.setAttribute("data-qr-src", qrSrc);
+        imgEl.src = qrSrc;
+        imgEl.alt = "QR Code for Room " + code;
+      }
+      if (codeEl) codeEl.innerText = code;
+      if (linkEl) {
+        linkEl.href = kidUrl;
+        linkEl.innerText = "🔗 Open Direct Kid Tablet Link (" + kidUrl + ")";
+      }
+    }
+
     function toggleQrJoinModal() {
+      syncQrJoinModalUi();
       document.getElementById("qr-join-modal").classList.toggle("hidden");
     }
 
@@ -1920,6 +2147,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         }
       }
 
+      const modeBadge = document.getElementById("room-code-badge");
+      if (modeBadge) modeBadge.innerText = "ROOM: " + state.roomCode;
+      syncQrJoinModalUi();
       document.getElementById("select-rules-tier").value = state.rulesTier;
       document.getElementById("select-content-rating").value = state.contentRating;
 
@@ -2385,23 +2615,31 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       }
     }
 
-    // Real-time Server-Sent Events subscription
-    const evtSource = new EventSource("/api/room/stream?roomCode=" + state.roomCode);
-    evtSource.onmessage = (event) => {
-      try {
-        const updated = JSON.parse(event.data);
-        if (updated && updated.roomCode) {
-          state = updated;
-          renderAll();
-          const latestRoll = state.rollHistory && state.rollHistory[0];
-          if (latestRoll && latestRoll.source === "DIGITAL_3D_ROLLER" && latestRoll.id !== lastAnimatedRollId) {
-            animateRollIn3D(latestRoll);
+    // Real-time Server-Sent Events subscription (reconnects cleanly whenever user logs into their private room)
+    let evtSource = null;
+    function connectRoomStream(roomCode) {
+      if (evtSource) {
+        evtSource.close();
+      }
+      const guestQuery = vttGuestToken ? "&guest=" + encodeURIComponent(vttGuestToken) : "";
+      evtSource = new EventSource("/api/room/stream?roomCode=" + encodeURIComponent(roomCode) + guestQuery);
+      evtSource.onmessage = (event) => {
+        try {
+          const updated = JSON.parse(event.data);
+          if (updated && updated.roomCode && updated.roomCode === state.roomCode) {
+            state = updated;
+            renderAll();
+            const latestRoll = state.rollHistory && state.rollHistory[0];
+            if (latestRoll && latestRoll.source === "DIGITAL_3D_ROLLER" && latestRoll.id !== lastAnimatedRollId) {
+              animateRollIn3D(latestRoll);
+            }
           }
-        }
-      } catch {}
-    };
+        } catch {}
+      };
+    }
 
     renderAll();
+    connectRoomStream(state.roomCode);
     refreshCustomTokens();
     loadVttAuthStatus();
   </script>

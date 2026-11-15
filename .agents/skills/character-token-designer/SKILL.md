@@ -35,6 +35,6 @@ Tokens on the tactical 10x6 battlemap must be instantly readable by both young c
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.18` (Build `#19`)
-- **Updated At**: `2026-11-15T03:51:00.877Z`
+- **Last Verified Build**: `v0.1.19` (Build `#20`)
+- **Updated At**: `2026-11-15T04:05:12.005Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

@@ -15,6 +15,7 @@ import { generateTailoredAccountSession } from "@hearthquest/srd-rules";
 import {
   getOrCreateRoom,
   getVttDatabasePath,
+  hasRoomInStore,
   replaceRoomSessionState,
   saveRoomsToDisk,
 } from "./room-store";
@@ -229,11 +230,45 @@ function syncTierFromHouseholds(
 
 function generateDemoRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 4; i++) {
-    code += chars[crypto.randomInt(0, chars.length)];
+  for (let attempt = 0; attempt < 25; attempt++) {
+    let code = "";
+    for (let i = 0; i < 4; i++) {
+      code += chars[crypto.randomInt(0, chars.length)];
+    }
+    if (code !== "DRGN" && !hasRoomInStore(code)) {
+      return code;
+    }
   }
-  return code;
+  return "H" + crypto.randomBytes(2).toString("hex").toUpperCase().slice(0, 3);
+}
+
+/**
+ * Loads an authenticated user's own private room session, generating and persisting their
+ * tailored adventure if their account's room has not been initialized yet.
+ */
+export function ensureAccountSessionRoom(account: VttPublicAccount): RoomSessionState {
+  const code = (account.trialRoomCode || generateDemoRoomCode()).toUpperCase();
+  if (hasRoomInStore(code)) {
+    const existing = getOrCreateRoom(code);
+    if (existing.householdId === account.id || !existing.householdId) {
+      if (!existing.householdId) {
+        existing.householdId = account.id;
+      }
+      return existing;
+    }
+  }
+  const tailored = generateTailoredAccountSession({
+    roomCode: code,
+    rulesTier: account.preferredRulesTier,
+    ageGroup: account.preferredAgeGroup,
+    familyName: account.familyName,
+    householdId: account.id,
+  });
+  const saved = replaceRoomSessionState(tailored);
+  if (process.env.NODE_ENV !== "test") {
+    saveRoomsToDisk();
+  }
+  return saved;
 }
 
 export function registerVttAccount(params: {
@@ -242,6 +277,7 @@ export function registerVttAccount(params: {
   password: string;
   preferredRulesTier?: RulesTier;
   preferredAgeGroup?: AgeGroupPreset;
+  roomCode?: string;
 }): { account: VttPublicAccount; token: string; room: RoomSessionState } {
   const email = (params.email || "").trim().toLowerCase();
   const familyName = (params.familyName || "Adventuring Family").trim();
@@ -278,7 +314,11 @@ export function registerVttAccount(params: {
         : null;
 
     const id = `acct_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
-    const trialRoomCode = generateDemoRoomCode();
+    const trialRoomCode = (params.roomCode || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 4) || generateDemoRoomCode();
     const now = new Date().toISOString();
 
     db.prepare(
@@ -381,7 +421,7 @@ export function loginVttAccount(params: {
     return syncTierFromHouseholds(db, row);
   });
 
-  const room = getOrCreateRoom(account.trialRoomCode);
+  const room = ensureAccountSessionRoom(account);
   const token = signSessionToken(account.id, account.email);
   return { account, token, room };
 }
@@ -485,5 +525,161 @@ export function evaluateVttSessionProgressionGate(params: {
     activeTier: params.account.subscriptionTier,
     reason:
       "You reached the end of the Free Session 1 Demo! Unlock Session 2+ in the Storefront with $5/mo Digital Updates, $15 Print-at-Home DIY Pack, or $49 Starter Box.",
+  };
+}
+
+export function computeRoomInviteSig(roomCode: string): string {
+  const clean = (roomCode || "").trim().toUpperCase();
+  return crypto
+    .createHmac("sha256", getAuthSecret())
+    .update(`hq_invite:${clean}`)
+    .digest("hex")
+    .slice(0, 12);
+}
+
+export function verifyRoomInviteSig(roomCode: string, sig?: string): boolean {
+  if (!roomCode || !sig) return false;
+  const expected = computeRoomInviteSig(roomCode);
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(sig.trim(), "utf8");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+export function signRoomGuestToken(
+  roomCode: string,
+  mode: "PLAYER_CONTROLLER" | "TABLE_TV_DISPLAY" = "PLAYER_CONTROLLER"
+): string {
+  const cleanRoom = (roomCode || "").trim().toUpperCase();
+  const exp = Date.now() + 1000 * 60 * 60 * 24;
+  const payload = Buffer.from(
+    JSON.stringify({ kind: "GUEST_INVITE", roomCode: cleanRoom, mode, exp })
+  ).toString("base64url");
+  const sig = crypto
+    .createHmac("sha256", getAuthSecret())
+    .update(`guest:${payload}`)
+    .digest("base64url");
+  return `${payload}.${sig}`;
+}
+
+export function verifyRoomGuestToken(token?: string): {
+  roomCode: string;
+  mode: "PLAYER_CONTROLLER" | "TABLE_TV_DISPLAY";
+} | null {
+  if (!token || !token.includes(".")) return null;
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return null;
+  const expected = crypto
+    .createHmac("sha256", getAuthSecret())
+    .update(`guest:${payload}`)
+    .digest("base64url");
+  const a = Buffer.from(sig, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      kind?: string;
+      roomCode?: string;
+      mode?: "PLAYER_CONTROLLER" | "TABLE_TV_DISPLAY";
+      exp?: number;
+    };
+    if (parsed.kind !== "GUEST_INVITE" || !parsed.roomCode) return null;
+    if (!parsed.exp || parsed.exp < Date.now()) return null;
+    return {
+      roomCode: parsed.roomCode.toUpperCase(),
+      mode: parsed.mode === "TABLE_TV_DISPLAY" ? "TABLE_TV_DISPLAY" : "PLAYER_CONTROLLER",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function authorizeRoomAccess(params: {
+  requestedRoomCode?: string;
+  account: VttPublicAccount | null;
+  guestToken?: string;
+  requireGmOwner?: boolean;
+}): {
+  authorized: boolean;
+  status: 200 | 401 | 403;
+  resolvedRoomCode: string;
+  isGuest: boolean;
+  error?: string;
+} {
+  const cleanReq = (params.requestedRoomCode || "").trim().toUpperCase().slice(0, 4);
+
+  if (params.account) {
+    const ownCode = params.account.trialRoomCode.toUpperCase();
+    const targetCode = cleanReq || ownCode;
+    if (targetCode === ownCode) {
+      return {
+        authorized: true,
+        status: 200,
+        resolvedRoomCode: ownCode,
+        isGuest: false,
+      };
+    }
+    if (hasRoomInStore(targetCode)) {
+      const targetRoom = getOrCreateRoom(targetCode);
+      if (targetRoom.householdId === params.account.id) {
+        return {
+          authorized: true,
+          status: 200,
+          resolvedRoomCode: targetCode,
+          isGuest: false,
+        };
+      }
+    }
+    return {
+      authorized: false,
+      status: 403,
+      resolvedRoomCode: ownCode,
+      isGuest: false,
+      error: "Access denied: you can only open and modify your own session instance.",
+    };
+  }
+
+  const guest = verifyRoomGuestToken(params.guestToken);
+  if (guest) {
+    if (cleanReq && cleanReq !== guest.roomCode) {
+      return {
+        authorized: false,
+        status: 403,
+        resolvedRoomCode: guest.roomCode,
+        isGuest: true,
+        error: `Guest pass is only authorized for Room ${guest.roomCode}.`,
+      };
+    }
+    if (params.requireGmOwner) {
+      return {
+        authorized: false,
+        status: 403,
+        resolvedRoomCode: guest.roomCode,
+        isGuest: true,
+        error: "Host sign-in required for GM controls.",
+      };
+    }
+    if (!hasRoomInStore(guest.roomCode)) {
+      return {
+        authorized: false,
+        status: 401,
+        resolvedRoomCode: guest.roomCode,
+        isGuest: true,
+        error: "Host session is not active yet. Please ask the host to sign in first.",
+      };
+    }
+    return {
+      authorized: true,
+      status: 200,
+      resolvedRoomCode: guest.roomCode,
+      isGuest: true,
+    };
+  }
+
+  return {
+    authorized: false,
+    status: 401,
+    resolvedRoomCode: "",
+    isGuest: false,
+    error: "Authentication required. Please sign in or create an account to launch your own VTT session.",
   };
 }

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { encodeQrMatrix } from "./qr-encoder";
 import {
   AmbientLightingMode,
   AmbientSoundscapeType,
@@ -207,54 +208,68 @@ if (process.env.NODE_ENV !== "test") {
   loadRoomsFromDisk();
 }
 
+export function hasRoomInStore(roomCode: string): boolean {
+  const code = (roomCode || "").trim().toUpperCase().slice(0, 4);
+  if (!code) return false;
+  if (rooms.has(code)) return true;
+  if (process.env.NODE_ENV !== "test") {
+    try {
+      const existing = withRoomDb((db) =>
+        db.prepare("SELECT room_code FROM rooms WHERE room_code = ?").get(code)
+      );
+      return Boolean(existing);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 export function generateJoinQrSvg(roomCode: string, joinUrl: string): string {
   const cleanCode = (roomCode || "DRGN").trim().toUpperCase();
-  const seedText = `${cleanCode}:${joinUrl}`;
-  const gridSize = 15;
-  const cellSize = 10;
-  const offset = 20;
+  const payload = (joinUrl || `/?room=${cleanCode}&mode=kid`).trim();
+  const { size, modules } = encodeQrMatrix(payload);
 
-  const isFinderCell = (r: number, c: number): boolean => {
-    const inTopLeft = r < 5 && c < 5;
-    const inTopRight = r < 5 && c >= gridSize - 5;
-    const inBottomLeft = r >= gridSize - 5 && c < 5;
-    return inTopLeft || inTopRight || inBottomLeft;
-  };
+  // Standard 4-module white quiet zone around the QR symbol for fast phone camera scanning
+  const quiet = 4;
+  const modulePx = size <= 25 ? 8 : size <= 33 ? 6 : 5;
+  const qrBoxPx = (size + quiet * 2) * modulePx;
+  const padX = 16;
+  const topPad = 14;
+  const totalWidth = Math.max(230, qrBoxPx + padX * 2);
+  const qrLeft = Math.floor((totalWidth - qrBoxPx) / 2);
+  const footerY = topPad + qrBoxPx + 22;
+  const totalHeight = footerY + 26;
 
-  const isFinderFilled = (r: number, c: number): boolean => {
-    const localR = r >= gridSize - 5 ? r - (gridSize - 5) : r;
-    const localC = c >= gridSize - 5 ? c - (gridSize - 5) : c;
-    if (localR === 0 || localR === 4 || localC === 0 || localC === 4) return true;
-    if (localR === 2 && localC === 2) return true;
-    return false;
-  };
-
-  let rects = "";
-  for (let r = 0; r < gridSize; r++) {
-    for (let c = 0; c < gridSize; c++) {
-      let filled = false;
-      if (isFinderCell(r, c)) {
-        filled = isFinderFilled(r, c);
-      } else {
-        const idx = (r * gridSize + c) % seedText.length;
-        const charCode = seedText.charCodeAt(idx);
-        filled = ((charCode + r * 7 + c * 13) & 1) === 1;
-      }
-      if (filled) {
-        const x = offset + c * cellSize;
-        const y = offset + r * cellSize;
-        rects += `<rect x="${x}" y="${y}" width="${cellSize - 1}" height="${cellSize - 1}" rx="2" fill="#0f172a" />`;
+  // Build horizontal dark module runs per row so SVG stays compact, crisp & sub-pixel aligned
+  const rects: string[] = [];
+  for (let r = 0; r < size; r++) {
+    let runStart = -1;
+    for (let c = 0; c <= size; c++) {
+      const dark = c < size && modules[r][c];
+      if (dark && runStart === -1) {
+        runStart = c;
+      } else if (!dark && runStart !== -1) {
+        const x = qrLeft + (quiet + runStart) * modulePx;
+        const y = topPad + (quiet + r) * modulePx;
+        const w = (c - runStart) * modulePx;
+        rects.push(`<rect x="${x}" y="${y}" width="${w}" height="${modulePx}" fill="#000000" />`);
+        runStart = -1;
       }
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 225" width="190" height="225" role="img" aria-label="Join Room ${cleanCode} QR Code">
-  <rect width="190" height="225" rx="16" fill="#ffffff" stroke="#f59e0b" stroke-width="4" />
-  ${rects}
-  <rect x="45" y="75" width="100" height="40" rx="8" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
-  <text x="95" y="101" text-anchor="middle" fill="#fbbf24" font-family="monospace" font-weight="bold" font-size="20">${cleanCode}</text>
-  <text x="95" y="192" text-anchor="middle" fill="#0f172a" font-family="sans-serif" font-weight="bold" font-size="11">ROOM: ${cleanCode}</text>
-  <text x="95" y="209" text-anchor="middle" fill="#475569" font-family="monospace" font-size="8">${joinUrl}</text>
+  const escapedUrl = payload
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" shape-rendering="crispEdges" role="img" aria-label="Join Room ${cleanCode} QR Code">
+  <rect width="${totalWidth}" height="${totalHeight}" rx="14" fill="#ffffff" stroke="#f59e0b" stroke-width="3" />
+  <rect x="${qrLeft}" y="${topPad}" width="${qrBoxPx}" height="${qrBoxPx}" fill="#ffffff" />
+  ${rects.join("")}
+  <text x="${totalWidth / 2}" y="${footerY}" text-anchor="middle" fill="#0f172a" font-family="sans-serif" font-weight="bold" font-size="13">ROOM CODE: ${cleanCode}</text>
+  <text x="${totalWidth / 2}" y="${footerY + 15}" text-anchor="middle" fill="#475569" font-family="monospace" font-size="8.5">${escapedUrl}</text>
 </svg>`;
 }
 
