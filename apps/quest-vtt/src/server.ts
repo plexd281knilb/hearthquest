@@ -66,26 +66,62 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if ((pathname === "/favicon.svg" || pathname === "/assets/hearthquest-icon.svg") && req.method === "GET") {
-    const iconPath = path.resolve(__dirname, "..", "..", "..", "assets", "hearthquest-icon.svg");
-    if (fs.existsSync(iconPath)) {
-      res.writeHead(200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" });
-      res.end(fs.readFileSync(iconPath));
-      return;
+  if (pathname.startsWith("/assets/") && req.method === "GET") {
+    const relativeAsset = pathname.replace(/^\/assets\//, "");
+    const safePath = path.normalize(relativeAsset).replace(/^(\.\.[\/\\])+/, "");
+    const candidatePaths = [
+      path.resolve(__dirname, "..", "..", "..", "assets", safePath),
+      path.resolve(process.cwd(), "assets", safePath),
+    ];
+
+    for (const filePath of candidatePaths) {
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType =
+          ext === ".svg"
+            ? "image/svg+xml"
+            : ext === ".png"
+            ? "image/png"
+            : ext === ".jpg" || ext === ".jpeg"
+            ? "image/jpeg"
+            : ext === ".webp"
+            ? "image/webp"
+            : "application/octet-stream";
+        res.writeHead(200, {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=86400",
+        });
+        res.end(fs.readFileSync(filePath));
+        return;
+      }
     }
   }
 
-  if (
-    (pathname === "/favicon.ico" ||
-      pathname === "/favicon.png" ||
-      pathname === "/assets/hearthquest-icon.png") &&
-    req.method === "GET"
-  ) {
-    const iconPath = path.resolve(__dirname, "..", "..", "..", "assets", "hearthquest-icon.png");
-    if (fs.existsSync(iconPath)) {
-      res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" });
-      res.end(fs.readFileSync(iconPath));
-      return;
+  if (pathname === "/favicon.svg" && req.method === "GET") {
+    const candidatePaths = [
+      path.resolve(__dirname, "..", "..", "..", "assets", "hearthquest-icon.svg"),
+      path.resolve(process.cwd(), "assets", "hearthquest-icon.svg"),
+    ];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        res.writeHead(200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" });
+        res.end(fs.readFileSync(p));
+        return;
+      }
+    }
+  }
+
+  if ((pathname === "/favicon.ico" || pathname === "/favicon.png") && req.method === "GET") {
+    const candidatePaths = [
+      path.resolve(__dirname, "..", "..", "..", "assets", "hearthquest-icon.png"),
+      path.resolve(process.cwd(), "assets", "hearthquest-icon.png"),
+    ];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" });
+        res.end(fs.readFileSync(p));
+        return;
+      }
     }
   }
 

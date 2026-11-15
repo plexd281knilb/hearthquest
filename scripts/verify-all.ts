@@ -28,6 +28,10 @@ import {
   APP_VERSION,
   BUILD_NUMBER,
   getBuildMetadata,
+  HEARTHQUEST_ASSETS,
+  resolveArchetypeAsset,
+  resolveCampaignTileAsset,
+  resolveTokenAsset,
 } from "../packages/shared-types/src/index";
 import {
   calculateEncounterAutoBalance,
@@ -309,8 +313,129 @@ async function runVerification() {
   assert.ok(compose.includes("net.unraid.docker.icon"), "docker-compose.yml must declare net.unraid.docker.icon label");
   console.log("✅ PASSED");
 
+  // Suite 15: Foundry-Grade Visual Asset & Tile Pipeline
+  process.stdout.write("[TEST] Suite 15: Foundry Visual Asset & Tile Pipeline... ");
+  
+  // 1. Verify hero standees on disk
+  const heroAssets = [
+    "knight-shield.svg",
+    "wizard-starlight.svg",
+    "ranger-forest.svg",
+    "rogue-ninja.svg",
+    "bard-melody.svg",
+    "druid-bear.svg",
+  ];
+  for (const h of heroAssets) {
+    const fullPath = path.join(rootDir, "assets", "tokens", "heroes", h);
+    assert.ok(fs.existsSync(fullPath), `Hero asset ${h} must exist on disk`);
+  }
+
+  // 2. Verify monster standees on disk
+  const monsterAssets = [
+    "goblin-sprinkles.svg",
+    "chef-snickerdoodle.svg",
+    "brass-squirrel.svg",
+    "dragon-puppy.svg",
+    "nebula-jelly.svg",
+  ];
+  for (const m of monsterAssets) {
+    const fullPath = path.join(rootDir, "assets", "tokens", "monsters", m);
+    assert.ok(fs.existsSync(fullPath), `Monster asset ${m} must exist on disk`);
+  }
+
+  // 3. Verify prop tokens on disk
+  const propAssets = [
+    "chest-closed.svg",
+    "chest-open.svg",
+    "torch-wall.svg",
+    "campfire-hearth.svg",
+  ];
+  for (const p of propAssets) {
+    const fullPath = path.join(rootDir, "assets", "tokens", "props", p);
+    assert.ok(fs.existsSync(fullPath), `Prop asset ${p} must exist on disk`);
+  }
+
+  // 4. Verify tactical terrain tiles on disk
+  const tileAssets = [
+    "tile-bakery-floor.svg",
+    "tile-treehouse-wood.svg",
+    "tile-starlight-deck.svg",
+  ];
+  for (const t of tileAssets) {
+    const fullPath = path.join(rootDir, "assets", "tiles", t);
+    assert.ok(fs.existsSync(fullPath), `Tactical tile ${t} must exist on disk`);
+  }
+
+  // 5. Verify asset catalog lookups
+  assert.strictEqual(
+    resolveArchetypeAsset("Shield Knight"),
+    HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
+    "resolveArchetypeAsset must map Shield Knight"
+  );
+  assert.strictEqual(
+    resolveArchetypeAsset("Wild Druid Bear"),
+    HEARTHQUEST_ASSETS.heroes.wildDruid.path,
+    "resolveArchetypeAsset must map Wild Druid"
+  );
+  assert.strictEqual(
+    resolveTokenAsset({ name: "Sprinkles the Goblin Guard" }),
+    HEARTHQUEST_ASSETS.monsters.goblinSprinkles.path,
+    "resolveTokenAsset must map Sprinkles"
+  );
+  assert.strictEqual(
+    resolveTokenAsset({ name: "Chef Snickerdoodle" }),
+    HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path,
+    "resolveTokenAsset must map Chef Snickerdoodle"
+  );
+  assert.strictEqual(
+    resolveTokenAsset({ name: "Chest", isLootChest: true, isChestOpened: false }),
+    HEARTHQUEST_ASSETS.props.chestClosed.path,
+    "resolveTokenAsset must map closed chest"
+  );
+  assert.strictEqual(
+    resolveTokenAsset({ name: "Chest", isLootChest: true, isChestOpened: true }),
+    HEARTHQUEST_ASSETS.props.chestOpen.path,
+    "resolveTokenAsset must map open chest"
+  );
+  assert.strictEqual(
+    resolveCampaignTileAsset("camp-clockwork-treehouse"),
+    HEARTHQUEST_ASSETS.tiles.treehouseWood.path,
+    "resolveCampaignTileAsset must map treehouse tile"
+  );
+
+  // 6. Verify VTT CSS and template rendering
+  assert.ok(vttHtml.includes("tile-bakery-floor.svg"), "VTT must reference tile-bakery-floor.svg");
+  assert.ok(vttHtml.includes("tile-treehouse-wood.svg"), "VTT must reference tile-treehouse-wood.svg");
+  assert.ok(vttHtml.includes("tile-starlight-deck.svg"), "VTT must reference tile-starlight-deck.svg");
+  assert.ok(vttHtml.includes("token-portrait-img"), "VTT must include token-portrait-img style");
+
+  // 7. Verify dynamic custom hero asset assignment
+  const customHeroRoom = addCustomHeroToRoom({
+    roomCode: "ASST",
+    name: "Shadow Paw",
+    playerName: "Riley",
+    playerAge: 9,
+    archetype: "Sneaky Ninja Rogue",
+    companionPet: "Midnight Crow",
+    avatarEmoji: "🗡️",
+  });
+  const createdHero = customHeroRoom.heroes.find((h) => h.name === "Shadow Paw");
+  assert.strictEqual(
+    createdHero?.assetPath,
+    HEARTHQUEST_ASSETS.heroes.ninjaRogue.path,
+    "Custom hero must receive resolved assetPath"
+  );
+  const createdToken = customHeroRoom.tokens.find((t) => t.name === "Shadow Paw");
+  assert.strictEqual(
+    createdToken?.assetPath,
+    HEARTHQUEST_ASSETS.heroes.ninjaRogue.path,
+    "Custom token standee must receive resolved assetPath"
+  );
+
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 14/14 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 15/15 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

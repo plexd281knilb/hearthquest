@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bossHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fecaca" />
+      <stop offset="65%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#7f1d1d" />
+    </radialGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#450a0a" stroke="url(#bossHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#0f172a" stroke="#f87171" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Chef Snickerdoodle (Grumpy but Funny Baker Boss) -->
+  <ellipse cx="128" cy="135" rx="58" ry="50" fill="#fed7aa" stroke="#c2410c" stroke-width="4" />
+  <!-- Comical Handlebar Mustache -->
+  <path d="M 85 145 Q 128 175 128 150 Q 128 175 171 145 Q 155 135 128 145 Q 101 135 85 145 Z" fill="#9a3412" />
+
+  <!-- Grumpy Brow & Eyes -->
+  <line x1="95" y1="115" x2="120" y2="125" stroke="#9a3412" stroke-width="5" stroke-linecap="round" />
+  <line x1="161" y1="115" x2="136" y2="125" stroke="#9a3412" stroke-width="5" stroke-linecap="round" />
+  <circle cx="108" cy="128" r="6" fill="#1c1917" />
+  <circle cx="148" cy="128" r="6" fill="#1c1917" />
+
+  <!-- Flaming Tall Chef Toque -->
+  <path d="M 80 90 C 50 60 70 15 105 25 C 120 10 136 10 151 25 C 186 15 206 60 176 90 Z" fill="#ffffff" stroke="#ef4444" stroke-width="4" />
+  <rect x="80" y="85" width="96" height="18" rx="4" fill="#dc2626" />
+  <!-- Flame Puff on Hat -->
+  <path d="M 128 20 C 140 35 150 45 145 60 C 140 70 120 70 128 20 Z" fill="#f59e0b" />
+
+  <!-- Giant Battle Whisk -->
+  <g transform="translate(180, 80) rotate(25)">
+    <line x1="0" y1="0" x2="0" y2="120" stroke="#94a3b8" stroke-width="6" stroke-linecap="round" />
+    <ellipse cx="0" cy="15" rx="18" ry="30" fill="none" stroke="#cbd5e1" stroke-width="4" />
+    <ellipse cx="0" cy="15" rx="10" ry="30" fill="none" stroke="#cbd5e1" stroke-width="3" />
+  </g>
+
+  <!-- Giant Chocolate Chip Cookie Shield -->
+  <g transform="translate(70, 180)">
+    <circle cx="0" cy="0" r="32" fill="#d97706" stroke="#78350f" stroke-width="4" />
+    <circle cx="-12" cy="-10" r="4.5" fill="#451a03" />
+    <circle cx="10" cy="-12" r="5" fill="#451a03" />
+    <circle cx="-5" cy="12" r="4" fill="#451a03" />
+    <circle cx="12" cy="8" r="4.5" fill="#451a03" />
+  </g>
+</svg>

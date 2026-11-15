@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="goblinHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#bbf7d0" />
+      <stop offset="65%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#14532d" />
+    </radialGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#052e16" stroke="url(#goblinHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#0f172a" stroke="#4ade80" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Pointy Goblin Ears -->
+  <polygon points="65,120 15,100 65,145" fill="#4ade80" stroke="#16a34a" stroke-width="3" />
+  <polygon points="191,120 241,100 191,145" fill="#4ade80" stroke="#16a34a" stroke-width="3" />
+
+  <!-- Goblin Face -->
+  <ellipse cx="128" cy="135" rx="55" ry="45" fill="#4ade80" stroke="#16a34a" stroke-width="3" />
+  <circle cx="106" cy="130" r="7" fill="#14532d" />
+  <circle cx="108" cy="128" r="2" fill="#ffffff" />
+  <circle cx="150" cy="130" r="7" fill="#14532d" />
+  <circle cx="152" cy="128" r="2" fill="#ffffff" />
+  <!-- Big Friendly Grin -->
+  <path d="M 105 155 Q 128 175 151 155" stroke="#14532d" stroke-width="4" fill="none" stroke-linecap="round" />
+  <!-- Cute Goblin Tusk -->
+  <polygon points="112,156 116,148 120,156" fill="#ffffff" stroke="#14532d" stroke-width="1.5" />
+
+  <!-- Baker Chef Hat (Toque) with Sprinkles -->
+  <path d="M 90 95 C 65 70 80 30 110 40 C 120 25 136 25 146 40 C 176 30 191 70 166 95 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="3" />
+  <rect x="90" y="90" width="76" height="15" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" />
+  <!-- Colorful Sprinkles on Hat -->
+  <circle cx="110" cy="55" r="3" fill="#f43f5e" />
+  <circle cx="130" cy="45" r="3" fill="#38bdf8" />
+  <circle cx="148" cy="60" r="3" fill="#facc15" />
+  <circle cx="125" cy="70" r="3" fill="#a855f7" />
+
+  <!-- Wooden Rolling Pin in Hands -->
+  <g transform="translate(68, 185) rotate(-15)">
+    <rect x="0" y="8" width="120" height="18" rx="5" fill="#d97706" stroke="#78350f" stroke-width="2" />
+    <rect x="-15" y="12" width="15" height="10" rx="3" fill="#92400e" />
+    <rect x="120" y="12" width="15" height="10" rx="3" fill="#92400e" />
+  </g>
+</svg>

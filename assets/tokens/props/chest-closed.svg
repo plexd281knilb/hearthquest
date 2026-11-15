@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="chestHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="60%" stop-color="#ca8a04" />
+      <stop offset="100%" stop-color="#713f12" />
+    </radialGradient>
+    <linearGradient id="woodGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="40%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#1c1917" stroke="url(#chestHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#0c0a09" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Shadow below chest -->
+  <ellipse cx="128" cy="195" rx="72" ry="14" fill="#000000" opacity="0.6" />
+
+  <!-- Chest Body (Lower base) -->
+  <rect x="58" y="125" width="140" height="65" rx="8" fill="url(#woodGrad)" stroke="#271003" stroke-width="3" />
+
+  <!-- Chest Lid (Curved dome top) -->
+  <path d="M 54 125 C 54 85 202 85 202 125 Z" fill="url(#woodGrad)" stroke="#271003" stroke-width="3" />
+
+  <!-- Gold Trim Bands (Lid & Base) -->
+  <!-- Left Band -->
+  <path d="M 80 94 C 80 94 80 125 80 125" stroke="url(#goldGrad)" stroke-width="12" fill="none" />
+  <rect x="74" y="125" width="12" height="65" fill="url(#goldGrad)" stroke="#78350f" stroke-width="1.5" />
+  <!-- Right Band -->
+  <path d="M 176 94 C 176 94 176 125 176 125" stroke="url(#goldGrad)" stroke-width="12" fill="none" />
+  <rect x="170" y="125" width="12" height="65" fill="url(#goldGrad)" stroke="#78350f" stroke-width="1.5" />
+
+  <!-- Gold Border Strip between Lid and Body -->
+  <rect x="52" y="120" width="152" height="10" rx="3" fill="url(#goldGrad)" stroke="#78350f" stroke-width="2" />
+
+  <!-- Center Gold Lock & Keyhole Plate -->
+  <rect x="114" y="115" width="28" height="32" rx="4" fill="url(#goldGrad)" stroke="#78350f" stroke-width="2" />
+  <circle cx="128" cy="127" r="4.5" fill="#1c1917" />
+  <polygon points="126,128 130,128 131,137 125,137" fill="#1c1917" />
+
+  <!-- Gold Corner Studs -->
+  <circle cx="80" cy="135" r="2.5" fill="#fef08a" />
+  <circle cx="80" cy="180" r="2.5" fill="#fef08a" />
+  <circle cx="176" cy="135" r="2.5" fill="#fef08a" />
+  <circle cx="176" cy="180" r="2.5" fill="#fef08a" />
+</svg>

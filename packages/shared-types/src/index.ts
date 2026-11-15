@@ -6,6 +6,7 @@
  */
 
 export * from "./version";
+export * from "./assets";
 
 export type RulesTier = "STORYBOOK_D6" | "APPRENTICE_5E_LITE" | "STANDARD_5E";
 
@@ -90,6 +91,7 @@ export interface CharacterSheet {
   levelStars?: number;
   bioStory?: string;
   petTrait?: string;
+  assetPath?: string;
 }
 
 export interface MapToken {
@@ -98,6 +100,7 @@ export interface MapToken {
   name: string;
   type: "HERO" | "NPC" | "MONSTER" | "PROP";
   avatarEmoji: string;
+  assetPath?: string;
   color: string;
   gridX: number;
   gridY: number;

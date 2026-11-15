@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="druidHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fed7aa" />
+      <stop offset="65%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#451a03" />
+    </radialGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#1c1917" stroke="url(#druidHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#292524" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Bear Cub Head -->
+  <circle cx="70" cy="80" r="24" fill="#78350f" stroke="#451a03" stroke-width="3" />
+  <circle cx="70" cy="80" r="12" fill="#fbcfe8" />
+  <circle cx="186" cy="80" r="24" fill="#78350f" stroke="#451a03" stroke-width="3" />
+  <circle cx="186" cy="80" r="12" fill="#fbcfe8" />
+
+  <ellipse cx="128" cy="130" rx="65" ry="58" fill="#78350f" stroke="#451a03" stroke-width="4" />
+  <ellipse cx="128" cy="148" rx="36" ry="28" fill="#fed7aa" />
+  <!-- Nose -->
+  <ellipse cx="128" cy="136" rx="14" ry="10" fill="#1c1917" />
+  <path d="M 128 146 L 128 156 M 120 154 Q 128 162 136 154" stroke="#1c1917" stroke-width="3" fill="none" stroke-linecap="round" />
+
+  <!-- Bear Eyes -->
+  <circle cx="104" cy="122" r="6" fill="#1c1917" />
+  <circle cx="106" cy="120" r="2" fill="#ffffff" />
+  <circle cx="152" cy="122" r="6" fill="#1c1917" />
+  <circle cx="154" cy="120" r="2" fill="#ffffff" />
+
+  <!-- Green Antler / Leaf Crown -->
+  <path d="M 85 90 Q 70 50 60 40 M 80 65 Q 95 45 105 35" stroke="#16a34a" stroke-width="5" stroke-linecap="round" fill="none" />
+  <path d="M 171 90 Q 186 50 196 40 M 176 65 Q 161 45 151 35" stroke="#16a34a" stroke-width="5" stroke-linecap="round" fill="none" />
+  <circle cx="128" cy="85" r="7" fill="#f59e0b" />
+</svg>

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="nebulaHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a5f3fc" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="85%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#312e81" />
+    </radialGradient>
+    <linearGradient id="bellGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#67e8f9" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#0f172a" stroke="url(#nebulaHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#030712" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Constellation sparkles in background -->
+  <circle cx="65" cy="80" r="2.5" fill="#fef08a" />
+  <circle cx="195" cy="75" r="2" fill="#fef08a" />
+  <circle cx="55" cy="160" r="1.5" fill="#bae6fd" />
+  <circle cx="205" cy="155" r="2" fill="#bae6fd" />
+  <line x1="65" y1="80" x2="85" y2="60" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2 2" opacity="0.6" />
+
+  <!-- Bioluminescent Jelly Tentacles -->
+  <path d="M 95 140 Q 80 180 95 210" stroke="#38bdf8" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85" />
+  <path d="M 112 145 Q 100 185 110 218" stroke="#a78bfa" stroke-width="4.5" fill="none" stroke-linecap="round" opacity="0.9" />
+  <path d="M 128 148 Q 130 188 126 222" stroke="#f472b6" stroke-width="5" fill="none" stroke-linecap="round" />
+  <path d="M 144 145 Q 155 185 146 218" stroke="#a78bfa" stroke-width="4.5" fill="none" stroke-linecap="round" opacity="0.9" />
+  <path d="M 161 140 Q 176 180 161 210" stroke="#38bdf8" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85" />
+
+  <!-- Jelly Bell / Umbrella Cap -->
+  <path d="M 68 135 C 68 65 188 65 188 135 C 188 145 160 142 148 148 C 138 152 118 152 108 148 C 96 142 68 145 68 135 Z" fill="url(#bellGrad)" stroke="#e0e7ff" stroke-width="3" opacity="0.92" />
+  
+  <!-- Inner Bioluminescent Organ Orbs -->
+  <ellipse cx="128" cy="100" rx="30" ry="20" fill="#fbcfe8" opacity="0.5" />
+  <circle cx="112" cy="102" r="8" fill="#fde047" opacity="0.8" />
+  <circle cx="144" cy="102" r="8" fill="#fde047" opacity="0.8" />
+  <circle cx="128" cy="115" r="9" fill="#f472b6" opacity="0.8" />
+
+  <!-- Gentle Alien Crown / Crest -->
+  <polygon points="128,45 120,62 136,62" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5" />
+  <polygon points="110,50 106,66 118,64" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5" />
+  <polygon points="146,50 138,64 150,66" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5" />
+
+  <!-- Soft Friendly Eyes -->
+  <ellipse cx="115" cy="115" rx="5" ry="6" fill="#1e1b4b" />
+  <circle cx="113" cy="113" r="2" fill="#ffffff" />
+  <ellipse cx="141" cy="115" rx="5" ry="6" fill="#1e1b4b" />
+  <circle cx="139" cy="113" r="2" fill="#ffffff" />
+</svg>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="dragonHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbcfe8" />
+      <stop offset="60%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#831843" />
+    </radialGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#500724" stroke="url(#dragonHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#1e1b4b" stroke="#f472b6" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Baby Dragon Bat Wings -->
+  <path d="M 65 130 C 35 100 20 120 30 150 C 45 155 60 145 68 140 Z" fill="#f472b6" stroke="#db2777" stroke-width="2.5" />
+  <path d="M 191 130 C 221 100 236 120 226 150 C 211 155 196 145 188 140 Z" fill="#f472b6" stroke="#db2777" stroke-width="2.5" />
+
+  <!-- Chubby Dragon Puppy Body -->
+  <ellipse cx="128" cy="165" rx="55" ry="48" fill="#c084fc" stroke="#9333ea" stroke-width="3" />
+  <!-- Pastel Cream Belly -->
+  <ellipse cx="128" cy="170" rx="35" ry="32" fill="#fef08a" stroke="#eab308" stroke-width="2" />
+
+  <!-- Dragon Spikes down spine -->
+  <polygon points="128,40 123,55 133,55" fill="#f43f5e" />
+  <polygon points="128,58 122,72 134,72" fill="#f43f5e" />
+
+  <!-- Head -->
+  <ellipse cx="128" cy="105" rx="48" ry="42" fill="#d8b4fe" stroke="#9333ea" stroke-width="3" />
+
+  <!-- Baby Horn Nubs -->
+  <polygon points="100,75 88,48 108,68" fill="#fbbf24" stroke="#d97706" stroke-width="2" />
+  <polygon points="156,75 168,48 148,68" fill="#fbbf24" stroke="#d97706" stroke-width="2" />
+
+  <!-- Big Anime Puppy Eyes -->
+  <ellipse cx="108" cy="102" rx="10" ry="13" fill="#1e1b4b" />
+  <circle cx="105" cy="98" r="4.5" fill="#ffffff" />
+  <circle cx="111" cy="107" r="2" fill="#ffffff" />
+
+  <ellipse cx="148" cy="102" rx="10" ry="13" fill="#1e1b4b" />
+  <circle cx="145" cy="98" r="4.5" fill="#ffffff" />
+  <circle cx="151" cy="107" r="2" fill="#ffffff" />
+
+  <!-- Rosy Cheeks -->
+  <circle cx="95" cy="115" r="7" fill="#f472b6" opacity="0.6" />
+  <circle cx="161" cy="115" r="7" fill="#f472b6" opacity="0.6" />
+
+  <!-- Tiny Dragon Snout & Friendly Smile -->
+  <ellipse cx="128" cy="116" rx="16" ry="10" fill="#f5d0fe" stroke="#c084fc" stroke-width="1.5" />
+  <circle cx="123" cy="114" r="2" fill="#581c87" />
+  <circle cx="133" cy="114" r="2" fill="#581c87" />
+  <path d="M 124 120 Q 128 124 132 120" stroke="#581c87" stroke-width="2" fill="none" stroke-linecap="round" />
+
+  <!-- Little Spark Puff / Marshmallow Toast Ember -->
+  <g transform="translate(120, 192)">
+    <circle cx="8" cy="8" r="7" fill="#fbbf24" />
+    <circle cx="8" cy="8" r="4" fill="#f97316" />
+    <path d="M 8 0 Q 14 6 8 10 Q 2 6 8 0 Z" fill="#ef4444" />
+  </g>
+</svg>

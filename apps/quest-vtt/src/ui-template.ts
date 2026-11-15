@@ -94,26 +94,38 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     /* Themed Battlemap Backgrounds */
     .bg-bakery {
-      background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%),
-        repeating-linear-gradient(45deg, #0f172a 0px, #0f172a 20px, #131d33 20px, #131d33 40px);
+      background-image: url('/assets/tiles/tile-bakery-floor.svg');
+      background-size: 80px 80px;
+      background-repeat: repeat;
     }
     .bg-treehouse {
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%),
-        repeating-linear-gradient(0deg, #0b1719 0px, #0b1719 25px, #102326 25px, #102326 50px);
+      background-image: url('/assets/tiles/tile-treehouse-wood.svg');
+      background-size: 80px 80px;
+      background-repeat: repeat;
     }
     .bg-starlight {
-      background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(9, 13, 22, 0.98) 100%),
-        repeating-radial-gradient(circle at 50% 50%, #1e1b4b 0px, #090d16 60px);
+      background-image: url('/assets/tiles/tile-starlight-deck.svg');
+      background-size: 80px 80px;
+      background-repeat: repeat;
     }
 
     body[data-theme="light"] .bg-bakery {
-      background: #fbf7ef repeating-linear-gradient(45deg, #fbf7ef 0px, #fbf7ef 20px, #f4ece0 20px, #f4ece0 40px);
+      background-image: url('/assets/tiles/tile-bakery-floor.svg');
+      background-size: 80px 80px;
+      background-repeat: repeat;
+      filter: brightness(1.22) contrast(0.92);
     }
     body[data-theme="light"] .bg-treehouse {
-      background: #f7f9f4 repeating-linear-gradient(0deg, #f7f9f4 0px, #f7f9f4 25px, #edf3e6 25px, #edf3e6 50px);
+      background-image: url('/assets/tiles/tile-treehouse-wood.svg');
+      background-size: 80px 80px;
+      background-repeat: repeat;
+      filter: brightness(1.22) contrast(0.92);
     }
     body[data-theme="light"] .bg-starlight {
-      background: #fcf8ff repeating-radial-gradient(circle at 50% 50%, #f7efff 0px, #f1e4fc 60px);
+      background-image: url('/assets/tiles/tile-starlight-deck.svg');
+      background-size: 80px 80px;
+      background-repeat: repeat;
+      filter: brightness(1.28) contrast(0.9);
     }
 
     /* Token Standee Styling */
@@ -123,8 +135,16 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       cursor: pointer;
     }
     .token-standee:hover {
-      transform: scale(1.15) translateY(-3px);
+      transform: scale(1.18) translateY(-4px);
       z-index: 30;
+      box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.5);
+    }
+    .token-portrait-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 9999px;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -751,13 +771,17 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       document.getElementById("modal-hero-title").innerHTML = \`\${hero.avatarEmoji} \${hero.name} — Character Sheet\`;
       const stars = "⭐".repeat(hero.levelStars || 1);
       const content = document.getElementById("modal-hero-content");
+      const modalPortrait = hero.assetPath
+        ? \`<img src="\${hero.assetPath}" class="w-12 h-12 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${hero.name}" />\`
+        : \`<span class="text-3xl shrink-0">\${hero.avatarEmoji}</span>\`;
       content.innerHTML = \`
-        <div class="flex justify-between items-center p-3 rounded-xl theme-inner-box border">
-          <div>
+        <div class="flex items-center gap-3 p-3 rounded-xl theme-inner-box border">
+          \${modalPortrait}
+          <div class="flex-1">
             <div class="font-extrabold text-sm text-amber-400">\${hero.archetype}</div>
             <div class="text-slate-400">Played by \${hero.playerName}</div>
           </div>
-          <div class="text-right">
+          <div class="text-right shrink-0">
             <div class="text-xs font-bold text-amber-300">Level: \${stars}</div>
             <div class="text-xs text-rose-400 font-bold">\${hero.rulesTier === "STORYBOOK_D6" ? "❤️".repeat(hero.storybookStats.hearts) + " Hearts" : "❤️ " + hero.attributes5e.hp + " HP • 🛡️ AC " + hero.attributes5e.armorClass}</div>
           </div>
@@ -970,7 +994,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             for (const tok of cellTokens) {
               const badge = document.createElement("div");
               badge.className =
-                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold";
+                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold select-none";
               badge.style.backgroundColor = tok.color || "#f59e0b";
               badge.title = tok.name;
 
@@ -978,20 +1002,26 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
               let statusOverlay = "";
               if (tok.isLootChest) {
                 statusOverlay = tok.isChestOpened
-                  ? \`<span class="absolute -top-1.5 -right-1.5 text-xs">✨</span>\`
-                  : \`<span class="absolute -top-1.5 -right-1.5 text-xs animate-bounce">🎁</span>\`;
+                  ? \`<span class="absolute -top-1.5 -right-1.5 text-xs z-20">✨</span>\`
+                  : \`<span class="absolute -top-1.5 -right-1.5 text-xs z-20 animate-bounce">🎁</span>\`;
               } else if (tok.statusBadge === "INSPIRATION_STAR") {
-                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs">⭐</span>\`;
+                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs z-20">⭐</span>\`;
               } else if (tok.statusBadge === "SHIELD_GUARD") {
-                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs">🛡️</span>\`;
+                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs z-20">🛡️</span>\`;
               } else if (tok.statusBadge === "BONKED_DIZZY") {
-                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs">💫</span>\`;
+                statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs z-20">💫</span>\`;
               }
+
+              const portraitContent = tok.assetPath
+                ? \`<img src="\${tok.assetPath}" class="token-portrait-img" alt="\${tok.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" /><span style="display:none;">\${tok.avatarEmoji}</span>\`
+                : \`<span>\${tok.avatarEmoji}</span>\`;
 
               badge.innerHTML = \`
                 \${statusOverlay}
-                <span>\${tok.avatarEmoji}</span>
-                <span class="text-[8px] bg-black/80 px-1 rounded text-white leading-none truncate max-w-[42px]">\${tok.name.split(" ")[0]}</span>
+                <div class="w-full h-full relative rounded-full overflow-hidden flex items-center justify-center">
+                  \${portraitContent}
+                </div>
+                <span class="absolute -bottom-2 text-[8px] font-bold bg-slate-900/90 text-white px-1 rounded shadow-sm leading-tight truncate max-w-[46px] pointer-events-none">\${tok.name.split(" ")[0]}</span>
               \`;
 
               // Click to inspect or open chest
@@ -1069,7 +1099,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           (active
             ? "bg-amber-500/20 border-amber-400 text-amber-300"
             : "theme-inner-box border text-slate-400");
-        t.innerHTML = \`<span class="text-xl">\${h.avatarEmoji}</span><div class="truncate"><div class="text-xs font-bold truncate">\${h.name}</div><div class="text-[10px] text-slate-400">\${h.playerName}</div></div>\`;
+        const tabPortrait = h.assetPath
+          ? \`<img src="\${h.assetPath}" class="w-8 h-8 rounded-full border border-amber-400/60 object-cover shrink-0" alt="\${h.name}" />\`
+          : \`<span class="text-xl shrink-0">\${h.avatarEmoji}</span>\`;
+        t.innerHTML = \`\${tabPortrait}<div class="truncate"><div class="text-xs font-bold truncate">\${h.name}</div><div class="text-[10px] text-slate-400">\${h.playerName}</div></div>\`;
         tabsEl.appendChild(t);
       }
 
@@ -1082,11 +1115,18 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             ? "❤️".repeat(currentHero.storybookStats.hearts) + " (" + currentHero.storybookStats.hearts + "/3 Hearts)"
             : \`❤️ \${currentHero.attributes5e.hp}/\${currentHero.attributes5e.maxHp} HP • 🛡️ AC \${currentHero.attributes5e.armorClass}\`;
 
+        const headerPortrait = currentHero.assetPath
+          ? \`<img src="\${currentHero.assetPath}" class="w-10 h-10 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${currentHero.name}" />\`
+          : \`<span class="text-2xl shrink-0">\${currentHero.avatarEmoji}</span>\`;
+
         sheetEl.innerHTML = \`
           <div class="flex items-center justify-between">
-            <div>
-              <div class="text-sm font-bold text-amber-400">\${currentHero.avatarEmoji} \${currentHero.name}</div>
-              <div class="text-[11px] text-slate-400">\${currentHero.archetype} • Pet: \${currentHero.companionPet}</div>
+            <div class="flex items-center gap-2.5">
+              \${headerPortrait}
+              <div>
+                <div class="text-sm font-bold text-amber-400">\${currentHero.name}</div>
+                <div class="text-[11px] text-slate-400">\${currentHero.archetype} • Pet: \${currentHero.companionPet}</div>
+              </div>
             </div>
             <div class="text-xs font-bold text-rose-400">\${healthDisplay}</div>
           </div>

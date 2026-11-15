@@ -7,6 +7,7 @@ import {
   DiceRollResult,
   RoomSessionState,
   RulesTier,
+  resolveArchetypeAsset,
 } from "@hearthquest/shared-types";
 import {
   computeSiblingSpotlightFairness,
@@ -305,6 +306,7 @@ export function addCustomHeroToRoom(params: {
 }): RoomSessionState {
   const room = getOrCreateRoom(params.roomCode);
   const id = `hero_${Date.now()}`;
+  const archetypeAsset = resolveArchetypeAsset(params.archetype || "Forest Ranger");
   const newHero: CharacterSheet = {
     id,
     name: params.name || "Captain Sparkle",
@@ -313,6 +315,7 @@ export function addCustomHeroToRoom(params: {
     archetype: params.archetype || "Forest Ranger",
     companionPet: params.companionPet || "Bramble the Hedgehog",
     avatarEmoji: params.avatarEmoji || "🏹",
+    assetPath: archetypeAsset,
     tokenColor: "#14b8a6",
     rulesTier: room.rulesTier,
     storybookStats: { brawn: 2, brains: 2, charm: 3, hearts: 3, maxHearts: 3 },
@@ -372,6 +375,7 @@ export function addCustomHeroToRoom(params: {
     name: newHero.name,
     type: "HERO",
     avatarEmoji: newHero.avatarEmoji,
+    assetPath: archetypeAsset,
     color: newHero.tokenColor,
     gridX: 0,
     gridY: Math.min(room.gridRows - 1, room.tokens.length),
@@ -403,6 +407,7 @@ export function openRoomLootChest(params: {
   token.isLootChest = true;
   token.isChestOpened = true;
   token.avatarEmoji = "✨";
+  token.assetPath = "/assets/tokens/props/chest-open.svg";
   token.statusBadge = "INSPIRATION_STAR";
 
   const FUN_LOOT = [

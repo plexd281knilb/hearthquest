@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="rogueHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fecdd3" />
+      <stop offset="65%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#881337" />
+    </radialGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#18040a" stroke="url(#rogueHalo)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#0f172a" stroke="#fb7185" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Shadow Fox Hood & Mask -->
+  <path d="M 80 230 C 80 170 110 155 128 155 C 146 155 176 170 176 230 Z" fill="#334155" stroke="#fb7185" stroke-width="3" />
+  <path d="M 82 105 C 82 50 174 50 174 105 C 174 150 156 165 128 165 C 100 165 82 150 82 105 Z" fill="#1e293b" stroke="#e11d48" stroke-width="4" />
+
+  <!-- Ninja Mask Slit & Sleek Eyes -->
+  <ellipse cx="128" cy="115" rx="36" ry="14" fill="#020617" />
+  <ellipse cx="112" cy="115" rx="6" ry="4" fill="#f43f5e" />
+  <circle cx="113" cy="114" r="1.5" fill="#ffffff" />
+  <ellipse cx="144" cy="115" rx="6" ry="4" fill="#f43f5e" />
+  <circle cx="145" cy="114" r="1.5" fill="#ffffff" />
+
+  <!-- Twin Shadow Daggers -->
+  <g transform="translate(50, 140) rotate(-35)">
+    <polygon points="20,0 26,45 20,60 14,45" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2" />
+    <rect x="12" y="60" width="16" height="5" rx="2" fill="#f43f5e" />
+    <rect x="17" y="65" width="6" height="15" rx="2" fill="#475569" />
+  </g>
+  <g transform="translate(190, 130) rotate(35)">
+    <polygon points="20,0 26,45 20,60 14,45" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2" />
+    <rect x="12" y="60" width="16" height="5" rx="2" fill="#f43f5e" />
+    <rect x="17" y="65" width="6" height="15" rx="2" fill="#475569" />
+  </g>
+</svg>

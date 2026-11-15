@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="torchAura" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="20%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f97316" />
+      <stop offset="85%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#450a0a" />
+    </radialGradient>
+    <radialGradient id="flameInner" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#fef08a" />
+      <stop offset="80%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </radialGradient>
+    <linearGradient id="ironGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="50%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+  <!-- Outer Standee Double Ring -->
+  <circle cx="128" cy="128" r="122" fill="#1c1917" stroke="url(#torchAura)" stroke-width="8" />
+  <circle cx="128" cy="128" r="110" fill="#0c0a09" stroke="#f97316" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- Radiating Ambient Light Glow -->
+  <circle cx="128" cy="90" r="70" fill="#fef08a" opacity="0.18" />
+  <circle cx="128" cy="90" r="45" fill="#f59e0b" opacity="0.25" />
+
+  <!-- Iron Wall Mounting Bracket -->
+  <rect x="120" y="150" width="16" height="55" rx="4" fill="url(#ironGrad)" stroke="#020617" stroke-width="2" />
+  <circle cx="128" cy="195" r="4" fill="#94a3b8" />
+  <!-- Wall Flange plate -->
+  <rect x="110" y="165" width="36" height="12" rx="3" fill="url(#ironGrad)" stroke="#020617" stroke-width="2" />
+  <circle cx="116" cy="171" r="2.5" fill="#94a3b8" />
+  <circle cx="140" cy="171" r="2.5" fill="#94a3b8" />
+
+  <!-- Wooden Torch Handle Shaft -->
+  <polygon points="122,105 134,105 131,165 125,165" fill="#78350f" stroke="#451a03" stroke-width="2" />
+
+  <!-- Iron Sconce Basket / Bowl -->
+  <path d="M 108 110 C 108 140 148 140 148 110 Z" fill="url(#ironGrad)" stroke="#0f172a" stroke-width="2.5" />
+  <rect x="104" y="106" width="48" height="6" rx="2" fill="#475569" stroke="#0f172a" stroke-width="1.5" />
+  <!-- Vertical iron cage bars -->
+  <line x1="116" y1="112" x2="120" y2="132" stroke="#1e293b" stroke-width="2.5" />
+  <line x1="128" y1="112" x2="128" y2="135" stroke="#1e293b" stroke-width="2.5" />
+  <line x1="140" y1="112" x2="136" y2="132" stroke="#1e293b" stroke-width="2.5" />
+
+  <!-- Roaring Torch Flame (Multi-layered teardrop curves) -->
+  <!-- Outer Flame Layer -->
+  <path d="M 128 35 C 100 70 95 105 110 112 C 128 118 146 112 146 112 C 160 105 155 70 128 35 Z" fill="#ef4444" opacity="0.9" />
+  <!-- Mid Flame Layer -->
+  <path d="M 128 50 C 108 78 105 100 116 108 C 128 112 140 108 140 108 C 150 100 148 78 128 50 Z" fill="url(#flameInner)" />
+  <!-- White-Hot Core -->
+  <path d="M 128 68 C 118 85 116 100 123 105 C 128 107 133 105 133 105 C 138 100 138 85 128 68 Z" fill="#ffffff" />
+
+  <!-- Floating Embers / Sparks -->
+  <circle cx="112" cy="48" r="2.5" fill="#fef08a" />
+  <circle cx="142" cy="40" r="2" fill="#fb923c" />
+  <circle cx="120" cy="28" r="1.5" fill="#fef08a" />
+  <circle cx="148" cy="58" r="2.5" fill="#fef08a" />
+</svg>

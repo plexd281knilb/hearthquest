@@ -13,6 +13,8 @@ import {
   RulesTier,
   StoryBranchChoice,
   StoryBranchNode,
+  HEARTHQUEST_ASSETS,
+  resolveTokenAsset,
 } from "@hearthquest/shared-types";
 
 export type { FamilyCampaignTemplate };
@@ -302,6 +304,7 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
     levelStars: 2,
     bioStory: "A brave little terrier knight in shining armor who protects his family with gentle shield boops.",
     petTrait: "Wags tail to give an ally +1 on their next heroic roll!",
+    assetPath: HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
   },
   {
     id: "hero-lyra",
@@ -373,6 +376,7 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
     levelStars: 3,
     bioStory: "A curious star-weaver apprentice who sings lullabies to magical fireflies and knows every constellation.",
     petTrait: "Spots shiny hidden levers from high up in the air!",
+    assetPath: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
   },
 ];
 
@@ -446,6 +450,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Sir Barnaby",
         type: "HERO",
         avatarEmoji: "🛡️",
+        assetPath: HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
         color: "#f59e0b",
         gridX: 1,
         gridY: 2,
@@ -459,6 +464,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Lyra",
         type: "HERO",
         avatarEmoji: "🪄",
+        assetPath: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
         color: "#8b5cf6",
         gridX: 1,
         gridY: 4,
@@ -471,6 +477,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Sprinkles the Goblin Guard",
         type: "NPC",
         avatarEmoji: "🧁",
+        assetPath: HEARTHQUEST_ASSETS.monsters.goblinSprinkles.path,
         color: "#10b981",
         gridX: 3,
         gridY: 3,
@@ -483,6 +490,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Chef Snickerdoodle",
         type: "MONSTER",
         avatarEmoji: "👨‍🍳",
+        assetPath: HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path,
         color: "#ef4444",
         gridX: 8,
         gridY: 3,
@@ -495,6 +503,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Frosted Treasure Chest",
         type: "PROP",
         avatarEmoji: "🎁",
+        assetPath: HEARTHQUEST_ASSETS.props.chestClosed.path,
         color: "#f59e0b",
         gridX: 5,
         gridY: 2,
@@ -666,6 +675,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Sir Barnaby",
         type: "HERO",
         avatarEmoji: "🛡️",
+        assetPath: HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
         color: "#f59e0b",
         gridX: 1,
         gridY: 2,
@@ -679,6 +689,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Lyra",
         type: "HERO",
         avatarEmoji: "🪄",
+        assetPath: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
         color: "#8b5cf6",
         gridX: 1,
         gridY: 4,
@@ -691,6 +702,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Cogsworth the Brass Squirrel",
         type: "NPC",
         avatarEmoji: "🐿️",
+        assetPath: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
         color: "#f59e0b",
         gridX: 3,
         gridY: 2,
@@ -703,6 +715,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Rustwing the Overwound Golem",
         type: "MONSTER",
         avatarEmoji: "🤖",
+        assetPath: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
         color: "#ef4444",
         gridX: 8,
         gridY: 3,
@@ -715,6 +728,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Singing Brass Bird Nest",
         type: "PROP",
         avatarEmoji: "🪺",
+        assetPath: HEARTHQUEST_ASSETS.props.chestClosed.path,
         color: "#10b981",
         gridX: 7,
         gridY: 1,
@@ -891,6 +905,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Sir Barnaby",
         type: "HERO",
         avatarEmoji: "🛡️",
+        assetPath: HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
         color: "#f59e0b",
         gridX: 1,
         gridY: 2,
@@ -904,6 +919,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Lyra",
         type: "HERO",
         avatarEmoji: "🪄",
+        assetPath: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
         color: "#8b5cf6",
         gridX: 1,
         gridY: 4,
@@ -916,6 +932,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Captain Barnacle the Otter",
         type: "NPC",
         avatarEmoji: "🦦",
+        assetPath: HEARTHQUEST_ASSETS.heroes.forestRanger.path,
         color: "#3b82f6",
         gridX: 3,
         gridY: 3,
@@ -928,6 +945,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "Queen Lumina the Nebula Jelly",
         type: "MONSTER",
         avatarEmoji: "🪼",
+        assetPath: HEARTHQUEST_ASSETS.monsters.nebulaJelly.path,
         color: "#a855f7",
         gridX: 8,
         gridY: 2,
@@ -940,6 +958,7 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
         name: "The Starlight Astrolabe",
         type: "PROP",
         avatarEmoji: "🔮",
+        assetPath: HEARTHQUEST_ASSETS.props.chestClosed.path,
         color: "#06b6d4",
         gridX: 7,
         gridY: 4,
@@ -1402,6 +1421,10 @@ export function generateProceduralMapLayout(
       isHiddenFromPlayers: true,
     },
   ];
+
+  tokens.forEach((t) => {
+    t.assetPath = resolveTokenAsset({ name: t.name, type: t.type });
+  });
 
   return { zones, tokens };
 }

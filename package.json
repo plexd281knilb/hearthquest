@@ -1,6 +1,6 @@
 {
   "name": "hearthquest",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Zero-Prep Family Tabletop 5e Engine with AI GM Co-Pilot & Physical Print-on-Demand Fulfillment",
   "workspaces": [
@@ -15,6 +15,7 @@
     "start:all": "npx tsx scripts/start-all.ts",
     "build": "npm --workspaces --if-present run build",
     "typecheck": "npm --workspaces --if-present run typecheck",
+    "test": "npm run verify",
     "verify": "npx tsx scripts/verify-all.ts",
     "verify:push": "npx tsx scripts/release-verify.ts --sync",
     "bump:patch": "npx tsx scripts/release-verify.ts --bump=patch",
