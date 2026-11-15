@@ -20,10 +20,17 @@ import {
   saveRoomsToDisk,
 } from "./room-store";
 
+export type VttAccountRole = "ADMIN" | "USER";
+export type VttAuthProvider = "LOCAL" | "GOOGLE";
+
 export interface VttPublicAccount {
   id: string;
   familyName: string;
   email: string;
+  role: VttAccountRole;
+  authProvider: VttAuthProvider;
+  googleSub?: string;
+  avatarUrl?: string;
   subscriptionTier: SubscriptionTier;
   preferredRulesTier: RulesTier;
   preferredAgeGroup: AgeGroupPreset;
@@ -54,6 +61,10 @@ function withAuthDb<T>(fn: (db: DatabaseSync) => T): T {
         family_name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'USER',
+        auth_provider TEXT NOT NULL DEFAULT 'LOCAL',
+        google_sub TEXT,
+        avatar_url TEXT,
         subscription_tier TEXT NOT NULL DEFAULT 'TRIAL_PREVIEW',
         preferred_rules_tier TEXT NOT NULL DEFAULT 'STORYBOOK_D6',
         preferred_age_group TEXT NOT NULL DEFAULT 'AGES_8_10',
@@ -89,6 +100,30 @@ function withAuthDb<T>(fn: (db: DatabaseSync) => T): T {
     }
     if (!cols.some((c) => c.name === "preferred_age_group")) {
       db.exec("ALTER TABLE vtt_accounts ADD COLUMN preferred_age_group TEXT NOT NULL DEFAULT 'AGES_8_10';");
+    }
+    let addedRoleColumn = false;
+    if (!cols.some((c) => c.name === "role")) {
+      db.exec("ALTER TABLE vtt_accounts ADD COLUMN role TEXT NOT NULL DEFAULT 'USER';");
+      addedRoleColumn = true;
+    }
+    if (!cols.some((c) => c.name === "auth_provider")) {
+      db.exec("ALTER TABLE vtt_accounts ADD COLUMN auth_provider TEXT NOT NULL DEFAULT 'LOCAL';");
+    }
+    if (!cols.some((c) => c.name === "google_sub")) {
+      db.exec("ALTER TABLE vtt_accounts ADD COLUMN google_sub TEXT;");
+    }
+    if (!cols.some((c) => c.name === "avatar_url")) {
+      db.exec("ALTER TABLE vtt_accounts ADD COLUMN avatar_url TEXT;");
+    }
+    if (addedRoleColumn) {
+      const adminExists = db
+        .prepare("SELECT COUNT(*) AS cnt FROM vtt_accounts WHERE role = 'ADMIN'")
+        .get() as { cnt: number };
+      if (Number(adminExists?.cnt || 0) === 0) {
+        db.exec(
+          "UPDATE vtt_accounts SET role = 'ADMIN' WHERE id = (SELECT id FROM vtt_accounts ORDER BY created_at ASC LIMIT 1);"
+        );
+      }
     }
     return fn(db);
   } finally {
@@ -218,6 +253,13 @@ function syncTierFromHouseholds(
     id: String(accountRow.id),
     familyName: String(accountRow.family_name),
     email: String(accountRow.email),
+    role: String(accountRow.role || "USER").toUpperCase() === "ADMIN" ? "ADMIN" : "USER",
+    authProvider:
+      String(accountRow.auth_provider || "LOCAL").toUpperCase() === "GOOGLE"
+        ? "GOOGLE"
+        : "LOCAL",
+    googleSub: accountRow.google_sub ? String(accountRow.google_sub) : undefined,
+    avatarUrl: accountRow.avatar_url ? String(accountRow.avatar_url) : undefined,
     subscriptionTier: tier,
     preferredRulesTier: (accountRow.preferred_rules_tier || "STORYBOOK_D6") as RulesTier,
     preferredAgeGroup: (accountRow.preferred_age_group || "AGES_8_10") as AgeGroupPreset,
@@ -226,6 +268,13 @@ function syncTierFromHouseholds(
     createdAt: String(accountRow.created_at),
     updatedAt: String(accountRow.updated_at),
   };
+}
+
+export function getVttAccountCount(): number {
+  return withAuthDb((db) => {
+    const row = db.prepare("SELECT COUNT(*) AS cnt FROM vtt_accounts").get() as { cnt: number };
+    return Number(row?.cnt || 0);
+  });
 }
 
 function generateDemoRoomCode(): string {
@@ -313,6 +362,11 @@ export function registerVttAccount(params: {
         ? hh.license_key || null
         : null;
 
+    const totalAccountsRow = db
+      .prepare("SELECT COUNT(*) AS cnt FROM vtt_accounts")
+      .get() as { cnt: number };
+    const assignedRole: VttAccountRole = Number(totalAccountsRow?.cnt || 0) === 0 ? "ADMIN" : "USER";
+
     const id = `acct_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
     const trialRoomCode = (params.roomCode || "")
       .trim()
@@ -323,14 +377,15 @@ export function registerVttAccount(params: {
 
     db.prepare(
       `INSERT INTO vtt_accounts (
-        id, family_name, email, password_hash, subscription_tier,
+        id, family_name, email, password_hash, role, auth_provider, subscription_tier,
         preferred_rules_tier, preferred_age_group, license_key, trial_room_code, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, 'LOCAL', ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       familyName,
       email,
       hashPasswordScrypt(password),
+      assignedRole,
       tier,
       preferredRulesTier,
       preferredAgeGroup,
@@ -415,7 +470,13 @@ export function loginVttAccount(params: {
     const row = db
       .prepare("SELECT * FROM vtt_accounts WHERE LOWER(email) = ?")
       .get(email) as Record<string, any> | undefined;
-    if (!row || !verifyPasswordScrypt(password, String(row.password_hash))) {
+    if (!row) {
+      throw new Error("Invalid email or password.");
+    }
+    if (String(row.password_hash || "").startsWith("google_oauth_only$")) {
+      throw new Error("This account uses Google Sign-In. Click 'Continue with Google' to sign in.");
+    }
+    if (!verifyPasswordScrypt(password, String(row.password_hash))) {
       throw new Error("Invalid email or password.");
     }
     return syncTierFromHouseholds(db, row);
@@ -424,6 +485,167 @@ export function loginVttAccount(params: {
   const room = ensureAccountSessionRoom(account);
   const token = signSessionToken(account.id, account.email);
   return { account, token, room };
+}
+
+/**
+ * Signs in or registers a user authenticated via Google OAuth/OIDC.
+ * - Matches an existing user by `google_sub` or `email` (linking Google SSO cleanly)
+ * - If this is the very first account in the database, automatically promotes to `ADMIN`
+ * - Ensures an isolated private room exists for this account
+ */
+export function loginOrRegisterGoogleAccount(params: {
+  googleSub: string;
+  email: string;
+  familyName: string;
+  avatarUrl?: string;
+  preferredRulesTier?: RulesTier;
+  preferredAgeGroup?: AgeGroupPreset;
+  roomCode?: string;
+}): { account: VttPublicAccount; token: string; room: RoomSessionState; isNewAccount: boolean } {
+  const email = (params.email || "").trim().toLowerCase();
+  const googleSub = String(params.googleSub || "").trim();
+  const familyName = (params.familyName || email.split("@")[0] || "Adventurer").trim();
+  if (!email || !email.includes("@") || !googleSub) {
+    throw new Error("Verified Google sub and email address are required.");
+  }
+
+  const { account, isNewAccount } = withAuthDb((db) => {
+    const now = new Date().toISOString();
+    const bySub = db
+      .prepare("SELECT * FROM vtt_accounts WHERE google_sub = ?")
+      .get(googleSub) as Record<string, any> | undefined;
+    const byEmail = bySub
+      ? bySub
+      : (db
+          .prepare("SELECT * FROM vtt_accounts WHERE LOWER(email) = ?")
+          .get(email) as Record<string, any> | undefined);
+
+    if (byEmail) {
+      db.prepare(
+        "UPDATE vtt_accounts SET google_sub = ?, auth_provider = 'GOOGLE', avatar_url = COALESCE(?, avatar_url), updated_at = ? WHERE id = ?"
+      ).run(googleSub, params.avatarUrl || null, now, String(byEmail.id));
+      const updated = db
+        .prepare("SELECT * FROM vtt_accounts WHERE id = ?")
+        .get(String(byEmail.id)) as Record<string, any>;
+      return { account: syncTierFromHouseholds(db, updated), isNewAccount: false };
+    }
+
+    const totalAccountsRow = db
+      .prepare("SELECT COUNT(*) AS cnt FROM vtt_accounts")
+      .get() as { cnt: number };
+    const assignedRole: VttAccountRole = Number(totalAccountsRow?.cnt || 0) === 0 ? "ADMIN" : "USER";
+
+    const hh = db
+      .prepare("SELECT subscription_tier, license_key FROM households WHERE LOWER(email) = ?")
+      .get(email) as { subscription_tier?: string; license_key?: string } | undefined;
+    const tier: SubscriptionTier =
+      hh?.subscription_tier && hh.subscription_tier !== "TRIAL_PREVIEW"
+        ? (hh.subscription_tier as SubscriptionTier)
+        : "TRIAL_PREVIEW";
+    const licenseKey =
+      hh?.subscription_tier && hh.subscription_tier !== "TRIAL_PREVIEW"
+        ? hh.license_key || null
+        : null;
+
+    const id = `acct_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
+    const trialRoomCode =
+      (params.roomCode || "")
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 4) || generateDemoRoomCode();
+    const preferredRulesTier: RulesTier = params.preferredRulesTier || "STORYBOOK_D6";
+    const preferredAgeGroup: AgeGroupPreset = params.preferredAgeGroup || "AGES_8_10";
+    const placeholderHash = `google_oauth_only$${crypto.randomBytes(24).toString("hex")}`;
+
+    db.prepare(
+      `INSERT INTO vtt_accounts (
+        id, family_name, email, password_hash, role, auth_provider, google_sub, avatar_url,
+        subscription_tier, preferred_rules_tier, preferred_age_group, license_key, trial_room_code,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 'GOOGLE', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      id,
+      familyName,
+      email,
+      placeholderHash,
+      assignedRole,
+      googleSub,
+      params.avatarUrl || null,
+      tier,
+      preferredRulesTier,
+      preferredAgeGroup,
+      licenseKey,
+      trialRoomCode,
+      now,
+      now
+    );
+
+    const inserted = db
+      .prepare("SELECT * FROM vtt_accounts WHERE id = ?")
+      .get(id) as Record<string, any>;
+    return { account: syncTierFromHouseholds(db, inserted), isNewAccount: true };
+  });
+
+  const room = isNewAccount
+    ? replaceRoomSessionState(
+        generateTailoredAccountSession({
+          roomCode: account.trialRoomCode,
+          rulesTier: account.preferredRulesTier,
+          ageGroup: account.preferredAgeGroup,
+          familyName: account.familyName,
+          householdId: account.id,
+        })
+      )
+    : ensureAccountSessionRoom(account);
+
+  if (isNewAccount && process.env.NODE_ENV !== "test") {
+    saveRoomsToDisk();
+  }
+
+  const token = signSessionToken(account.id, account.email);
+  return { account, token, room, isNewAccount };
+}
+
+export function listVttAccountsForAdmin(): VttPublicAccount[] {
+  return withAuthDb((db) => {
+    const rows = db
+      .prepare("SELECT * FROM vtt_accounts ORDER BY created_at ASC")
+      .all() as Array<Record<string, any>>;
+    return rows.map((r) => syncTierFromHouseholds(db, r));
+  });
+}
+
+export function setVttAccountRoleByAdmin(params: {
+  targetAccountId: string;
+  nextRole: VttAccountRole;
+}): VttPublicAccount {
+  return withAuthDb((db) => {
+    const target = db
+      .prepare("SELECT * FROM vtt_accounts WHERE id = ?")
+      .get(params.targetAccountId) as Record<string, any> | undefined;
+    if (!target) {
+      throw new Error("Target account not found.");
+    }
+    if (params.nextRole === "USER" && String(target.role) === "ADMIN") {
+      const adminCntRow = db
+        .prepare("SELECT COUNT(*) AS cnt FROM vtt_accounts WHERE role = 'ADMIN'")
+        .get() as { cnt: number };
+      if (Number(adminCntRow?.cnt || 0) <= 1) {
+        throw new Error("Cannot demote the last remaining Admin account.");
+      }
+    }
+    const now = new Date().toISOString();
+    db.prepare("UPDATE vtt_accounts SET role = ?, updated_at = ? WHERE id = ?").run(
+      params.nextRole,
+      now,
+      params.targetAccountId
+    );
+    const updated = db
+      .prepare("SELECT * FROM vtt_accounts WHERE id = ?")
+      .get(params.targetAccountId) as Record<string, any>;
+    return syncTierFromHouseholds(db, updated);
+  });
 }
 
 export function getVttAccountByToken(token?: string): VttPublicAccount | null {

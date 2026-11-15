@@ -1,6 +1,7 @@
 process.env.NODE_ENV = "test";
 
 import assert from "node:assert";
+import crypto from "node:crypto";
 import http from "node:http";
 import {
   generateGmCoPilotWhisper,
@@ -71,13 +72,23 @@ import {
   ensureAccountSessionRoom,
   evaluateVttSessionProgressionGate,
   getVttAccountByToken,
+  getVttAccountCount,
+  listVttAccountsForAdmin,
+  loginOrRegisterGoogleAccount,
   loginVttAccount,
   registerVttAccount,
+  setVttAccountRoleByAdmin,
   updateVttAccountPreferences,
 } from "../apps/quest-vtt/src/auth-store";
+import {
+  createGoogleOAuthStartParams,
+  exchangeGoogleAuthorizationCode,
+  verifyGoogleIdToken,
+  verifyGoogleOAuthTransactionCookie,
+} from "../apps/quest-vtt/src/google-auth";
 import { encodeQrMatrix } from "../apps/quest-vtt/src/qr-encoder";
 import { server as vttServer } from "../apps/quest-vtt/src/server";
-import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
+import { renderVttAppHtml, renderVttLoginGateHtml } from "../apps/quest-vtt/src/ui-template";
 import {
   APP_VERSION,
   BUILD_NUMBER,
@@ -1651,8 +1662,276 @@ async function runVerification() {
   });
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // Suite 29: First-Login Admin Account, Admin Console ACL & Google OAuth 2.0 / OIDC
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 29/29] First-Login Admin Promotion, Admin Console & Google OAuth 2.0 ... ");
+
+  // 1. Verify earlier first-created account (demoReg) was promoted to ADMIN automatically,
+  // while subsequent accounts (userA/userB) defaulted to USER
+  const adminListInitial = listVttAccountsForAdmin();
+  assert.ok(adminListInitial.length >= 3, "Expected at least 3 accounts registered in VTT DB");
+  assert.strictEqual(adminListInitial[0].email, "cedar-demo@hearthquest.local");
+  assert.strictEqual(
+    adminListInitial[0].role,
+    "ADMIN",
+    "Very first account registered on the server must automatically be promoted to ADMIN"
+  );
+  assert.strictEqual(
+    adminListInitial[1].role,
+    "USER",
+    "Subsequent accounts must default to standard USER role"
+  );
+
+  // 2. Verify First-Run Login Gate renders Admin setup prompt + Google Sign-In CTA
+  const firstSetupHtml = renderVttLoginGateHtml({
+    isFirstAccountSetup: true,
+    googleConfigured: true,
+  });
+  assert.ok(
+    firstSetupHtml.includes("first-admin-setup-banner") &&
+      firstSetupHtml.includes("Continue with Google (Claim Admin)") &&
+      firstSetupHtml.includes("btn-google-signin"),
+    "First-run login gate must display Admin promotion notice & Google Sign-In CTA"
+  );
+
+  // 3. Test isolated fresh DB where the VERY FIRST sign-in comes through Google SSO -> must become ADMIN!
+  const prevTestDb = process.env.HEARTHQUEST_TEST_DB_PATH;
+  const googleFirstTempDir = fs.mkdtempSync(path.join(rootDir, "data", "google-first-test-"));
+  try {
+    process.env.HEARTHQUEST_TEST_DB_PATH = path.join(googleFirstTempDir, "google-first.db");
+    assert.strictEqual(getVttAccountCount(), 0, "Fresh temp DB must start with 0 accounts");
+
+    const firstGoogleLogin = loginOrRegisterGoogleAccount({
+      googleSub: "google_sub_001",
+      email: "founder@gmail.com",
+      familyName: "Founder GM",
+      preferredRulesTier: "STANDARD_5E",
+      preferredAgeGroup: "TEENS_13_PLUS",
+    });
+    assert.strictEqual(firstGoogleLogin.isNewAccount, true);
+    assert.strictEqual(firstGoogleLogin.account.role, "ADMIN", "First login via Google SSO must become ADMIN");
+    assert.strictEqual(firstGoogleLogin.account.authProvider, "GOOGLE");
+    assert.strictEqual(firstGoogleLogin.room.householdId, firstGoogleLogin.account.id);
+
+    const secondGoogleLogin = loginOrRegisterGoogleAccount({
+      googleSub: "google_sub_002",
+      email: "player2@gmail.com",
+      familyName: "Player Two",
+    });
+    assert.strictEqual(secondGoogleLogin.account.role, "USER", "Second Google account must be USER");
+    assert.notStrictEqual(
+      secondGoogleLogin.account.trialRoomCode,
+      firstGoogleLogin.account.trialRoomCode,
+      "Each Google user must get their own private isolated room"
+    );
+  } finally {
+    if (prevTestDb) {
+      process.env.HEARTHQUEST_TEST_DB_PATH = prevTestDb;
+    } else {
+      delete process.env.HEARTHQUEST_TEST_DB_PATH;
+    }
+    fs.rmSync(googleFirstTempDir, { recursive: true, force: true });
+  }
+
+  // 4. Real cryptographic RS256 JWK + PKCE + Google ID Token verification (fail closed on bad claims/sig)
+  const { publicKey: gPub, privateKey: gPriv } = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+  });
+  const jwkPub = gPub.export({ format: "jwk" }) as Record<string, any>;
+  jwkPub.kid = "test-google-key-1";
+  jwkPub.use = "sig";
+  jwkPub.alg = "RS256";
+  const signMockGoogleJwt = (claims: Record<string, any>): string => {
+    const hdr = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT", kid: "test-google-key-1" })).toString(
+      "base64url"
+    );
+    const pld = Buffer.from(JSON.stringify(claims)).toString("base64url");
+    const sig = crypto.sign("RSA-SHA256", Buffer.from(`${hdr}.${pld}`), gPriv).toString("base64url");
+    return `${hdr}.${pld}.${sig}`;
+  };
+
+  process.env.GOOGLE_CLIENT_ID = "test-google-client-id.apps.googleusercontent.com";
+  process.env.GOOGLE_CLIENT_SECRET = "test-google-client-secret";
+  try {
+    const oauthStart = createGoogleOAuthStartParams({
+      requestOrigin: "http://localhost:3000",
+      preferredRulesTier: "APPRENTICE_5E_LITE",
+      preferredAgeGroup: "AGES_11_13",
+    });
+    assert.ok(oauthStart.authUrl.includes("accounts.google.com/o/oauth2/v2/auth"));
+    assert.ok(oauthStart.authUrl.includes("code_challenge_method=S256"));
+    const verifiedTx = verifyGoogleOAuthTransactionCookie(
+      oauthStart.cookieToken,
+      oauthStart.transaction.state
+    );
+    assert.strictEqual(verifiedTx.codeVerifier, oauthStart.transaction.codeVerifier);
+
+    const validIdToken = signMockGoogleJwt({
+      iss: "https://accounts.google.com",
+      aud: process.env.GOOGLE_CLIENT_ID,
+      sub: "g_oauth_sub_99",
+      email: "oauth-parent@gmail.com",
+      email_verified: true,
+      name: "OAuth Parent",
+      nonce: oauthStart.transaction.nonce,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    const exchanged = await exchangeGoogleAuthorizationCode({
+      code: "mock_auth_code_123",
+      codeVerifier: verifiedTx.codeVerifier,
+      redirectUri: verifiedTx.redirectUri,
+      expectedNonce: verifiedTx.nonce,
+      jwksOverride: { keys: [jwkPub] },
+      tokenFetcher: async (form) => {
+        assert.strictEqual(form.get("code"), "mock_auth_code_123");
+        assert.strictEqual(form.get("code_verifier"), verifiedTx.codeVerifier);
+        return { id_token: validIdToken };
+      },
+    });
+    assert.strictEqual(exchanged.email, "oauth-parent@gmail.com");
+    assert.strictEqual(exchanged.sub, "g_oauth_sub_99");
+
+    // Reject bad audience & tampered JWT
+    await assert.rejects(
+      () =>
+        verifyGoogleIdToken({
+          idToken: signMockGoogleJwt({
+            iss: "https://accounts.google.com",
+            aud: "attacker-client-id",
+            sub: "bad",
+            email: "bad@gmail.com",
+            email_verified: true,
+            exp: Math.floor(Date.now() / 1000) + 3600,
+          }),
+          jwksOverride: { keys: [jwkPub] },
+        }),
+      /audience mismatch/i
+    );
+    const tampered = validIdToken.slice(0, -4) + "AAAA";
+    await assert.rejects(
+      () => verifyGoogleIdToken({ idToken: tampered, jwksOverride: { keys: [jwkPub] } }),
+      /signature/i
+    );
+  } finally {
+    delete process.env.GOOGLE_CLIENT_ID;
+    delete process.env.GOOGLE_CLIENT_SECRET;
+  }
+
+  // 5. HTTP checks for Google status, sandbox-login & Admin Console RBAC (/api/vtt-admin/accounts*)
+  const adminAccount = listVttAccountsForAdmin()[0];
+  const regularUserAccount = listVttAccountsForAdmin()[1];
+  const adminLoginHttp = loginVttAccount({
+    email: adminAccount.email,
+    password: "super-secret-password",
+  });
+  // Ensure regular user has a known login/token via registration
+  const regNormal = registerVttAccount({
+    familyName: "NonAdmin Family",
+    email: "nonadmin@hearthquest.local",
+    password: "password-123",
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const reqJson = (url: string, opts: http.RequestOptions & { body?: string } = {}) =>
+      new Promise<{ status: number; body: any }>((resResolve, resReject) => {
+        const u = new URL(url);
+        const r = http.request(
+          {
+            hostname: u.hostname,
+            port: Number(u.port),
+            path: u.pathname + u.search,
+            method: opts.method || "GET",
+            headers: { Connection: "close", ...(opts.headers || {}) },
+            agent: false,
+          },
+          (resp) => {
+            let raw = "";
+            resp.on("data", (c) => (raw += c));
+            resp.on("end", () => {
+              try {
+                resResolve({ status: resp.statusCode || 0, body: JSON.parse(raw || "{}") });
+              } catch {
+                resResolve({ status: resp.statusCode || 0, body: raw });
+              }
+            });
+          }
+        );
+        r.on("error", resReject);
+        if (opts.body) r.write(opts.body);
+        r.end();
+      });
+
+    const run = async (port: number, closeAfter: boolean) => {
+      try {
+        const base = `http://127.0.0.1:${port}`;
+        const statusRes = await reqJson(`${base}/api/auth/google/status`);
+        assert.strictEqual(statusRes.status, 200);
+        assert.strictEqual(statusRes.body.ok, true);
+        assert.ok(String(statusRes.body.redirectUri).endsWith("/api/auth/google/callback"));
+
+        // Non-admin user blocked 403 from Admin Console API
+        const userBlocked = await reqJson(`${base}/api/vtt-admin/accounts`, {
+          headers: { Authorization: `Bearer ${regNormal.token}` },
+        });
+        assert.strictEqual(userBlocked.status, 403, "Non-admin user must be blocked from Admin Console");
+
+        // Admin user succeeds 200 & can promote non-admin user cleanly
+        const adminOk = await reqJson(`${base}/api/vtt-admin/accounts`, {
+          headers: { Authorization: `Bearer ${adminLoginHttp.token}` },
+        });
+        assert.strictEqual(adminOk.status, 200);
+        assert.ok(Array.isArray(adminOk.body.accounts) && adminOk.body.accounts.length >= 4);
+
+        const promoteRes = await reqJson(`${base}/api/vtt-admin/accounts/role`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminLoginHttp.token}`,
+          },
+          body: JSON.stringify({ accountId: regularUserAccount.id, role: "ADMIN" }),
+        });
+        assert.strictEqual(promoteRes.status, 200);
+        assert.strictEqual(promoteRes.body.account.role, "ADMIN");
+
+        // Restore demotion cleanly
+        const restoreRes = setVttAccountRoleByAdmin({
+          targetAccountId: regularUserAccount.id,
+          nextRole: "USER",
+        });
+        assert.strictEqual(restoreRes.role, "USER");
+
+        if (closeAfter) {
+          vttServer.closeAllConnections?.();
+          vttServer.close(() => resolve());
+        } else {
+          vttServer.closeAllConnections?.();
+          resolve();
+        }
+      } catch (e) {
+        if (closeAfter) {
+          vttServer.closeAllConnections?.();
+          vttServer.close(() => reject(e));
+        } else {
+          vttServer.closeAllConnections?.();
+          reject(e);
+        }
+      }
+    };
+
+    if (vttServer.listening) {
+      run((vttServer.address() as { port: number }).port, false);
+    } else {
+      vttServer.listen(0, "127.0.0.1", () =>
+        run((vttServer.address() as { port: number }).port, true)
+      );
+    }
+  });
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 28/28 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 29/29 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();

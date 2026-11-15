@@ -3,7 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { URL } from "node:url";
 import { generateGmCoPilotWhisper } from "@hearthquest/quest-ai-bridge";
-import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
+import { AgeGroupPreset, RoomSessionState, RulesTier, getBuildMetadata } from "@hearthquest/shared-types";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
@@ -41,29 +41,57 @@ import {
   ensureAccountSessionRoom,
   evaluateVttSessionProgressionGate,
   getVttAccountByToken,
+  getVttAccountCount,
+  listVttAccountsForAdmin,
+  loginOrRegisterGoogleAccount,
   loginVttAccount,
   registerVttAccount,
+  setVttAccountRoleByAdmin,
   signRoomGuestToken,
   updateVttAccountPreferences,
   verifyRoomInviteSig,
   verifyVttLicenseKey,
 } from "./auth-store";
+import {
+  createGoogleOAuthStartParams,
+  exchangeGoogleAuthorizationCode,
+  getGoogleAuthConfig,
+  renderGoogleSetupGuideHtml,
+  verifyGoogleIdToken,
+  verifyGoogleOAuthTransactionCookie,
+} from "./google-auth";
 import { renderVttAppHtml, renderVttLoginGateHtml } from "./ui-template";
 
 export {
   activateLicenseOnVttAccount,
   authorizeRoomAccess,
   computeRoomInviteSig,
+  createGoogleOAuthStartParams,
   ensureAccountSessionRoom,
   evaluateVttSessionProgressionGate,
+  exchangeGoogleAuthorizationCode,
+  getGoogleAuthConfig,
   getVttAccountByToken,
+  getVttAccountCount,
+  listVttAccountsForAdmin,
+  loginOrRegisterGoogleAccount,
   loginVttAccount,
   registerVttAccount,
+  setVttAccountRoleByAdmin,
   signRoomGuestToken,
   updateVttAccountPreferences,
+  verifyGoogleIdToken,
+  verifyGoogleOAuthTransactionCookie,
   verifyRoomInviteSig,
   verifyVttLicenseKey,
 };
+
+function getRequestOrigin(req: http.IncomingMessage): string {
+  const protoHeader = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const proto = protoHeader === "https" ? "https" : "http";
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || `localhost:${PORT}`);
+  return `${proto}://${host}`;
+}
 
 function extractCookie(req: http.IncomingMessage, cookieName: string): string {
   const cookieHeader = String(req.headers.cookie || "");
@@ -191,8 +219,15 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const googleConfig = getGoogleAuthConfig(getRequestOrigin(req));
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderVttLoginGateHtml());
+    res.end(
+      renderVttLoginGateHtml({
+        isFirstAccountSetup: getVttAccountCount() === 0,
+        googleConfigured: googleConfig.configured,
+        oauthError: parsedUrl.searchParams.get("oauthError") || undefined,
+      })
+    );
     return;
   }
 
@@ -449,6 +484,206 @@ const server = http.createServer(async (req, res) => {
       ],
     });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (pathname === "/api/auth/google/status" && req.method === "GET") {
+    const config = getGoogleAuthConfig(getRequestOrigin(req));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, ...config, isFirstAccountSetup: getVttAccountCount() === 0 }));
+    return;
+  }
+
+  if (pathname === "/api/auth/google/start" && req.method === "GET") {
+    const origin = getRequestOrigin(req);
+    const config = getGoogleAuthConfig(origin);
+    if (!config.configured) {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(
+        renderGoogleSetupGuideHtml({
+          config,
+          isFirstAccountSetup: getVttAccountCount() === 0,
+        })
+      );
+      return;
+    }
+
+    const rulesParam = parsedUrl.searchParams.get("preferredRulesTier") as RulesTier | null;
+    const ageParam = parsedUrl.searchParams.get("preferredAgeGroup") as AgeGroupPreset | null;
+    const { authUrl, cookieToken } = createGoogleOAuthStartParams({
+      requestOrigin: origin,
+      preferredRulesTier: rulesParam || undefined,
+      preferredAgeGroup: ageParam || undefined,
+    });
+    res.writeHead(302, {
+      Location: authUrl,
+      "Set-Cookie": `hq_google_oauth=${encodeURIComponent(cookieToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+    });
+    res.end();
+    return;
+  }
+
+  if (pathname === "/api/auth/google/callback" && req.method === "GET") {
+    const oauthErr = parsedUrl.searchParams.get("error");
+    if (oauthErr) {
+      res.writeHead(302, { Location: `/?oauthError=${encodeURIComponent(oauthErr)}` });
+      res.end();
+      return;
+    }
+    try {
+      const code = parsedUrl.searchParams.get("code") || "";
+      const state = parsedUrl.searchParams.get("state") || "";
+      if (!code || !state) {
+        throw new Error("Missing authorization code or state parameter.");
+      }
+      const cookieVal = extractCookie(req, "hq_google_oauth");
+      const tx = verifyGoogleOAuthTransactionCookie(cookieVal, state);
+      const identity = await exchangeGoogleAuthorizationCode({
+        code,
+        codeVerifier: tx.codeVerifier,
+        redirectUri: tx.redirectUri,
+        expectedNonce: tx.nonce,
+      });
+      const { token } = loginOrRegisterGoogleAccount({
+        googleSub: identity.sub,
+        email: identity.email,
+        familyName: identity.name,
+        avatarUrl: identity.avatarUrl,
+        preferredRulesTier: tx.preferredRulesTier,
+        preferredAgeGroup: tx.preferredAgeGroup,
+      });
+      res.writeHead(302, {
+        Location: "/",
+        "Set-Cookie": [
+          `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
+          "hq_google_oauth=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+        ],
+      });
+      res.end();
+    } catch (err: any) {
+      res.writeHead(302, {
+        Location: `/?oauthError=${encodeURIComponent(err?.message || "Google sign-in failed")}`,
+        "Set-Cookie": "hq_google_oauth=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+      });
+      res.end();
+    }
+    return;
+  }
+
+  if (pathname === "/api/auth/google/token" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const identity = await verifyGoogleIdToken({
+        idToken: body.idToken || body.credential || "",
+      });
+      const { account, token, room, isNewAccount } = loginOrRegisterGoogleAccount({
+        googleSub: identity.sub,
+        email: identity.email,
+        familyName: body.familyName || identity.name,
+        avatarUrl: identity.avatarUrl,
+        preferredRulesTier: body.preferredRulesTier,
+        preferredAgeGroup: body.preferredAgeGroup,
+      });
+      const inviteSig = computeRoomInviteSig(room.roomCode);
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
+      });
+      res.end(JSON.stringify({ ok: true, account, token, room, inviteSig, isNewAccount }));
+    } catch (err: any) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Invalid Google ID token" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/auth/google/sandbox-login" && req.method === "POST") {
+    const config = getGoogleAuthConfig(getRequestOrigin(req));
+    if (!config.sandboxAvailable) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: "Local Google sandbox is disabled because live Google OAuth credentials are configured.",
+        })
+      );
+      return;
+    }
+    try {
+      const body = await readJsonBody(req);
+      const email = String(body.email || "").trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        throw new Error("Please enter a valid Google email address.");
+      }
+      const sub = `sandbox_google_${Buffer.from(email, "utf8").toString("hex").slice(0, 24)}`;
+      const { account, token, room, isNewAccount } = loginOrRegisterGoogleAccount({
+        googleSub: sub,
+        email,
+        familyName: body.name || email.split("@")[0],
+        preferredRulesTier: body.preferredRulesTier,
+        preferredAgeGroup: body.preferredAgeGroup,
+      });
+      const inviteSig = computeRoomInviteSig(room.roomCode);
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
+      });
+      res.end(JSON.stringify({ ok: true, account, token, room, inviteSig, isNewAccount }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Sandbox Google sign-in failed" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/vtt-admin/accounts" && req.method === "GET") {
+    const account = getVttAccountByToken(extractSessionToken(req));
+    if (!account) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Sign in required." }));
+      return;
+    }
+    if (account.role !== "ADMIN") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Admin role required." }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        accounts: listVttAccountsForAdmin(),
+        googleConfig: getGoogleAuthConfig(getRequestOrigin(req)),
+      })
+    );
+    return;
+  }
+
+  if (pathname === "/api/vtt-admin/accounts/role" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const account = getVttAccountByToken(extractSessionToken(req, body));
+    if (!account) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Sign in required." }));
+      return;
+    }
+    if (account.role !== "ADMIN") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Admin role required." }));
+      return;
+    }
+    try {
+      const nextRole = body.role === "ADMIN" ? "ADMIN" : "USER";
+      const updated = setVttAccountRoleByAdmin({
+        targetAccountId: String(body.accountId || ""),
+        nextRole,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, account: updated }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Role update failed" }));
+    }
     return;
   }
 

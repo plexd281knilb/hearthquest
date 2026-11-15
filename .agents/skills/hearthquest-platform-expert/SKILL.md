@@ -21,11 +21,15 @@ description: Full-stack platform architecture guide for HearthQuest. Covers Node
     - **Starter & DIY Editions**: Cheaper **Print-at-Home DIY PDFs** (`$15` Starter DIY / `$4` Level-Scaled One-Shot DIY, `$0` shipping) vs **Shipped Boxes** (`$49` Starter Box / `$69` Deluxe Hardcover Box).
 - **Stripe Webhooks & POD Queue (`admin-store.ts`)**: HMAC-SHA256 signature verification (`verifyStripeWebhookSignature`), idempotency table (`processed_webhooks`), signed license keys (`HQ-<TIER>-<ID>-<HMAC>`), and Operator PIN-gated fulfillment workflow (`/printable-kit`).
 
-## 3. RTX 3080 Local AI Bridge (`apps/quest-ai-bridge`)
+## 3. VTT Authentication, First-Login Admin & Google OAuth (`apps/quest-vtt`)
+- **First Login = Server Admin**: `auth-store.ts` (`registerVttAccount` and `loginOrRegisterGoogleAccount`) atomically checks `SELECT COUNT(*) FROM vtt_accounts` and assigns `role = 'ADMIN'` to the very first account created (email or Google SSO), defaulting subsequent accounts to `'USER'`. Admins can manage roles via `/api/vtt-admin/accounts` and `/api/vtt-admin/accounts/role` (`#vtt-admin-modal`).
+- **Google OAuth 2.0 + OIDC (`google-auth.ts`)**: Uses zero-dependency PKCE (`S256`), HMAC-signed `hq_google_oauth` state/nonce cookie, and native `node:crypto` `RS256` JWKS signature verification (`/api/auth/google/start`, `/api/auth/google/callback`, `/api/auth/google/token`, `/api/auth/google/status`, with guided local dev preview when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are unset).
+
+## 4. RTX 3080 Local AI Bridge (`apps/quest-ai-bridge`)
 - Connects on LAN to gaming PC Ollama host (`OLLAMA_HOST`) or fails over gracefully to Gemini Flash with zero disruption.
 
-## 4. Build Currency Stamp
+## 5. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.19` (Build `#20`)
-- **Updated At**: `2026-11-15T04:05:12.005Z`
+- **Last Verified Build**: `v0.1.20` (Build `#21`)
+- **Updated At**: `2026-11-15T04:20:12.460Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

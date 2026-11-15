@@ -11,46 +11,84 @@ import { renderLighting2DEngineScript, renderLightingControlsHtml } from "./ligh
 import { renderTabletopToolsControlsHtml, renderToolsAndWeatherEngineScript } from "./tools-weather-engine";
 import { renderTokenForgeClientScript, renderTokenForgeModalHtml } from "./token-forge-engine";
 
-export function renderVttLoginGateHtml(): string {
+const GOOGLE_ICON_SVG = `<svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path fill="#EA4335" d="M12 10.2v3.9h5.4c-.2 1.3-1.5 3.8-5.4 3.8-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.3 14.6 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12s4.3 9.6 9.6 9.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z"/><path fill="#4285F4" d="M21.2 12.2c0-.6-.1-1.1-.2-1.6H12v3.9h5.4c-.3 1.3-1.1 2.4-2.2 3.1l3.5 2.7c2-1.9 2.5-4.7 2.5-8.1z"/><path fill="#FBBC05" d="M6 14.3c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L2.5 7C1.8 8.5 1.4 10.2 1.4 12s.4 3.5 1.1 5L6 14.3z"/><path fill="#34A853" d="M12 21.6c2.6 0 4.8-.9 6.4-2.3l-3.5-2.7c-.9.6-2 1-2.9 1-2.3 0-4.2-1.5-4.9-3.6L3.6 16.7C5.2 19.7 8.4 21.6 12 21.6z"/></svg>`;
+
+export function renderVttLoginGateHtml(options?: {
+  isFirstAccountSetup?: boolean;
+  googleConfigured?: boolean;
+  oauthError?: string;
+}): string {
   const buildMeta = getBuildMetadata();
+  const isFirstSetup = Boolean(options?.isFirstAccountSetup);
+  const googleConfigured = Boolean(options?.googleConfigured);
+  const esc = (s: string) =>
+    String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  const oauthErrorHtml = options?.oauthError
+    ? `<div class="p-2.5 rounded-xl bg-rose-950/70 border border-rose-500/50 text-xs font-semibold text-rose-200">⚠️ ${esc(options.oauthError)}</div>`
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HearthQuest VTT — Sign In</title>
+  <title>HearthQuest VTT — ${isFirstSetup ? "Admin First-Time Setup" : "Sign In"}</title>
   <link rel="icon" type="image/png" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-  <div id="vtt-login-gate" class="w-full max-w-md bg-slate-900 border-2 border-amber-500/60 rounded-3xl p-6 shadow-2xl space-y-5">
+  <div id="vtt-login-gate" class="w-full max-w-md bg-slate-900 border-2 ${isFirstSetup ? "border-amber-400" : "border-amber-500/60"} rounded-3xl p-6 shadow-2xl space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <img src="/assets/hearthquest-icon.png" alt="HearthQuest" class="w-10 h-10 rounded-xl shadow-md" />
         <div>
           <h1 class="text-xl font-extrabold text-amber-400 leading-tight">HearthQuest VTT</h1>
-          <p class="text-[11px] text-slate-400">Private Family Tabletop Instances</p>
+          <p class="text-[11px] text-slate-400">${isFirstSetup ? "First-Run Server Admin Setup" : "Private Family Tabletop Instances"}</p>
         </div>
       </div>
       <span class="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">${buildMeta.badgeText}</span>
     </div>
 
-    <div class="p-3 rounded-xl bg-amber-950/50 border border-amber-500/40 text-xs text-amber-200 leading-relaxed">
-      🔐 <strong>Sign In Required:</strong> Each user gets their own private room code, custom tailored story hook, heroes, and saved progression isolated from other groups.
+    ${
+      isFirstSetup
+        ? `<div id="first-admin-setup-banner" class="p-3 rounded-xl bg-amber-950/70 border border-amber-400/60 text-xs text-amber-200 leading-relaxed">
+            👑 <strong>First Login = Admin Account:</strong> No accounts exist yet. Create your initial account or continue with Google below to claim the <strong>Admin</strong> role and launch your private tabletop room.
+          </div>`
+        : `<div class="p-3 rounded-xl bg-amber-950/50 border border-amber-500/40 text-xs text-amber-200 leading-relaxed">
+            🔐 <strong>Sign In Required:</strong> Each user gets their own private room code, custom tailored story hook, heroes, and saved progression isolated from other groups.
+          </div>`
+    }
+
+    ${oauthErrorHtml}
+
+    <button id="btn-google-signin" type="button" onclick="startGoogleOAuth()" class="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs flex items-center justify-center gap-2.5 shadow-md transition">
+      ${GOOGLE_ICON_SVG}
+      <span>${isFirstSetup ? "Continue with Google (Claim Admin)" : "Continue with Google"}</span>
+      <span class="px-1.5 py-0.5 text-[10px] rounded bg-slate-200 text-slate-700 font-mono">${googleConfigured ? "OAuth2" : "Setup / Preview"}</span>
+    </button>
+
+    <div class="flex items-center gap-2 text-[11px] text-slate-500">
+      <div class="h-px flex-1 bg-slate-800"></div>
+      <span>OR USE EMAIL</span>
+      <div class="h-px flex-1 bg-slate-800"></div>
     </div>
 
     <div class="flex gap-2 text-xs">
-      <button type="button" onclick="switchGateTab('login')" id="gate-tab-login" class="flex-1 py-2 rounded-xl bg-indigo-600 text-white font-extrabold">🔑 Sign In</button>
-      <button type="button" onclick="switchGateTab('register')" id="gate-tab-register" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold">✨ Create Account</button>
+      <button type="button" onclick="switchGateTab('login')" id="gate-tab-login" class="flex-1 py-2 rounded-xl ${isFirstSetup ? "bg-slate-800 text-slate-300 font-bold" : "bg-indigo-600 text-white font-extrabold"}">🔑 Sign In</button>
+      <button type="button" onclick="switchGateTab('register')" id="gate-tab-register" class="flex-1 py-2 rounded-xl ${isFirstSetup ? "bg-amber-500 text-slate-950 font-extrabold" : "bg-slate-800 text-slate-300 font-bold"}">${isFirstSetup ? "👑 Create Admin Account" : "✨ Create Account"}</button>
     </div>
 
-    <form id="gate-form-login" onsubmit="submitGateLogin(event)" class="space-y-3 text-xs">
+    <form id="gate-form-login" onsubmit="submitGateLogin(event)" class="${isFirstSetup ? "hidden " : ""}space-y-3 text-xs">
       <input id="gate-login-email" type="email" required placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100" />
       <input id="gate-login-password" type="password" required placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100" />
       <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">🔓 Sign In to My Session</button>
     </form>
 
-    <form id="gate-form-register" onsubmit="submitGateRegister(event)" class="hidden space-y-2.5 text-xs">
+    <form id="gate-form-register" onsubmit="submitGateRegister(event)" class="${isFirstSetup ? "" : "hidden "}space-y-2.5 text-xs">
       <input id="gate-reg-family" type="text" required placeholder="Family / Group Name (e.g., The Miller Family)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
       <input id="gate-reg-email" type="email" required placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
       <input id="gate-reg-password" type="password" required minlength="6" placeholder="Password (6+ characters)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
@@ -73,7 +111,7 @@ export function renderVttLoginGateHtml(): string {
           </select>
         </div>
       </div>
-      <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">🎮 Create My Account &amp; Launch Private Session</button>
+      <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">${isFirstSetup ? "👑 Create Admin Account & Launch Session" : "🎮 Create My Account & Launch Private Session"}</button>
     </form>
 
     <div id="gate-feedback" class="text-xs font-semibold min-h-[1rem]"></div>
@@ -83,6 +121,12 @@ export function renderVttLoginGateHtml(): string {
   </div>
 
   <script>
+    function startGoogleOAuth() {
+      const tier = document.getElementById("gate-reg-tier")?.value || "STORYBOOK_D6";
+      const age = document.getElementById("gate-reg-age")?.value || "AGES_8_10";
+      window.location.assign("/api/auth/google/start?preferredRulesTier=" + encodeURIComponent(tier) + "&preferredAgeGroup=" + encodeURIComponent(age));
+    }
+
     function switchGateTab(tab) {
       const isReg = tab === "register";
       document.getElementById("gate-form-login").classList.toggle("hidden", isReg);
@@ -352,6 +396,9 @@ export function renderVttAppHtml(
           </a>
           <button onclick="toggleVttAuthModal(true)" id="btn-vtt-account" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-500/25 hover:bg-purple-500/40 text-purple-200 border border-purple-400/50 transition">
             👤 Demo Account (Session 1 Free)
+          </button>
+          <button onclick="openVttAdminModal()" id="btn-open-vtt-admin" class="hidden px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 border border-amber-400/60 transition">
+            👑 Admin Console
           </button>
         </div>
         <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>
@@ -731,6 +778,11 @@ export function renderVttAppHtml(
       </div>
       <div id="vtt-account-summary" class="hidden p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-2"></div>
 
+      <button type="button" onclick="window.location.assign('/api/auth/google/start')" class="w-full py-2 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs flex items-center justify-center gap-2 shadow">
+        ${GOOGLE_ICON_SVG}
+        <span>Continue with Google</span>
+      </button>
+
       <div id="vtt-account-preferences-box" class="hidden p-3 rounded-xl theme-inner-box border border-amber-500/40 text-xs space-y-2.5">
         <div class="font-extrabold text-amber-400">🎲 Account Adventure Generator Settings</div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -803,6 +855,25 @@ export function renderVttAppHtml(
         </div>
         <div id="vtt-auth-feedback" class="text-[11px] font-semibold"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Server Admin Accounts & Google OAuth Status Modal -->
+  <div id="vtt-admin-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-extrabold text-amber-400">👑 VTT Server Admin Console</h3>
+        <button onclick="document.getElementById('vtt-admin-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div id="vtt-admin-google-status" class="p-3 rounded-xl theme-inner-box border text-xs space-y-1"></div>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-extrabold text-slate-200 uppercase tracking-wider">Registered Accounts &amp; Private Rooms</h4>
+          <button onclick="openVttAdminModal()" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-amber-300">↻ Refresh</button>
+        </div>
+        <div id="vtt-admin-accounts-list" class="space-y-2 text-xs"></div>
+      </div>
+      <div id="vtt-admin-feedback" class="text-xs font-semibold"></div>
     </div>
   </div>
 
@@ -1125,6 +1196,7 @@ export function renderVttAppHtml(
 
     function updateAccountUi() {
       const btn = document.getElementById("btn-vtt-account");
+      const adminBtn = document.getElementById("btn-open-vtt-admin");
       const summary = document.getElementById("vtt-account-summary");
       const prefsBox = document.getElementById("vtt-account-preferences-box");
       const closeBtn = document.getElementById("btn-close-auth-modal");
@@ -1134,30 +1206,100 @@ export function renderVttAppHtml(
       if (reqBanner) reqBanner.classList.toggle("hidden", !gateActive);
       if (!currentAccount) {
         if (btn) btn.innerText = "🔐 Sign In / Get Private Session";
+        if (adminBtn) adminBtn.classList.add("hidden");
         if (summary) summary.classList.add("hidden");
         if (prefsBox) prefsBox.classList.add("hidden");
         return;
       }
+      const isAdmin = currentAccount.role === "ADMIN";
       const isPaid = currentAccount.subscriptionTier && currentAccount.subscriptionTier !== "TRIAL_PREVIEW";
       const rulesShort = currentAccount.preferredRulesTier === "STANDARD_5E"
         ? "5e"
         : currentAccount.preferredRulesTier === "APPRENTICE_5E_LITE"
         ? "Apprentice"
         : "Storybook";
+      if (adminBtn) adminBtn.classList.toggle("hidden", !isAdmin);
       if (btn) {
-        btn.innerText = (isPaid ? "🔓 " : "🟢 ") + currentAccount.familyName + " (" + rulesShort + ")";
+        btn.innerText = (isAdmin ? "👑 " : isPaid ? "🔓 " : "🟢 ") + currentAccount.familyName + " (" + rulesShort + ")";
       }
       if (summary) {
+        const providerBadge = currentAccount.authProvider === "GOOGLE" ? "Google SSO" : "Email";
+        const roleBadge = isAdmin
+          ? "<span class='px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-400/50 font-black text-[10px]'>👑 ADMIN</span>"
+          : "<span class='px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[10px]'>USER</span>";
         summary.classList.remove("hidden");
         summary.innerHTML =
-          "<div class='flex justify-between items-center'><strong>" + currentAccount.familyName + " (" + currentAccount.subscriptionTier + ")</strong><button onclick='logoutVttAccountUi()' class='text-rose-400 underline font-bold'>Sign Out</button></div>" +
-          "<div>Personal Demo Room: <strong class='font-mono text-amber-300'>" + currentAccount.trialRoomCode + "</strong> • Mode: <strong>" + rulesShort + "</strong></div>";
+          "<div class='flex justify-between items-center gap-2'><strong>" + currentAccount.familyName + " " + roleBadge + "</strong><button onclick='logoutVttAccountUi()' class='text-rose-400 underline font-bold'>Sign Out</button></div>" +
+          "<div>Personal Room: <strong class='font-mono text-amber-300'>" + currentAccount.trialRoomCode + "</strong> • Mode: <strong>" + rulesShort + "</strong> • Auth: <strong>" + providerBadge + "</strong></div>";
       }
       if (prefsBox) {
         prefsBox.classList.remove("hidden");
         document.getElementById("pref-rules-tier").value = currentAccount.preferredRulesTier || "STORYBOOK_D6";
         document.getElementById("pref-age-group").value = currentAccount.preferredAgeGroup || "AGES_8_10";
       }
+    }
+
+    async function openVttAdminModal() {
+      const modal = document.getElementById("vtt-admin-modal");
+      const fb = document.getElementById("vtt-admin-feedback");
+      if (modal) modal.classList.remove("hidden");
+      if (fb) fb.innerText = "";
+      const res = await fetch("/api/vtt-admin/accounts", {
+        headers: vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {},
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        if (fb) {
+          fb.className = "text-xs font-semibold text-rose-400";
+          fb.innerText = data.error || "Admin access required";
+        }
+        return;
+      }
+      const gBox = document.getElementById("vtt-admin-google-status");
+      if (gBox && data.googleConfig) {
+        gBox.innerHTML =
+          "<div class='font-extrabold text-indigo-300'>Google OAuth 2.0 Status: " +
+          (data.googleConfig.configured ? "<span class='text-emerald-400'>CONFIGURED (Live OIDC)</span>" : "<span class='text-amber-300'>UNCONFIGURED (Local Dev Preview Active)</span>") +
+          "</div>" +
+          "<div class='text-slate-400'>Callback Redirect URI: <code class='text-emerald-300 font-mono'>" + data.googleConfig.redirectUri + "</code></div>";
+      }
+      const listEl = document.getElementById("vtt-admin-accounts-list");
+      if (listEl) {
+        listEl.innerHTML = (data.accounts || []).map((a) => {
+          const isAdmin = a.role === "ADMIN";
+          const nextRole = isAdmin ? "USER" : "ADMIN";
+          return "<div class='p-3 rounded-xl theme-inner-box border flex items-center justify-between gap-2'>" +
+            "<div>" +
+              "<div class='font-bold text-slate-100'>" + (isAdmin ? "👑 " : "👤 ") + a.familyName + " <span class='font-mono text-slate-400'>(" + a.email + ")</span></div>" +
+              "<div class='text-[11px] text-slate-400'>Room: <strong class='text-amber-300 font-mono'>" + a.trialRoomCode + "</strong> • Auth: <strong>" + a.authProvider + "</strong> • Tier: <strong>" + a.subscriptionTier + "</strong></div>" +
+            "</div>" +
+            "<button onclick=\"toggleAccountRoleByAdmin('" + a.id + "', '" + nextRole + "')\" class='px-2.5 py-1 rounded-lg text-[11px] font-bold " + (isAdmin ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-amber-500 hover:bg-amber-400 text-slate-950") + "'>" +
+              (isAdmin ? "Demote to User" : "Make Admin") +
+            "</button>" +
+          "</div>";
+        }).join("");
+      }
+    }
+
+    async function toggleAccountRoleByAdmin(accountId, nextRole) {
+      const fb = document.getElementById("vtt-admin-feedback");
+      const res = await fetch("/api/vtt-admin/accounts/role", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify({ accountId, role: nextRole }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        if (fb) {
+          fb.className = "text-xs font-semibold text-rose-400";
+          fb.innerText = data.error || "Could not change role";
+        }
+        return;
+      }
+      openVttAdminModal();
     }
 
     function applyAuthenticatedRoomSession(room, inviteSig) {

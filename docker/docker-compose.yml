@@ -34,6 +34,9 @@ services:
       - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
       - HEARTHQUEST_DATA_DIR=/app/data
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
     depends_on:
       - quest-ai-bridge
     labels:

@@ -22,6 +22,6 @@ description: Expert reference guide and rules engine for D&D 5th Edition SRD 5.1
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.19` (Build `#20`)
-- **Updated At**: `2026-11-15T04:05:12.005Z`
+- **Last Verified Build**: `v0.1.20` (Build `#21`)
+- **Updated At**: `2026-11-15T04:20:12.460Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

@@ -44,6 +44,9 @@ import {
 const rooms = new Map<string, RoomSessionState>();
 
 export function getVttDatabasePath(): string {
+  if (process.env.HEARTHQUEST_TEST_DB_PATH) {
+    return process.env.HEARTHQUEST_TEST_DB_PATH;
+  }
   if (process.env.NODE_ENV === "test") {
     return path.join(process.cwd(), "data", ".test", "test-hearthquest.db");
   }
