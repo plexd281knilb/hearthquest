@@ -22,20 +22,42 @@ import {
   verifyOperatorPin,
   verifyStripeWebhookSignature,
 } from "./admin-store";
+import {
+  attemptAdvanceTrialToEncounter2,
+  checkoutStoreCart,
+  getStoreCart,
+  getStoreCatalog,
+  getTrialEncounterOverview,
+  lookupCustomerOrder,
+  playFreeTrialEncounter,
+  quoteStoreItems,
+  updateStoreCart,
+} from "./store-backend";
+import { renderStorefrontHtml } from "./store-frontend";
 
 export {
   PHYSICAL_PACKAGES,
   SUBSCRIPTION_PLANS,
   advanceFulfillmentOrder,
+  attemptAdvanceTrialToEncounter2,
+  checkoutStoreCart,
   createCheckoutSession,
   generateLicenseKey,
   getAdminDatabasePath,
   getAdminStoreSnapshot,
+  getStoreCart,
+  getStoreCatalog,
+  getTrialEncounterOverview,
   listLoreRegistry,
+  lookupCustomerOrder,
+  playFreeTrialEncounter,
   processPaymentWebhookEvent,
+  quoteStoreItems,
   registerLoreEntry,
+  renderStorefrontHtml,
   resetAdminStoreForTesting,
   signStripeWebhookPayloadForTest,
+  updateStoreCart,
   verifyLicenseKey,
   verifyOperatorPin,
   verifyStripeWebhookSignature,
@@ -140,6 +162,9 @@ export function renderAdminHtml(
       <button onclick="toggleTheme()" id="admin-theme-btn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold transition">
         🌙 Dark
       </button>
+      <a href="/store" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
+        🛍️ Public Storefront (/store)
+      </a>
       <a href="http://localhost:3000" target="_blank" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs">
         🛡️ Launch Live Family VTT (Port 3000)
       </a>
@@ -731,6 +756,107 @@ const server = http.createServer(async (req, res) => {
     const rtxStatus = await probeRtx3080Health();
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(renderAdminHtml(rtxStatus));
+    return;
+  }
+
+  if ((pathname === "/store" || pathname === "/store/") && req.method === "GET") {
+    const level = Number(parsedUrl.searchParams.get("partyLevel") || 2);
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(renderStorefrontHtml(level));
+    return;
+  }
+
+  if (pathname === "/api/store/catalog" && req.method === "GET") {
+    const level = Number(parsedUrl.searchParams.get("partyLevel") || 1);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, catalog: getStoreCatalog(level) }));
+    return;
+  }
+
+  if (pathname === "/api/store/cart" && req.method === "GET") {
+    const sessionId = parsedUrl.searchParams.get("sessionId") || "default-guest";
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, cart: getStoreCart(sessionId) }));
+    return;
+  }
+
+  if (pathname === "/api/store/cart" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const cart = updateStoreCart({
+      sessionId: body.sessionId || "default-guest",
+      action: body.action || "ADD",
+      item: body.item,
+      productId: body.productId,
+      oneShotSlug: body.oneShotSlug,
+      quantity: body.quantity,
+      promoCode: body.promoCode,
+    });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, cart }));
+    return;
+  }
+
+  if (pathname === "/api/store/quote" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const quote = quoteStoreItems(body.items || [], body.promoCode);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, quote }));
+    return;
+  }
+
+  if (pathname === "/api/store/checkout" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const result = await checkoutStoreCart({
+        sessionId: body.sessionId,
+        items: body.items,
+        promoCode: body.promoCode,
+        familyName: body.familyName || "Adventuring Family",
+        email: body.email || "",
+        shippingName: body.shippingName,
+        shippingAddress: body.shippingAddress,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Store checkout failed" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/store/orders/lookup" && req.method === "GET") {
+    const orderId = parsedUrl.searchParams.get("orderId") || "";
+    const email = parsedUrl.searchParams.get("email") || "";
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, ...lookupCustomerOrder({ orderId, email }) }));
+    return;
+  }
+
+  if (pathname === "/api/store/trial" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, trial: getTrialEncounterOverview() }));
+    return;
+  }
+
+  if (pathname === "/api/store/trial/play" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const result = playFreeTrialEncounter({
+      choiceId: body.choiceId || "biscuit",
+      rollValue: typeof body.rollValue === "number" ? body.rollValue : undefined,
+    });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  if (pathname === "/api/store/trial/advance" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const result = attemptAdvanceTrialToEncounter2({
+      licenseKey: body.licenseKey || "",
+    });
+    res.writeHead(result.allowed ? 200 : 402, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: result.allowed, ...result }));
     return;
   }
 

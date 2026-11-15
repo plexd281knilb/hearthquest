@@ -1,6 +1,6 @@
 {
   "name": "@hearthquest/quest-admin",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": true,
   "main": "./src/server.ts",
   "dependencies": {

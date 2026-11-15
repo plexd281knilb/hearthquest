@@ -7,19 +7,28 @@ import {
 } from "../apps/quest-ai-bridge/src/index";
 import {
   advanceFulfillmentOrder,
+  attemptAdvanceTrialToEncounter2,
+  checkoutStoreCart,
   createCheckoutSession,
   generateLicenseKey,
   getAdminDatabasePath,
   getAdminStoreSnapshot,
+  getStoreCart,
+  getStoreCatalog,
   listLoreRegistry,
+  lookupCustomerOrder,
   PHYSICAL_PACKAGES,
+  playFreeTrialEncounter,
   processPaymentWebhookEvent,
+  quoteStoreItems,
   registerLoreEntry,
   renderAdminHtml,
   renderPrintableKitHtml,
+  renderStorefrontHtml,
   resetAdminStoreForTesting,
   signStripeWebhookPayloadForTest,
   SUBSCRIPTION_PLANS,
+  updateStoreCart,
   verifyLicenseKey,
   verifyOperatorPin,
   verifyStripeWebhookSignature,
@@ -927,8 +936,118 @@ async function runVerification() {
   assert.ok(ciWorkflowText.includes("node-version: 24"), "CI workflow must use Node 24 for unflagged node:sqlite");
   console.log("✅ PASSED");
 
+  // Suite 23: Public Storefront Webpage Frontend (/store) & SQLite Cart/Checkout Backend
+  process.stdout.write("[TEST] Suite 23: Storefront Frontend (/store) & Cart/Promo/Lookup Backend... ");
+  const storeHtml = renderStorefrontHtml(3);
+  assert.ok(storeHtml.includes("HearthQuest Store"), "Storefront HTML must include HearthQuest Store branding");
+  assert.ok(storeHtml.includes("toggleCartDrawer("), "Storefront HTML must include Cart Drawer toggle");
+  assert.ok(storeHtml.includes("handleOrderLookup("), "Storefront HTML must include Order Tracking Lookup form");
+  assert.ok(storeHtml.includes("HEARTH10"), "Storefront HTML must display active promo code");
+
+  const storeCatalog = getStoreCatalog(4);
+  assert.strictEqual(storeCatalog.packages.length, 4, "Store must offer Print-at-Home DIY ($15), Shipped Boxes ($49/$69), and $4 One-Shot Pack");
+  assert.strictEqual(storeCatalog.subscriptions.length, 3);
+  assert.ok(
+    storeCatalog.subscriptions.every((p) => p.priceMonthlyUsd > 0),
+    "No $0 free self-hosted tier should remain — only affordable paid update/DIY/mailer tiers"
+  );
+  assert.ok(storeHtml.includes("playTrialChoice("), "Storefront HTML must include interactive Play Encounter 1 Free trial UI");
+  assert.ok(storeHtml.includes("attemptContinueEncounter2("), "Storefront HTML must include Encounter 2 paywall checkpoint");
+
+  // Play Encounter 1 for free -> paywall blocks Encounter 2 until paid
+  const freeEnc1 = playFreeTrialEncounter({ choiceId: "biscuit", rollValue: 5 });
+  assert.strictEqual(freeEnc1.encounter1Completed, true);
+  assert.strictEqual(freeEnc1.outcomeType, "SUCCESS");
+  const blockedEnc2 = attemptAdvanceTrialToEncounter2({ licenseKey: "" });
+  assert.strictEqual(blockedEnc2.allowed, false);
+  assert.strictEqual(blockedEnc2.paywallRequired, true, "Encounter 2 must require payment or valid paid license");
+  const trialKeyBlocked = attemptAdvanceTrialToEncounter2({
+    licenseKey: generateLicenseKey("hh_preview", "TRIAL_PREVIEW"),
+  });
+  assert.strictEqual(trialKeyBlocked.allowed, false, "TRIAL_PREVIEW key must NOT bypass Encounter 2 paywall");
+
+  // Verify cheaper DIY Print-at-Home Starter Pack ($15) charges $0 shipping
+  const diyQuote = quoteStoreItems([
+    { itemType: "PHYSICAL_KIT", productId: "pkg-starter-diy", quantity: 1 },
+  ]);
+  assert.strictEqual(diyQuote.subtotalCents, 1500, "Print-at-Home DIY pack must cost $15 (cheaper than $49 shipped box)");
+  assert.strictEqual(diyQuote.shippingCents, 0, "DIY Print-at-Home kit must charge $0 shipping");
+
+  assert.ok(storeCatalog.oneShots.length >= 4, "Store catalog must expose Level-Scaled One-Shots");
+  assert.strictEqual(storeCatalog.oneShots[0].scaledBossHp, 24, "Level 4 One-Shot catalog preview must scale Boss HP to 24");
+  assert.strictEqual(storeCatalog.oneShots[0].scaledDc5e, 14, "Level 4 One-Shot catalog preview must scale DC to 14");
+
+  const testSessionId = "store_test_sess_23";
+  updateStoreCart({
+    sessionId: testSessionId,
+    action: "ADD",
+    item: {
+      itemType: "PHYSICAL_KIT",
+      productId: "pkg-starter-box",
+      campaignId: "camp-goblin-bakery",
+      quantity: 1,
+    },
+  });
+  updateStoreCart({
+    sessionId: testSessionId,
+    action: "ADD",
+    item: {
+      itemType: "ONE_SHOT_PACK",
+      productId: "pkg-oneshot-pack",
+      oneShotSlug: storeCatalog.oneShots[0].slug,
+      partyLevel: 3,
+      quantity: 1,
+    },
+  });
+  const discountedCart = updateStoreCart({
+    sessionId: testSessionId,
+    action: "APPLY_PROMO",
+    promoCode: "HEARTH10",
+  });
+  assert.strictEqual(discountedCart.quote.subtotalCents, 5300, "Starter Box ($49) + DIY One-Shot ($4) = $53.00");
+  assert.strictEqual(discountedCart.quote.discountCents, 530, "HEARTH10 must apply 10% ($5.30) server-side discount");
+  assert.strictEqual(discountedCart.quote.shippingCents, 0, "Orders >= $49 must qualify for free USPS shipping");
+  assert.strictEqual(discountedCart.quote.totalCents, 4770, "Total due after HEARTH10 must equal $47.70");
+
+  const invalidPromoQuote = quoteStoreItems(discountedCart.items, "FAKE99");
+  assert.ok(invalidPromoQuote.promoError, "Invalid promo code must report promoError");
+  assert.strictEqual(invalidPromoQuote.discountCents, 0);
+
+  const checkoutRes = await checkoutStoreCart({
+    sessionId: testSessionId,
+    familyName: "The Oakshield Family",
+    email: "oakshield@hearthquest.local",
+    shippingAddress: "77 Evergreen Way, Portland, OR",
+  });
+  assert.strictEqual(checkoutRes.ok, true);
+  assert.ok(checkoutRes.orders.length >= 1, "Store checkout must create PrintFulfillmentOrder(s)");
+  assert.ok(checkoutRes.licenseKey?.startsWith("HQ-"), "Store checkout must issue Household License Key");
+  assert.strictEqual(getStoreCart(testSessionId).items.length, 0, "SQLite cart must clear after checkout");
+
+  // Issued license key after purchase must unlock Encounter 2+
+  const unlockedEnc2 = attemptAdvanceTrialToEncounter2({
+    licenseKey: checkoutRes.licenseKey,
+  });
+  assert.strictEqual(unlockedEnc2.allowed, true, "Paid checkout license key must unlock Encounter 2+");
+  assert.strictEqual(unlockedEnc2.paywallRequired, false);
+
+  const validLookup = lookupCustomerOrder({
+    orderId: checkoutRes.orders[0].id,
+    email: "oakshield@hearthquest.local",
+  });
+  assert.strictEqual(validLookup.found, true, "Customer order lookup must succeed with matching email + orderId");
+  assert.strictEqual(validLookup.order?.shippingAddress, "77 Evergreen Way, Portland, OR");
+
+  const wrongEmailLookup = lookupCustomerOrder({
+    orderId: checkoutRes.orders[0].id,
+    email: "intruder@otherfamily.com",
+  });
+  assert.strictEqual(wrongEmailLookup.found, false, "Order lookup must block mismatched email");
+  assert.ok(vttHtml.includes("btn-open-storefront"), "VTT header must include direct link to Public Storefront");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 22/22 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 23/23 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

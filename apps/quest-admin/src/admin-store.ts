@@ -26,9 +26,22 @@ import {
 
 export const PHYSICAL_PACKAGES: PrintFulfillmentPackage[] = [
   {
+    id: "pkg-starter-diy",
+    campaignId: "camp-goblin-bakery",
+    title: "Print-at-Home DIY Starter Pack — Sessions 1 & 2 Printable Maps, Paper Minis & Web Unlock",
+    includedMapsCount: 3,
+    includedStandeesCount: 16,
+    includedActionCardsCount: 24,
+    includesDryEraseGrid: false,
+    includesPhysicalDiceSet: false,
+    includesHardcoverKeepsake: false,
+    priceUsd: 15,
+    unpluggedCampingFlowchartIncluded: true,
+  },
+  {
     id: "pkg-starter-box",
     campaignId: "camp-goblin-bakery",
-    title: "Upfront Starter Box — Sessions 1 & 2 + Dice, Standees & Dry-Erase Maps",
+    title: "Shipped Starter Box — Sessions 1 & 2 + Dice, Standees & Dry-Erase Maps",
     includedMapsCount: 3,
     includedStandeesCount: 16,
     includedActionCardsCount: 24,
@@ -41,7 +54,7 @@ export const PHYSICAL_PACKAGES: PrintFulfillmentPackage[] = [
   {
     id: "pkg-deluxe-keepsake",
     campaignId: "camp-goblin-bakery",
-    title: "Deluxe Collector Box + Custom Printed Hardcover Family Storybook",
+    title: "Shipped Deluxe Collector Box + Custom Printed Hardcover Family Storybook",
     includedMapsCount: 6,
     includedStandeesCount: 24,
     includedActionCardsCount: 48,
@@ -54,52 +67,52 @@ export const PHYSICAL_PACKAGES: PrintFulfillmentPackage[] = [
   {
     id: "pkg-oneshot-pack",
     campaignId: "camp-clockwork-treehouse",
-    title: "À La Carte Level-Scaled One-Shot + Print-at-Home Map & Standee Pack",
+    title: "Print-at-Home Level-Scaled One-Shot Pack (Instant Digital + DIY Map PDF)",
     includedMapsCount: 1,
     includedStandeesCount: 6,
     includedActionCardsCount: 8,
     includesDryEraseGrid: false,
     includesPhysicalDiceSet: false,
     includesHardcoverKeepsake: false,
-    priceUsd: 5,
+    priceUsd: 4,
     unpluggedCampingFlowchartIncluded: true,
   },
 ];
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    tier: "FREE_SELF_HOSTED",
-    name: "Self-Hosted Unraid Edition",
-    priceMonthlyUsd: 0,
-    badge: "Free Forever",
+    tier: "DIGITAL_UPDATES",
+    name: "Digital Explorer & Creator Updates",
+    priceMonthlyUsd: 5,
+    badge: "Lowest Cost Updates",
     features: [
-      "Full 3-Screen Family VTT & Engraved 3D Dice",
-      "Dynamic 2D Raycast Lighting & Foundry Token Forge",
-      "Bring Your Own RTX 3080 Ollama or Gemini Key",
-      "Unlimited Local Rooms, SQLite Storage & Custom Tokens",
+      "Play Encounter 1 Free, then Unlock Full Hosted Campaigns & Chapters",
+      "Continuous New Story Releases, Balance Patches & Lore Updates from Creator",
+      "Unlimited Level-Scaled Procedural Digital One-Shots",
+      "Zero Shipping Weight or Print Overhead ($0 Shipping)",
     ],
   },
   {
     tier: "DIGITAL_PLUS",
-    name: "HearthQuest Digital+ Cloud & One-Shots",
+    name: "Print-at-Home Vault + Cloud AI Narration",
     priceMonthlyUsd: 9,
-    badge: "Most Popular",
+    badge: "Most Popular DIY",
     features: [
-      "Managed Cloud AI GM Narration (Zero API Setup)",
-      "Monthly Next-Chapter Digital Release + Unlimited Level-Scaled One-Shots",
-      "Signed Pro License Key for Unraid & Cloud Sync",
-      "Instant Printable Home PDF Kits & Character Sheets",
+      "Everything in Digital Explorer & Creator Updates ($5/mo value)",
+      "Unlimited Print-at-Home 1-Inch Battle Maps, Paper Standees & Card PDFs",
+      "Managed Cloud AI Co-Pilot Narration (Zero Hardware Setup)",
+      "Print Unlimited Replacement Pieces at Home — Zero Shipping Fees",
     ],
   },
   {
     tier: "GAME_IN_A_BOX_PRO",
-    name: "Monthly Next-Chapter Mailer + Cloud AI",
+    name: "Monthly Next-Chapter Mailer + Digital Vault",
     priceMonthlyUsd: 19,
     badge: "Chapter Envelope",
     features: [
-      "Everything in Digital+ Cloud & One-Shots",
+      "Everything in Print-at-Home Vault & Cloud AI ($9/mo value)",
       "Monthly Lightweight Rigid Envelope: Next Campaign Map, Card Deck & Monster Standees",
-      "Fits Starter Box Dice & Plastic Bases (Low Shipping Weight)",
+      "Reuses Your Starter Box Engraved Dice & Plastic Bases (Low Shipping Weight)",
       "Priority Print-on-Demand Hardcover Keepsake Queue",
     ],
   },
@@ -198,12 +211,32 @@ function getDb(): DatabaseSync {
       room_code TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS store_carts (
+      session_id TEXT PRIMARY KEY,
+      items_json TEXT NOT NULL,
+      promo_code TEXT,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      code TEXT PRIMARY KEY,
+      description TEXT NOT NULL,
+      discount_type TEXT NOT NULL,
+      discount_value INTEGER NOT NULL,
+      min_subtotal_cents INTEGER NOT NULL DEFAULT 0,
+      active INTEGER NOT NULL DEFAULT 1
+    );
   `);
 
   cachedDb = db;
   cachedDbPath = targetPath;
   ensureSeedData(db);
   return db;
+}
+
+export function getAdminDbConnection(): DatabaseSync {
+  return getDb();
 }
 
 function ensureSeedData(db: DatabaseSync): void {
@@ -256,6 +289,28 @@ function ensureSeedData(db: DatabaseSync): void {
       seed.createdAt
     );
   }
+
+  const insertPromoStmt = db.prepare(
+    `INSERT OR IGNORE INTO promo_codes (
+      code, description, discount_type, discount_value, min_subtotal_cents, active
+    ) VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  insertPromoStmt.run(
+    "HEARTH10",
+    "10% Off Physical Starter Boxes & Kits",
+    "PERCENT",
+    10,
+    0,
+    1
+  );
+  insertPromoStmt.run(
+    "FAMILYFIRST",
+    "$5 Off Starter Orders ($40+ subtotal)",
+    "FIXED_CENTS",
+    500,
+    4000,
+    1
+  );
 }
 
 export function resetAdminStoreForTesting(): void {
@@ -379,7 +434,13 @@ export function generateLicenseKey(householdId: string, tier: SubscriptionTier):
     .slice(-6)
     .padStart(6, "0");
   const tierCode =
-    tier === "GAME_IN_A_BOX_PRO" ? "PRO" : tier === "DIGITAL_PLUS" ? "PLUS" : "FREE";
+    tier === "GAME_IN_A_BOX_PRO"
+      ? "PRO"
+      : tier === "DIGITAL_PLUS"
+      ? "PLUS"
+      : tier === "DIGITAL_UPDATES"
+      ? "UPD"
+      : "TRIAL";
   const payload = `${tierCode}:${cleanId}`;
   const sig = crypto
     .createHmac("sha256", getLicenseSigningSecret())
@@ -425,7 +486,9 @@ export function verifyLicenseKey(licenseKey: string): {
       ? "GAME_IN_A_BOX_PRO"
       : tierCode === "PLUS"
       ? "DIGITAL_PLUS"
-      : "FREE_SELF_HOSTED";
+      : tierCode === "UPD"
+      ? "DIGITAL_UPDATES"
+      : "TRIAL_PREVIEW";
 
   return { valid: true, tier, householdCode: cleanId };
 }
@@ -580,7 +643,7 @@ export function processPaymentWebhookEvent(event: StripeLikeWebhookEvent): {
   let household: HouseholdAccount;
   if (!householdRow) {
     const newId = `hh_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-    const initialTier: SubscriptionTier = meta.subscriptionTier || "FREE_SELF_HOSTED";
+    const initialTier: SubscriptionTier = meta.subscriptionTier || "TRIAL_PREVIEW";
     const status: SubscriptionStatus =
       meta.paymentMode === "STRIPE_LIVE" ? "ACTIVE" : "SANDBOX";
     const licenseKey = generateLicenseKey(newId, initialTier);
@@ -679,24 +742,27 @@ export function processPaymentWebhookEvent(event: StripeLikeWebhookEvent): {
       );
 
       if (
-        pkg.includesHardcoverKeepsake &&
-        household.subscriptionTier === "FREE_SELF_HOSTED"
+        (pkg.includesHardcoverKeepsake || pkg.id === "pkg-starter-diy" || pkg.id === "pkg-starter-box") &&
+        household.subscriptionTier === "TRIAL_PREVIEW"
       ) {
-        household.subscriptionTier = "DIGITAL_PLUS";
-        household.licenseKey = generateLicenseKey(household.id, "DIGITAL_PLUS");
+        const upgradeTier: SubscriptionTier = pkg.includesHardcoverKeepsake
+          ? "DIGITAL_PLUS"
+          : "DIGITAL_UPDATES";
+        household.subscriptionTier = upgradeTier;
+        household.licenseKey = generateLicenseKey(household.id, upgradeTier);
         db.prepare(
           `UPDATE households SET subscription_tier = ?, license_key = ?, updated_at = ? WHERE id = ?`
-        ).run("DIGITAL_PLUS", household.licenseKey, now, household.id);
+        ).run(upgradeTier, household.licenseKey, now, household.id);
       }
     }
   } else if (event.type === "customer.subscription.deleted") {
-    household.subscriptionTier = "FREE_SELF_HOSTED";
+    household.subscriptionTier = "TRIAL_PREVIEW";
     household.subscriptionStatus = "CANCELED";
-    household.licenseKey = generateLicenseKey(household.id, "FREE_SELF_HOSTED");
+    household.licenseKey = generateLicenseKey(household.id, "TRIAL_PREVIEW");
     household.updatedAt = now;
     db.prepare(
       `UPDATE households SET subscription_tier = ?, subscription_status = ?, license_key = ?, updated_at = ? WHERE id = ?`
-    ).run("FREE_SELF_HOSTED", "CANCELED", household.licenseKey, now, household.id);
+    ).run("TRIAL_PREVIEW", "CANCELED", household.licenseKey, now, household.id);
   }
 
   db.prepare(

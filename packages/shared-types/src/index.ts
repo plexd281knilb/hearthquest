@@ -107,7 +107,7 @@ export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
 export interface FamilyHousehold {
   id: string;
   familyName: string;
-  subscriptionTier: "FREE_SELF_HOSTED" | "DIGITAL_PLUS" | "GAME_IN_A_BOX_PRO";
+  subscriptionTier: SubscriptionTier;
   defaultRulesTier: RulesTier;
   defaultContentRating: ContentRating;
   createdAt: string;
@@ -376,7 +376,11 @@ export interface LoreRegistryEntry {
   createdAt: string;
 }
 
-export type SubscriptionTier = "FREE_SELF_HOSTED" | "DIGITAL_PLUS" | "GAME_IN_A_BOX_PRO";
+export type SubscriptionTier =
+  | "TRIAL_PREVIEW"
+  | "DIGITAL_UPDATES"
+  | "DIGITAL_PLUS"
+  | "GAME_IN_A_BOX_PRO";
 
 export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELED" | "SANDBOX";
 

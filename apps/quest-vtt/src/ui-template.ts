@@ -185,6 +185,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
             📲 QR Join
           </button>
+          <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
+            🛍️ Store
+          </a>
         </div>
         <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>
       </div>
