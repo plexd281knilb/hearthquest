@@ -13,7 +13,8 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
 
 ## 2. Foundry Visual Engines Implemented in VTT
 - **Engraved 3D & 2D Polyhedral Dice (`dice-3d-engine.ts`)**: `d4`–`d20` meshes with high-DPI canvas face textures (`1..N`, `6.`/`9.` underlines), boundary bounce physics, golden crit bursts, and quaternion target-face alignment.
-- **2D Raycast Lighting & Doors (`lighting-2d-engine.ts`)**: Dynamic darkness modes (`DAY`, `TWILIGHT`, `MIDNIGHT`), hero/token radial point lights, wall shadow occlusion (`WallSegment`), and clickable swinging doors (`/api/room/lighting`).
+- **2D Raycast Lighting, Architectural Masonry Walls & Hinged Doors (`lighting-engine.ts`)**: Dynamic darkness modes (`DAY`, `TWILIGHT`, `MIDNIGHT`), hero/token radial point lights, wall shadow occlusion (`WallSegment`), multi-pass **ashlar stone masonry walls** (ambient drop shadow, slate casing, gradient ashlar core with stone mortar seam ticks, specular bevel, corner pillar caps), and **hinged doors** with brass lockplates (closed) or dotted emerald swing-arcs + pivoted open door leaves (`/api/room/lighting`).
+- **Tactical Grid Scale & Backdrop Compositing (`ui-template.ts`)**: Battlemap tile SVGs (`assets/tiles/*.svg`) use semi-translucent mortar/base fills (`background-size: 20% 33.3333%` aligned cleanly to 2×2 tactical squares) so scenic backdrops (`opacity-65` + inner board vignette) illuminate the tabletop without ever reducing `#vtt-grid` opacity (`1.0`), keeping tokens, HP bars, and GM traps 100% vibrant.
 - **Tactical Tools & Combat (`tools-weather-engine.ts`, `combat-audio-engine.ts`)**: `5ft/sq` distance ruler, Spell AoE templates (`CIRCLE`, `CONE`, `LINE`), weather emitters, initiative tracker, and scenic SVG backdrops (`assets/backgrounds/`).
 
 ## 3. VTT Demo Accounts & Session 1 Free Paywall (`auth-store.ts`)
@@ -25,6 +26,6 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.15` (Build `#16`)
-- **Updated At**: `2026-11-15T03:18:57.842Z`
+- **Last Verified Build**: `v0.1.16` (Build `#17`)
+- **Updated At**: `2026-11-15T03:25:42.587Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

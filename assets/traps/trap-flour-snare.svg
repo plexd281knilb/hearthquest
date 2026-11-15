@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="fsAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.52" />
+      <stop offset="65%" stop-color="#d97706" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#78350f" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="fsRope" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="50%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+    <linearGradient id="fsBrassBell" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fef9c3" />
+      <stop offset="55%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#92400e" />
+    </linearGradient>
+  </defs>
+
+  <!-- Warm Amber Snare Halo -->
+  <circle cx="64" cy="64" r="60" fill="url(#fsAura)" />
+
+  <!-- Confectionary Flour-Poof Cloud Dust Ring -->
+  <g fill="#fffbeb" fill-opacity="0.85" stroke="#fcd34d" stroke-width="1.2">
+    <circle cx="42" cy="52" r="13" />
+    <circle cx="84" cy="50" r="14" />
+    <circle cx="52" cy="84" r="14" />
+    <circle cx="82" cy="80" r="12" />
+    <circle cx="64" cy="64" r="18" />
+  </g>
+
+  <!-- Braided Goblin Snare Coil & Tripwire Anchor Stakes -->
+  <ellipse cx="64" cy="66" rx="40" ry="30" fill="none" stroke="url(#fsRope)" stroke-width="6" stroke-dasharray="12 4" />
+  <ellipse cx="64" cy="66" rx="34" ry="24" fill="none" stroke="#92400e" stroke-width="3" />
+
+  <!-- Wooden Tripwire Pegs (Left & Right) -->
+  <rect x="14" y="59" width="12" height="14" rx="3" fill="#78350f" stroke="#291204" stroke-width="1.5" />
+  <rect x="102" y="59" width="12" height="14" rx="3" fill="#78350f" stroke="#291204" stroke-width="1.5" />
+  <line x1="24" y1="66" x2="104" y2="66" stroke="#fef3c7" stroke-width="2" stroke-dasharray="5 3" />
+
+  <!-- Brass Alarm Bell & Booby-Trap Star Center -->
+  <g transform="translate(64, 58)">
+    <path d="M -12 8 C -12 -10 12 -10 12 8 L 16 14 L -16 14 Z" fill="url(#fsBrassBell)" stroke="#451a03" stroke-width="2" />
+    <circle cx="0" cy="17" r="4" fill="#fbbf24" stroke="#451a03" stroke-width="1.2" />
+    <circle cx="0" cy="-10" r="4" fill="#ef4444" stroke="#ffffff" stroke-width="1.2" />
+  </g>
+
+  <!-- Playful Warning Sparkles -->
+  <path d="M 32 32 L 35 39 L 42 42 L 35 45 L 32 52 L 29 45 L 22 42 L 29 39 Z" fill="#fef08a" stroke="#b45309" stroke-width="0.8" />
+  <path d="M 96 34 L 98 39 L 103 41 L 98 43 L 96 48 L 94 43 L 89 41 L 94 39 Z" fill="#fef08a" stroke="#b45309" stroke-width="0.8" />
+</svg>

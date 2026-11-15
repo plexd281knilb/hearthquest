@@ -6,7 +6,7 @@
 export interface HearthQuestAsset {
   id: string;
   name: string;
-  category: "hero" | "monster" | "prop" | "tile" | "background" | "icon";
+  category: "hero" | "monster" | "prop" | "tile" | "background" | "trap" | "icon";
   path: string;
   tags: string[];
 }
@@ -137,6 +137,23 @@ export const HEARTHQUEST_ASSETS = {
       path: "/assets/backgrounds/backdrop-starlight-observatory.svg",
     },
   },
+  traps: {
+    spikePlate: {
+      id: "trap-spike-plate",
+      name: "Foundry Pressure Spike Plate",
+      path: "/assets/traps/trap-spike-plate.svg",
+    },
+    flourSnare: {
+      id: "trap-flour-snare",
+      name: "Goblin Flour-Poof & Rope Snare",
+      path: "/assets/traps/trap-flour-snare.svg",
+    },
+    arcaneRune: {
+      id: "trap-arcane-rune",
+      name: "Astral Glowing Rune Trap",
+      path: "/assets/traps/trap-arcane-rune.svg",
+    },
+  },
 } as const;
 
 /**
@@ -223,4 +240,18 @@ export function resolveSceneBackdropAsset(backdropOrTheme: string): string {
     return HEARTHQUEST_ASSETS.backgrounds.hearthTavern.path;
   }
   return "";
+}
+
+/**
+ * Resolves an illustrated Foundry trap SVG sprite based on the zone's trap description.
+ */
+export function resolveTrapAsset(trapDescription?: string): string {
+  const norm = (trapDescription || "").toLowerCase();
+  if (norm.includes("rune") || norm.includes("star") || norm.includes("magic") || norm.includes("glow") || norm.includes("arcane") || norm.includes("glyph") || norm.includes("frost")) {
+    return HEARTHQUEST_ASSETS.traps.arcaneRune.path;
+  }
+  if (norm.includes("flour") || norm.includes("snare") || norm.includes("rope") || norm.includes("honey") || norm.includes("dough") || norm.includes("trip") || norm.includes("bell") || norm.includes("pie")) {
+    return HEARTHQUEST_ASSETS.traps.flourSnare.path;
+  }
+  return HEARTHQUEST_ASSETS.traps.spikePlate.path;
 }

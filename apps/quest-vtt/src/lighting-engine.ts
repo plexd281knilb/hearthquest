@@ -238,8 +238,9 @@ export function renderLighting2DEngineScript(): string {
         }
         ctx.restore();
 
-        // 3. Draw Architectural Stone Shadow-Walls, Pillars & Interactive Doors
+        // 3. Draw Foundry Architectural Masonry Walls, Stone Pillars & Hinged Interactive Doors
         ctx.save();
+        const wallPillars = [];
         for (let i = 0; i < walls.length; i++) {
           const wSeg = walls[i];
           // Skip outer border edges so they don't double-stroke the container border
@@ -249,29 +250,199 @@ export function renderLighting2DEngineScript(): string {
           const y1 = wSeg.y1 * cellH;
           const x2 = wSeg.x2 * cellW;
           const y2 = wSeg.y2 * cellH;
-
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const segLen = Math.hypot(dx, dy);
+          if (segLen < 1) continue;
+          const ux = dx / segLen;
+          const uy = dy / segLen;
+          const nx = -uy;
+          const ny = ux;
 
           if (wSeg.isDoor) {
             if (wSeg.isOpen) {
-              ctx.strokeStyle = "rgba(52, 211, 153, 0.45)";
-              ctx.lineWidth = 4;
-              ctx.setLineDash([6, 6]);
-            } else {
-              ctx.strokeStyle = "#d97706";
-              ctx.lineWidth = 7;
+              // Subtle emerald open doorway threshold line
+              ctx.save();
+              ctx.strokeStyle = "rgba(52, 211, 153, 0.55)";
+              ctx.lineWidth = 3;
+              ctx.setLineDash([5, 5]);
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.stroke();
               ctx.setLineDash([]);
+
+              // Architectural swing arc & pivoted open oak door leaf
+              const baseAngle = Math.atan2(dy, dx);
+              const leafLen = Math.min(segLen * 0.88, Math.max(24, segLen - 4));
+              const openAngle = baseAngle + 1.12;
+              const lx = x1 + Math.cos(openAngle) * leafLen;
+              const ly = y1 + Math.sin(openAngle) * leafLen;
+
+              ctx.strokeStyle = "rgba(110, 231, 183, 0.42)";
+              ctx.lineWidth = 1.6;
+              ctx.setLineDash([3, 4]);
+              ctx.beginPath();
+              ctx.arc(x1, y1, leafLen, baseAngle, openAngle);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              // Pivoted door timber leaf
+              ctx.lineCap = "round";
+              ctx.strokeStyle = "#451a03";
+              ctx.lineWidth = 7;
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(lx, ly);
+              ctx.stroke();
+
+              ctx.strokeStyle = "#34d399";
+              ctx.lineWidth = 3.5;
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(lx, ly);
+              ctx.stroke();
+              ctx.restore();
+            } else {
+              // Closed oak door leaf with drop shadow, timber panel & brass keyhole medallion
+              ctx.save();
+              ctx.shadowColor = "rgba(2, 6, 23, 0.78)";
+              ctx.shadowBlur = 7;
+              ctx.shadowOffsetX = 1.5;
+              ctx.shadowOffsetY = 2;
+              ctx.lineCap = "butt";
+
+              ctx.strokeStyle = "#451a03";
+              ctx.lineWidth = 10;
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.stroke();
+
+              ctx.shadowColor = "transparent";
+              ctx.strokeStyle = "#d97706";
+              ctx.lineWidth = 5.5;
+              ctx.beginPath();
+              ctx.moveTo(x1 + ux * 3, y1 + uy * 3);
+              ctx.lineTo(x2 - ux * 3, y2 - uy * 3);
+              ctx.stroke();
+
+              // Specular oak bevel
+              ctx.strokeStyle = "rgba(254, 240, 138, 0.6)";
+              ctx.lineWidth = 1.4;
+              ctx.beginPath();
+              ctx.moveTo(x1 + ux * 4 - nx * 1.3, y1 + uy * 4 - ny * 1.3);
+              ctx.lineTo(x2 - ux * 4 - nx * 1.3, y2 - uy * 4 - ny * 1.3);
+              ctx.stroke();
+
+              // Glowing brass lockplate & handle in doorway center
+              const mx = (x1 + x2) * 0.5;
+              const my = (y1 + y2) * 0.5;
+              ctx.fillStyle = "#451a03";
+              ctx.beginPath();
+              ctx.arc(mx, my, 6.2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = "#fde047";
+              ctx.beginPath();
+              ctx.arc(mx, my, 3.6, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = "#ffffff";
+              ctx.beginPath();
+              ctx.arc(mx - 1, my - 1, 1.2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+
+            // Heavy oak/brass door jamb posts at doorway endpoints
+            const jambEnds = [
+              { px: x1, py: y1 },
+              { px: x2, py: y2 },
+            ];
+            for (let j = 0; j < jambEnds.length; j++) {
+              ctx.fillStyle = "#291204";
+              ctx.beginPath();
+              ctx.arc(jambEnds[j].px, jambEnds[j].py, 5.5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = wSeg.isOpen ? "#34d399" : "#f59e0b";
+              ctx.beginPath();
+              ctx.arc(jambEnds[j].px, jambEnds[j].py, 2.6, 0, Math.PI * 2);
+              ctx.fill();
             }
           } else {
-            ctx.strokeStyle = "#94a3b8";
-            ctx.lineWidth = 6;
-            ctx.setLineDash([]);
+            // Multi-pass Foundry dressed ashlar stone wall
+            ctx.save();
+            ctx.lineCap = "round";
+            ctx.shadowColor = "rgba(2, 6, 23, 0.82)";
+            ctx.shadowBlur = 9;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 3;
+
+            // Outer iron-slate stone casing
+            ctx.strokeStyle = "#1e293b";
+            ctx.lineWidth = 10.5;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Sculpted stone ashlar core gradient
+            ctx.shadowColor = "transparent";
+            const wallGrad = ctx.createLinearGradient(x1, y1, x2, y2);
+            wallGrad.addColorStop(0, "#64748b");
+            wallGrad.addColorStop(0.5, "#94a3b8");
+            wallGrad.addColorStop(1, "#64748b");
+            ctx.strokeStyle = wallGrad;
+            ctx.lineWidth = 6.2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Dressed stone block mortar seam ticks along wall segment
+            const tickStep = 20;
+            ctx.strokeStyle = "rgba(15, 23, 42, 0.72)";
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = "butt";
+            for (let d = tickStep; d < segLen - 8; d += tickStep) {
+              const tx = x1 + ux * d;
+              const ty = y1 + uy * d;
+              ctx.beginPath();
+              ctx.moveTo(tx - nx * 3.1, ty - ny * 3.1);
+              ctx.lineTo(tx + nx * 3.1, ty + ny * 3.1);
+              ctx.stroke();
+            }
+
+            // Specular top-edge highlight bevel
+            ctx.strokeStyle = "rgba(248, 250, 252, 0.42)";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(x1 - nx * 1.4, y1 - ny * 1.4);
+            ctx.lineTo(x2 - nx * 1.4, y2 - ny * 1.4);
+            ctx.stroke();
+            ctx.restore();
+
+            wallPillars.push({ px: x1, py: y1 });
+            wallPillars.push({ px: x2, py: y2 });
           }
-          ctx.lineCap = "round";
-          ctx.stroke();
-          ctx.setLineDash([]);
+        }
+
+        // Sculpted stone corner pillar caps at wall intersections/endpoints
+        for (let p = 0; p < wallPillars.length; p++) {
+          const cap = wallPillars[p];
+          ctx.fillStyle = "#0f172a";
+          ctx.beginPath();
+          ctx.arc(cap.px, cap.py, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#94a3b8";
+          ctx.beginPath();
+          ctx.arc(cap.px, cap.py, 4.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#cbd5e1";
+          ctx.beginPath();
+          ctx.arc(cap.px - 0.8, cap.py - 0.8, 1.8, 0, Math.PI * 2);
+          ctx.fill();
         }
         ctx.restore();
       },

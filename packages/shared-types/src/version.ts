@@ -13,9 +13,9 @@ export interface BuildMetadata {
   badgeText: string;
 }
 
-export const APP_VERSION = "0.1.15";
-export const BUILD_NUMBER = 16;
-export const BUILD_UPDATED_AT = "2026-11-15T03:18:57.842Z";
+export const APP_VERSION = "0.1.16";
+export const BUILD_NUMBER = 17;
+export const BUILD_UPDATED_AT = "2026-11-15T03:25:42.587Z";
 
 export function getReleaseChannel(envChannel?: string): ReleaseChannel {
   const raw = (envChannel || process.env.HEARTHQUEST_CHANNEL || process.env.GIT_BRANCH || "dev")

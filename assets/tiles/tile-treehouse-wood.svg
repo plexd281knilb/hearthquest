@@ -1,52 +1,106 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
-    <linearGradient id="woodPlank1" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#a16207" />
-      <stop offset="100%" stop-color="#713f12" />
+    <!-- Translucent Timber Seam Backing (allows canopy moonbeams to warm the deck) -->
+    <rect id="twBaseRect" width="128" height="128" />
+    <linearGradient id="twSeamBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#140c06" stop-opacity="0.74" />
+      <stop offset="100%" stop-color="#1f1209" stop-opacity="0.78" />
     </linearGradient>
-    <linearGradient id="woodPlank2" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#854d0e" />
-      <stop offset="100%" stop-color="#582900" />
+
+    <linearGradient id="twPlankWarm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9a6128" stop-opacity="0.9" />
+      <stop offset="18%" stop-color="#854f1d" stop-opacity="0.86" />
+      <stop offset="85%" stop-color="#613712" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#452509" stop-opacity="0.92" />
     </linearGradient>
+
+    <linearGradient id="twPlankDeep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7c4c1f" stop-opacity="0.9" />
+      <stop offset="22%" stop-color="#6a3e17" stop-opacity="0.86" />
+      <stop offset="85%" stop-color="#4e2b0d" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#371d07" stop-opacity="0.92" />
+    </linearGradient>
+
+    <radialGradient id="twBrassRivet" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="55%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#78350f" />
+    </radialGradient>
   </defs>
-  <!-- Background Gap -->
-  <rect width="128" height="128" fill="#1c1917" />
 
-  <!-- Plank 1 (Top) -->
-  <rect x="0" y="2" width="128" height="28" fill="url(#woodPlank1)" stroke="#271003" stroke-width="1.5" />
-  <line x1="15" y1="16" x2="110" y2="16" stroke="#451a03" stroke-width="1" stroke-dasharray="25 15" opacity="0.6" />
-  <!-- Nails -->
-  <circle cx="8" cy="16" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
-  <circle cx="120" cy="16" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
+  <!-- Plank Groove Base -->
+  <rect width="128" height="128" fill="url(#twSeamBg)" />
 
-  <!-- Plank 2 -->
-  <rect x="0" y="34" width="128" height="28" fill="url(#woodPlank2)" stroke="#271003" stroke-width="1.5" />
-  <line x1="20" y1="48" x2="95" y2="48" stroke="#3b1d02" stroke-width="1" stroke-dasharray="30 20" opacity="0.6" />
-  <!-- Moss Fleck -->
-  <circle cx="48" cy="38" r="3" fill="#65a30d" opacity="0.7" />
-  <circle cx="52" cy="40" r="2" fill="#4d7c0f" opacity="0.8" />
-  <!-- Nails -->
-  <circle cx="8" cy="48" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
-  <circle cx="120" cy="48" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
+  <!-- Row 1 Planks (Staggered join at x=78) -->
+  <g>
+    <rect x="1.5" y="2" width="74.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
+    <line x1="3" y1="3.5" x2="74" y2="3.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
+    <path d="M 10 14 Q 32 10 56 16 Q 66 18 72 15" fill="none" stroke="#3f1e07" stroke-opacity="0.45" stroke-width="1.2" />
 
-  <!-- Plank 3 -->
-  <rect x="0" y="66" width="128" height="28" fill="url(#woodPlank1)" stroke="#271003" stroke-width="1.5" />
-  <line x1="10" y1="80" x2="115" y2="80" stroke="#451a03" stroke-width="1" stroke-dasharray="18 22" opacity="0.6" />
-  <!-- Wood Knot -->
-  <ellipse cx="85" cy="80" rx="4" ry="3" fill="#451a03" />
-  <!-- Nails -->
-  <circle cx="8" cy="80" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
-  <circle cx="120" cy="80" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
+    <rect x="79" y="2" width="47.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
+    <line x1="80.5" y1="3.5" x2="125" y2="3.5" stroke="#fde68a" stroke-opacity="0.24" stroke-width="1" />
+    <path d="M 85 18 Q 104 21 122 14" fill="none" stroke="#2c1304" stroke-opacity="0.45" stroke-width="1.1" />
+  </g>
 
-  <!-- Plank 4 (Bottom) -->
-  <rect x="0" y="98" width="128" height="28" fill="url(#woodPlank2)" stroke="#271003" stroke-width="1.5" />
-  <line x1="25" y1="112" x2="105" y2="112" stroke="#3b1d02" stroke-width="1" stroke-dasharray="35 15" opacity="0.6" />
-  <!-- Moss Fleck -->
-  <circle cx="92" cy="118" r="3" fill="#65a30d" opacity="0.6" />
-  <!-- Nails -->
-  <circle cx="8" cy="112" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
-  <circle cx="120" cy="112" r="2.5" fill="#ca8a04" stroke="#451a03" stroke-width="1" />
+  <!-- Row 2 Planks (Staggered join at x=42) -->
+  <g>
+    <rect x="1.5" y="34" width="38.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
+    <line x1="3" y1="35.5" x2="38" y2="35.5" stroke="#fde68a" stroke-opacity="0.24" stroke-width="1" />
 
-  <!-- Grid Border Overlay -->
-  <rect x="0" y="0" width="128" height="128" fill="none" stroke="#22c55e" stroke-width="1" opacity="0.15" />
+    <rect x="43" y="34" width="83.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
+    <line x1="44.5" y1="35.5" x2="125" y2="35.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
+    <ellipse cx="90" cy="48" rx="7" ry="3.2" fill="#451a03" opacity="0.5" />
+    <ellipse cx="90" cy="48" rx="3.5" ry="1.5" fill="#2c1203" opacity="0.7" />
+    <path d="M 48 44 Q 68 41 80 47 M 100 49 Q 114 53 123 47" fill="none" stroke="#3f1e07" stroke-opacity="0.4" stroke-width="1.1" />
+  </g>
+
+  <!-- Row 3 Planks (Staggered join at x=98) -->
+  <g>
+    <rect x="1.5" y="66" width="94.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
+    <line x1="3" y1="67.5" x2="94" y2="67.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
+    <path d="M 12 79 Q 45 84 86 76" fill="none" stroke="#3f1e07" stroke-opacity="0.45" stroke-width="1.2" />
+
+    <rect x="99" y="66" width="27.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
+    <line x1="100.5" y1="67.5" x2="125" y2="67.5" stroke="#fde68a" stroke-opacity="0.22" stroke-width="1" />
+  </g>
+
+  <!-- Row 4 Planks (Staggered join at x=54) -->
+  <g>
+    <rect x="1.5" y="98" width="50.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
+    <line x1="3" y1="99.5" x2="50" y2="99.5" stroke="#fde68a" stroke-opacity="0.24" stroke-width="1" />
+    <path d="M 8 114 Q 26 109 46 115" fill="none" stroke="#2c1304" stroke-opacity="0.45" stroke-width="1.1" />
+
+    <rect x="55" y="98" width="71.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
+    <line x1="56.5" y1="99.5" x2="125" y2="99.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
+    <path d="M 62 110 Q 92 106 118 113" fill="none" stroke="#3f1e07" stroke-opacity="0.45" stroke-width="1.1" />
+  </g>
+
+  <!-- Specular Brass Carpenter Nails -->
+  <g stroke="#291204" stroke-width="0.7">
+    <circle cx="8" cy="11" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="8" cy="21" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="70" cy="16" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="85" cy="16" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="49" cy="48" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="120" cy="48" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="8" cy="80" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="90" cy="80" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="46" cy="112" r="2.2" fill="url(#twBrassRivet)" />
+    <circle cx="61" cy="112" r="2.2" fill="url(#twBrassRivet)" />
+  </g>
+
+  <!-- Emerald Treehouse Moss Tufting in Planks -->
+  <g opacity="0.82">
+    <circle cx="40" cy="33" r="3.2" fill="#4d7c0f" />
+    <circle cx="44" cy="34" r="2.2" fill="#84cc16" />
+    <circle cx="97" cy="96" r="3" fill="#4d7c0f" />
+    <circle cx="101" cy="97" r="2" fill="#65a30d" />
+  </g>
+
+  <!-- Subtle 2x2 Tactical Grid Alignment Crosshairs -->
+  <g stroke="#86efac" stroke-opacity="0.22" stroke-width="1" fill="none">
+    <rect x="0.5" y="0.5" width="127" height="127" />
+    <line x1="64" y1="0" x2="64" y2="128" stroke-dasharray="4 4" />
+    <line x1="0" y1="64" x2="128" y2="64" stroke-dasharray="4 4" />
+  </g>
 </svg>

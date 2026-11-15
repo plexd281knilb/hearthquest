@@ -79,6 +79,7 @@ import {
   resolveCampaignTileAsset,
   resolveSceneBackdropAsset,
   resolveTokenAsset,
+  resolveTrapAsset,
 } from "../packages/shared-types/src/index";
 import {
   calculateEncounterAutoBalance,
@@ -1144,8 +1145,51 @@ async function runVerification() {
   }
   console.log("✅ PASSED");
 
+  // Suite 25: Visual Asset Overhaul (Enhanced 2x2 Tactical Tiles, Foundry Ashlar Walls/Hinged Doors, Trap SVG Sprites & Compositing)
+  process.stdout.write("25. Testing Foundry Visual Assets (Tiles, Architectural Walls/Doors, Trap SVGs & Compositing)... ");
+  const trapFiles = [
+    path.join(rootDir, "assets", "traps", "trap-spike-plate.svg"),
+    path.join(rootDir, "assets", "traps", "trap-flour-snare.svg"),
+    path.join(rootDir, "assets", "traps", "trap-arcane-rune.svg"),
+  ];
+  for (const tf of trapFiles) {
+    assert.ok(fs.existsSync(tf), `Trap SVG asset missing: ${tf}`);
+    const svgContent = fs.readFileSync(tf, "utf8");
+    assert.ok(svgContent.includes("<svg") && svgContent.includes("</svg>"), `Invalid trap SVG markup: ${tf}`);
+  }
+
+  assert.strictEqual(HEARTHQUEST_ASSETS.traps.spikePlate.path, "/assets/traps/trap-spike-plate.svg");
+  assert.strictEqual(resolveTrapAsset("Sticky Flour-Poof Tripwire"), "/assets/traps/trap-flour-snare.svg");
+  assert.strictEqual(resolveTrapAsset("Glowing Arcane Frost Rune"), "/assets/traps/trap-arcane-rune.svg");
+  assert.strictEqual(resolveTrapAsset("Hidden Pressure Plate"), "/assets/traps/trap-spike-plate.svg");
+
+  const visualVttHtml = renderVttAppHtml(demoReg.room);
+  assert.ok(
+    visualVttHtml.includes("Foundry Architectural Masonry Walls") &&
+      visualVttHtml.includes("ctx.arc(x1, y1, leafLen, baseAngle, openAngle)"),
+    "VTT must render Foundry masonry walls, corner pillars, and swinging door arcs"
+  );
+  assert.ok(
+    visualVttHtml.includes("background-size: 20% 33.3333%;") &&
+      visualVttHtml.includes("opacity-65 pointer-events-none") &&
+      visualVttHtml.includes("/assets/traps/trap-flour-snare.svg") &&
+      !visualVttHtml.includes('gridEl.style.opacity = "0.84"'),
+    "VTT must align 2x2 floor tiles, blend scenic backdrops crisply, render Foundry trap SVGs, and keep token/grid opacity at 1.0"
+  );
+
+  const bakeryTileSvg = fs.readFileSync(path.join(rootDir, "assets", "tiles", "tile-bakery-floor.svg"), "utf8");
+  const treehouseTileSvg = fs.readFileSync(path.join(rootDir, "assets", "tiles", "tile-treehouse-wood.svg"), "utf8");
+  const starlightTileSvg = fs.readFileSync(path.join(rootDir, "assets", "tiles", "tile-starlight-deck.svg"), "utf8");
+  assert.ok(
+    bakeryTileSvg.includes("stop-opacity=") &&
+      treehouseTileSvg.includes("stop-opacity=") &&
+      starlightTileSvg.includes("stop-opacity="),
+    "Floor tile SVGs must use translucent stone/wood/astral gradients for scenic backdrop depth"
+  );
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 24/24 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 25/25 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

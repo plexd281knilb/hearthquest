@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="spPlateBg" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="70%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </radialGradient>
+    <linearGradient id="spBrassFrame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="45%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+    <linearGradient id="spSteelTip" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#94a3b8" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <radialGradient id="spDangerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.48" />
+      <stop offset="70%" stop-color="#e11d48" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#881337" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Crimson Hazard Halo -->
+  <circle cx="64" cy="64" r="60" fill="url(#spDangerGlow)" />
+
+  <!-- Outer Chamfered Iron Frame -->
+  <rect x="16" y="16" width="96" height="96" rx="14" fill="url(#spPlateBg)" stroke="url(#spBrassFrame)" stroke-width="4" />
+  <rect x="24" y="24" width="80" height="80" rx="8" fill="#0f172a" stroke="#f43f5e" stroke-width="1.6" stroke-dasharray="8 4" stroke-opacity="0.7" />
+
+  <!-- Corner Warning Chevron Plates & Brass Rivets -->
+  <g fill="url(#spBrassFrame)">
+    <circle cx="24" cy="24" r="3.5" />
+    <circle cx="104" cy="24" r="3.5" />
+    <circle cx="24" cy="104" r="3.5" />
+    <circle cx="104" cy="104" r="3.5" />
+  </g>
+
+  <!-- Recessed Steel Spike Apertures (4-quadrant symmetric) -->
+  <g>
+    <!-- Top-Left Spike -->
+    <circle cx="44" cy="44" r="11" fill="#020617" stroke="#475569" stroke-width="1.5" />
+    <polygon points="44,32 51,48 44,45 37,48" fill="url(#spSteelTip)" stroke="#0f172a" stroke-width="1" />
+    <!-- Top-Right Spike -->
+    <circle cx="84" cy="44" r="11" fill="#020617" stroke="#475569" stroke-width="1.5" />
+    <polygon points="84,32 91,48 84,45 77,48" fill="url(#spSteelTip)" stroke="#0f172a" stroke-width="1" />
+    <!-- Bottom-Left Spike -->
+    <circle cx="44" cy="84" r="11" fill="#020617" stroke="#475569" stroke-width="1.5" />
+    <polygon points="44,72 51,88 44,85 37,88" fill="url(#spSteelTip)" stroke="#0f172a" stroke-width="1" />
+    <!-- Bottom-Right Spike -->
+    <circle cx="84" cy="84" r="11" fill="#020617" stroke="#475569" stroke-width="1.5" />
+    <polygon points="84,72 91,88 84,85 77,88" fill="url(#spSteelTip)" stroke="#0f172a" stroke-width="1" />
+  </g>
+
+  <!-- Center Tension Pressure Pad -->
+  <circle cx="64" cy="64" r="14" fill="#be123c" stroke="url(#spBrassFrame)" stroke-width="3" />
+  <circle cx="64" cy="64" r="7" fill="#fda4af" opacity="0.85" />
+  <path d="M 59 64 L 64 59 L 69 64 L 64 69 Z" fill="#fff1f2" />
+</svg>

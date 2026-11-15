@@ -31,9 +31,10 @@ Tokens on the tactical 10x6 battlemap must be instantly readable by both young c
 - **Bezel Styles**: `GOLD_FOIL`, `SILVER_MOON`, `EMERALD_VINE`, `IRON_CRIMSON`.
 - **Vector Emblems**: Shield/Sword, Starlight Hat, Forest Stag, Whisper Dagger, Dragon Scale, Flame Crest.
 - **Point-Light Aura**: Tokens carry `lightRadius` and `lightColor` used directly by the 2D raycast vision/lighting canvas.
+- **Foundry Trap SVG Sprites (`assets/traps/`, `packages/shared-types/src/assets.ts`)**: Illustrated GM-only hazard sprites (`trap-spike-plate.svg`, `trap-flour-snare.svg`, `trap-arcane-rune.svg`) mapped dynamically via `resolveTrapAsset(trapDescription)` and rendered with subtle pulsing hazard auras instead of flat emoji text badges.
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.15` (Build `#16`)
-- **Updated At**: `2026-11-15T03:18:57.842Z`
+- **Last Verified Build**: `v0.1.16` (Build `#17`)
+- **Updated At**: `2026-11-15T03:25:42.587Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

@@ -112,40 +112,48 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       background-position: center;
     }
 
-    /* Themed Battlemap Backgrounds */
+    /* Themed Battlemap Backgrounds (2x2 tactical square alignment) */
     .bg-bakery {
       background-image: url('/assets/tiles/tile-bakery-floor.svg');
-      background-size: 80px 80px;
+      background-size: 20% 33.3333%;
       background-repeat: repeat;
     }
     .bg-treehouse {
       background-image: url('/assets/tiles/tile-treehouse-wood.svg');
-      background-size: 80px 80px;
+      background-size: 20% 33.3333%;
       background-repeat: repeat;
     }
     .bg-starlight {
       background-image: url('/assets/tiles/tile-starlight-deck.svg');
-      background-size: 80px 80px;
+      background-size: 20% 33.3333%;
       background-repeat: repeat;
     }
 
     body[data-theme="light"] .bg-bakery {
       background-image: url('/assets/tiles/tile-bakery-floor.svg');
-      background-size: 80px 80px;
+      background-size: 20% 33.3333%;
       background-repeat: repeat;
-      filter: brightness(1.22) contrast(0.92);
+      filter: brightness(1.18) contrast(0.95);
     }
     body[data-theme="light"] .bg-treehouse {
       background-image: url('/assets/tiles/tile-treehouse-wood.svg');
-      background-size: 80px 80px;
+      background-size: 20% 33.3333%;
       background-repeat: repeat;
-      filter: brightness(1.22) contrast(0.92);
+      filter: brightness(1.18) contrast(0.95);
     }
     body[data-theme="light"] .bg-starlight {
       background-image: url('/assets/tiles/tile-starlight-deck.svg');
-      background-size: 80px 80px;
+      background-size: 20% 33.3333%;
       background-repeat: repeat;
-      filter: brightness(1.28) contrast(0.9);
+      filter: brightness(1.22) contrast(0.94);
+    }
+
+    @keyframes trapPulseRing {
+      0%, 100% { transform: scale(0.95); opacity: 0.72; }
+      50% { transform: scale(1.06); opacity: 1; }
+    }
+    .trap-hazard-sprite {
+      animation: trapPulseRing 2.6s ease-in-out infinite;
     }
 
     /* Token Standee Styling */
@@ -270,8 +278,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         </div>
 
         <!-- 10x6 Interactive Tabletop Grid + Scenic Backdrop + 2D Raycast Lighting + Ruler/Templates/Weather Canvas -->
-        <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-inner">
-          <img id="vtt-scene-backdrop" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Backdrop" class="hidden absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none z-0 transition-opacity duration-500" />
+        <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-950">
+          <img id="vtt-scene-backdrop" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Backdrop" class="hidden absolute inset-0 w-full h-full object-cover opacity-65 pointer-events-none z-0 transition-opacity duration-500" />
+          <div class="pointer-events-none absolute inset-0 z-[5] rounded-xl" style="box-shadow: inset 0 0 36px rgba(2, 6, 23, 0.55);"></div>
           <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative z-10 select-none"></div>
           <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
           <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
@@ -1495,11 +1504,29 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           }
 
           if (displayMode === "GM_COMMAND" && zone?.hasSecretTrap && x === zone.gridX + 1 && y === 2) {
-            const trap = document.createElement("span");
-            trap.className = "text-[10px] px-1 rounded bg-rose-900/80 text-rose-200 border border-rose-500/40";
-            trap.title = zone.trapDescription || "Secret Trap";
-            trap.innerText = "⚠️ Trap";
-            cell.appendChild(trap);
+            const desc = (zone.trapDescription || "Secret Trap").toLowerCase();
+            const trapSvgPath = (desc.includes("rune") || desc.includes("star") || desc.includes("magic") || desc.includes("glow") || desc.includes("arcane") || desc.includes("glyph") || desc.includes("frost"))
+              ? "/assets/traps/trap-arcane-rune.svg"
+              : (desc.includes("flour") || desc.includes("snare") || desc.includes("rope") || desc.includes("honey") || desc.includes("dough") || desc.includes("trip") || desc.includes("bell") || desc.includes("pie"))
+              ? "/assets/traps/trap-flour-snare.svg"
+              : "/assets/traps/trap-spike-plate.svg";
+
+            const trapWrap = document.createElement("div");
+            trapWrap.className = "relative w-12 h-12 flex items-center justify-center pointer-events-auto cursor-help group";
+            trapWrap.title = zone.trapDescription || "Secret Trap (GM Only)";
+
+            const trapImg = document.createElement("img");
+            trapImg.src = trapSvgPath;
+            trapImg.alt = "GM Trap Overlay";
+            trapImg.className = "w-11 h-11 object-contain trap-hazard-sprite drop-shadow-[0_2px_8px_rgba(244,63,94,0.55)]";
+            trapWrap.appendChild(trapImg);
+
+            const trapTag = document.createElement("span");
+            trapTag.className = "absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] leading-none font-extrabold tracking-wide px-1.5 py-0.5 rounded bg-rose-950/90 text-rose-200 border border-rose-400/60 shadow whitespace-nowrap";
+            trapTag.innerText = "TRAP";
+            trapWrap.appendChild(trapTag);
+
+            cell.appendChild(trapWrap);
           }
 
           if (!isFogged) {
@@ -1600,11 +1627,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         if (curBackdrop !== "NONE" && backdropMap[curBackdrop]) {
           backdropEl.src = backdropMap[curBackdrop];
           backdropEl.classList.remove("hidden");
-          gridEl.style.opacity = "0.84";
         } else {
           backdropEl.classList.add("hidden");
-          gridEl.style.opacity = "1";
         }
+        gridEl.style.opacity = "1";
       }
 
       const soundSel = document.getElementById("select-ambient-soundscape");

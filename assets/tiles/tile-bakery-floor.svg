@@ -1,47 +1,98 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
-    <linearGradient id="stoneWarm1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#78716c" />
-      <stop offset="100%" stop-color="#44403c" />
+    <!-- Translucent Warm Hearth Mortar Base (lets scenic fireplace glow through gently) -->
+    <linearGradient id="bkMortar" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c1410" stop-opacity="0.72" />
+      <stop offset="100%" stop-color="#291d16" stop-opacity="0.76" />
     </linearGradient>
-    <linearGradient id="stoneWarm2" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#a8a29e" />
-      <stop offset="100%" stop-color="#57534e" />
+
+    <!-- Warm Sandstone & Terracotta Flagstone Gradients -->
+    <linearGradient id="bkStoneA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8c7563" stop-opacity="0.88" />
+      <stop offset="50%" stop-color="#6b5647" stop-opacity="0.86" />
+      <stop offset="100%" stop-color="#4e3d32" stop-opacity="0.9" />
     </linearGradient>
-    <linearGradient id="stoneWarm3" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#8c7851" />
-      <stop offset="100%" stop-color="#453218" />
+    <linearGradient id="bkStoneB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c6c60" stop-opacity="0.88" />
+      <stop offset="55%" stop-color="#5d4f46" stop-opacity="0.86" />
+      <stop offset="100%" stop-color="#433831" stop-opacity="0.9" />
     </linearGradient>
+    <linearGradient id="bkStoneWarm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9a785c" stop-opacity="0.88" />
+      <stop offset="60%" stop-color="#73553e" stop-opacity="0.86" />
+      <stop offset="100%" stop-color="#523b2a" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Subtle Golden Flour Dust Glow -->
+    <radialGradient id="bkFlourDust" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.22" />
+      <stop offset="60%" stop-color="#fde68a" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#fde68a" stop-opacity="0" />
+    </radialGradient>
   </defs>
-  <!-- Mortar Bed Base -->
-  <rect width="128" height="128" fill="#292524" />
 
-  <!-- Flagstones Row 1 -->
-  <rect x="2" y="2" width="60" height="38" rx="4" fill="url(#stoneWarm1)" stroke="#1c1917" stroke-width="2" />
-  <rect x="66" y="2" width="60" height="38" rx="4" fill="url(#stoneWarm2)" stroke="#1c1917" stroke-width="2" />
+  <!-- Deep Chamfered Mortar Groove Layer -->
+  <rect width="128" height="128" fill="url(#bkMortar)" />
 
-  <!-- Flagstones Row 2 (Staggered Brick Pattern) -->
-  <rect x="2" y="44" width="38" height="40" rx="4" fill="url(#stoneWarm3)" stroke="#1c1917" stroke-width="2" />
-  <rect x="44" y="44" width="50" height="40" rx="4" fill="url(#stoneWarm1)" stroke="#1c1917" stroke-width="2" />
-  <rect x="98" y="44" width="28" height="40" rx="4" fill="url(#stoneWarm2)" stroke="#1c1917" stroke-width="2" />
+  <!-- Top-Left Quadrant (Cell 0,0) - Large Hearth Flagstone + Corner Stone -->
+  <g>
+    <rect x="3" y="3" width="58" height="36" rx="4" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 5 37 L 5 5 L 59 5" fill="none" stroke="#d6beaa" stroke-width="1.4" stroke-opacity="0.45" stroke-linecap="round" />
+    <path d="M 59 7 L 59 37 L 7 37" fill="none" stroke="#2c1e16" stroke-width="1.4" stroke-opacity="0.7" stroke-linecap="round" />
+    <!-- Subtle surface crack & mineral speckles -->
+    <path d="M 18 14 L 27 21 L 34 19" fill="none" stroke="#36271e" stroke-width="1" stroke-opacity="0.55" />
+    <circle cx="46" cy="14" r="1.4" fill="#c7b29e" opacity="0.35" />
+    <circle cx="14" cy="29" r="1.1" fill="#3a2a20" opacity="0.45" />
 
-  <!-- Flagstones Row 3 -->
-  <rect x="2" y="88" width="70" height="38" rx="4" fill="url(#stoneWarm2)" stroke="#1c1917" stroke-width="2" />
-  <rect x="76" y="88" width="50" height="38" rx="4" fill="url(#stoneWarm3)" stroke="#1c1917" stroke-width="2" />
+    <rect x="3" y="43" width="26" height="19" rx="3" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 5 60 L 5 45 L 27 45" fill="none" stroke="#e2c6ab" stroke-width="1.2" stroke-opacity="0.45" />
+    <rect x="33" y="43" width="28" height="19" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 35 60 L 35 45 L 59 45" fill="none" stroke="#cbbfb4" stroke-width="1.2" stroke-opacity="0.4" />
+  </g>
 
-  <!-- Cozy Flour Dusting Flecks & Texture Highlights -->
-  <circle cx="25" cy="18" r="3" fill="#fef3c7" opacity="0.35" />
-  <circle cx="45" cy="28" r="2" fill="#fef3c7" opacity="0.4" />
-  <circle cx="85" cy="15" r="3.5" fill="#fef3c7" opacity="0.3" />
-  <circle cx="110" cy="22" r="2" fill="#fef3c7" opacity="0.45" />
+  <!-- Top-Right Quadrant (Cell 1,0) -->
+  <g>
+    <rect x="67" y="3" width="27" height="27" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 69 28 L 69 5 L 92 5" fill="none" stroke="#cbbfb4" stroke-width="1.2" stroke-opacity="0.42" />
+    <rect x="98" y="3" width="27" height="27" rx="3" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 100 28 L 100 5 L 123 5" fill="none" stroke="#e2c6ab" stroke-width="1.2" stroke-opacity="0.45" />
 
-  <circle cx="18" cy="62" r="2.5" fill="#fef3c7" opacity="0.4" />
-  <circle cx="68" cy="70" r="4" fill="#fef3c7" opacity="0.35" />
-  <circle cx="112" cy="60" r="2" fill="#fef3c7" opacity="0.4" />
+    <rect x="67" y="34" width="58" height="28" rx="4" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 69 60 L 69 36 L 123 36" fill="none" stroke="#d6beaa" stroke-width="1.3" stroke-opacity="0.42" />
+    <path d="M 88 46 Q 98 43 106 50" fill="none" stroke="#36271e" stroke-width="1" stroke-opacity="0.5" />
+  </g>
 
-  <circle cx="36" cy="105" r="3" fill="#fef3c7" opacity="0.35" />
-  <circle cx="95" cy="108" r="2.5" fill="#fef3c7" opacity="0.4" />
+  <!-- Bottom-Left Quadrant (Cell 0,1) -->
+  <g>
+    <rect x="3" y="67" width="35" height="27" rx="3" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 5 92 L 5 69 L 36 69" fill="none" stroke="#e2c6ab" stroke-width="1.2" stroke-opacity="0.44" />
+    <rect x="42" y="67" width="19" height="58" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 44 123 L 44 69 L 59 69" fill="none" stroke="#cbbfb4" stroke-width="1.2" stroke-opacity="0.4" />
+    <rect x="3" y="98" width="35" height="27" rx="3" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 5 123 L 5 100 L 36 100" fill="none" stroke="#d6beaa" stroke-width="1.2" stroke-opacity="0.42" />
+  </g>
 
-  <!-- Subtle Grid Edge Bevel for VTT Grid Align -->
-  <rect x="0" y="0" width="128" height="128" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.15" />
+  <!-- Bottom-Right Quadrant (Cell 1,1) -->
+  <g>
+    <rect x="67" y="67" width="58" height="33" rx="4" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 69 98 L 69 69 L 123 69" fill="none" stroke="#e2c6ab" stroke-width="1.4" stroke-opacity="0.46" />
+    <path d="M 123 71 L 123 98 L 70 98" fill="none" stroke="#302016" stroke-width="1.3" stroke-opacity="0.65" />
+
+    <rect x="67" y="104" width="28" height="21" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 69 123 L 69 106 L 93 106" fill="none" stroke="#cbbfb4" stroke-width="1.1" stroke-opacity="0.4" />
+    <rect x="99" y="104" width="26" height="21" rx="3" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
+    <path d="M 101 123 L 101 106 L 123 106" fill="none" stroke="#d6beaa" stroke-width="1.1" stroke-opacity="0.4" />
+  </g>
+
+  <!-- Subtle Bakery Flour Dusting & Tactile Ember Pebbles -->
+  <circle cx="95" cy="84" r="18" fill="url(#bkFlourDust)" />
+  <circle cx="28" cy="24" r="14" fill="url(#bkFlourDust)" />
+  <circle cx="64" cy="64" r="2.2" fill="#f59e0b" opacity="0.28" />
+
+  <!-- Subtle 2x2 Tactical Grid Alignment Crosshairs & Seams -->
+  <g stroke="#fde68a" stroke-opacity="0.2" stroke-width="1" fill="none">
+    <rect x="0.5" y="0.5" width="127" height="127" />
+    <line x1="64" y1="0" x2="64" y2="128" stroke-dasharray="4 4" />
+    <line x1="0" y1="64" x2="128" y2="64" stroke-dasharray="4 4" />
+  </g>
 </svg>
