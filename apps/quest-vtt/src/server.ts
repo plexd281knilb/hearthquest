@@ -1,4 +1,6 @@
+import fs from "node:fs";
 import http from "node:http";
+import path from "node:path";
 import { URL } from "node:url";
 import { generateGmCoPilotWhisper } from "@hearthquest/quest-ai-bridge";
 import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
@@ -62,6 +64,29 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(renderVttAppHtml(room));
     return;
+  }
+
+  if ((pathname === "/favicon.svg" || pathname === "/assets/hearthquest-icon.svg") && req.method === "GET") {
+    const iconPath = path.resolve(__dirname, "..", "..", "..", "assets", "hearthquest-icon.svg");
+    if (fs.existsSync(iconPath)) {
+      res.writeHead(200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" });
+      res.end(fs.readFileSync(iconPath));
+      return;
+    }
+  }
+
+  if (
+    (pathname === "/favicon.ico" ||
+      pathname === "/favicon.png" ||
+      pathname === "/assets/hearthquest-icon.png") &&
+    req.method === "GET"
+  ) {
+    const iconPath = path.resolve(__dirname, "..", "..", "..", "assets", "hearthquest-icon.png");
+    if (fs.existsSync(iconPath)) {
+      res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" });
+      res.end(fs.readFileSync(iconPath));
+      return;
+    }
   }
 
   if (pathname === "/api/health" && req.method === "GET") {

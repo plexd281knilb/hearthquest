@@ -36,6 +36,8 @@ services:
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
     depends_on:
       - quest-ai-bridge
+    labels:
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png"
     restart: unless-stopped
 
   quest-admin:
@@ -53,4 +55,6 @@ services:
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
     depends_on:
       - quest-ai-bridge
+    labels:
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png"
     restart: unless-stopped

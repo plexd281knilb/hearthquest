@@ -287,8 +287,30 @@ async function runVerification() {
   );
   console.log("✅ PASSED");
 
+  // Suite 14: Browser Tab Favicon, Theme Color & Unraid Container Icon
+  process.stdout.write("[TEST] Suite 14: Browser Tab Favicon, Theme Color & Unraid Icon... ");
+  assert.ok(vttHtml.includes("name=\"theme-color\" content=\"#f59e0b\""), "VTT must set amber theme-color for browser tab");
+  assert.ok(vttHtml.includes("rel=\"icon\""), "VTT must include browser tab favicon");
+  assert.ok(adminHtml.includes("name=\"theme-color\" content=\"#f59e0b\""), "Admin must set amber theme-color for browser tab");
+  assert.ok(adminHtml.includes("rel=\"icon\""), "Admin must include browser tab favicon");
+
+  const iconSvgPath = path.join(rootDir, "assets", "hearthquest-icon.svg");
+  const iconPngPath = path.join(rootDir, "assets", "hearthquest-icon.png");
+  assert.ok(fs.existsSync(iconSvgPath), "assets/hearthquest-icon.svg must exist");
+  assert.ok(fs.existsSync(iconPngPath), "assets/hearthquest-icon.png must exist");
+
+  const unraidXml = fs.readFileSync(path.join(rootDir, "unraid", "hearthquest-unraid-template.xml"), "utf8");
+  assert.ok(unraidXml.includes("<Icon>https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png</Icon>"), "Unraid XML template must have <Icon>");
+
+  const dockerfile = fs.readFileSync(path.join(rootDir, "docker", "Dockerfile"), "utf8");
+  assert.ok(dockerfile.includes("net.unraid.docker.icon"), "Dockerfile must declare net.unraid.docker.icon label");
+
+  const compose = fs.readFileSync(path.join(rootDir, "docker", "docker-compose.yml"), "utf8");
+  assert.ok(compose.includes("net.unraid.docker.icon"), "docker-compose.yml must declare net.unraid.docker.icon label");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 13/13 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 14/14 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

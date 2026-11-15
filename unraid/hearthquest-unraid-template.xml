@@ -9,6 +9,8 @@
   <Overview>Zero-Prep Family Tabletop 5e Engine with AI GM Co-Pilot, Jackbox-Style Room Codes, Hybrid Physical/Digital Dice, and Print-on-Demand Kit Export.</Overview>
   <Category>GameServers: Tools:</Category>
   <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png</Icon>
+  <ExtraParams>--label net.unraid.docker.icon="https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png"</ExtraParams>
   <Config Name="VTT Web Port" Target="3000" Default="3000" Mode="tcp" Description="Family VTT &amp; Tablet Controller Port" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
   <Config Name="Admin &amp; Storefront Port" Target="3001" Default="3001" Mode="tcp" Description="Guides, Storefront &amp; Printable Kits Port" Type="Port" Display="always" Required="true" Mask="false">3001</Config>
   <Config Name="AI Bridge Port" Target="8000" Default="8000" Mode="tcp" Description="Local RTX 3080 &amp; Failover Router Port" Type="Port" Display="always" Required="true" Mask="false">8000</Config>

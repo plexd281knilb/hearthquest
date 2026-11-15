@@ -5,10 +5,15 @@ WORKDIR /app
 # Install curl for container healthchecks
 RUN apk add --no-cache curl
 
+LABEL maintainer="plexd281knilb" \
+      net.unraid.docker.icon="https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png" \
+      net.unraid.docker.webui="http://[IP]:[PORT:3000]"
+
 COPY package.json package-lock.json tsconfig.base.json version.json ./
 COPY packages ./packages
 COPY apps ./apps
 COPY scripts ./scripts
+COPY assets ./assets
 
 RUN npm install
 
