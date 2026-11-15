@@ -18,6 +18,6 @@ description: Tracks all canonical campaign plots, bosses, factions, and map zone
 
 ## 3. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.17` (Build `#18`)
-- **Updated At**: `2026-11-15T03:34:17.938Z`
+- **Last Verified Build**: `v0.1.18` (Build `#19`)
+- **Updated At**: `2026-11-15T03:51:00.877Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

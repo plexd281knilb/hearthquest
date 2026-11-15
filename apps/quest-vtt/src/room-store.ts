@@ -258,6 +258,13 @@ export function generateJoinQrSvg(roomCode: string, joinUrl: string): string {
 </svg>`;
 }
 
+export function replaceRoomSessionState(newState: RoomSessionState): RoomSessionState {
+  const code = newState.roomCode.toUpperCase();
+  rooms.set(code, newState);
+  autoPersistRooms();
+  return newState;
+}
+
 export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
   const normalized = roomCode.trim().toUpperCase() || "DRGN";
   let room = rooms.get(normalized);
@@ -295,6 +302,152 @@ export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
   return room;
 }
 
+export interface MoveTokenResult {
+  room: RoomSessionState;
+  moved: boolean;
+  blockedMessage?: string;
+  blockedByWallId?: string;
+  blockedByDoorId?: string;
+  isLockedDoor?: boolean;
+}
+
+function segmentsIntersectInclusive(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number,
+  dx: number,
+  dy: number
+): boolean {
+  const eps = 1e-9;
+  const rX = bx - ax;
+  const rY = by - ay;
+  const sX = dx - cx;
+  const sY = dy - cy;
+  const denom = rX * sY - rY * sX;
+  if (Math.abs(denom) < eps) {
+    return false;
+  }
+  const qpx = cx - ax;
+  const qpy = cy - ay;
+  const t = (qpx * sY - qpy * sX) / denom;
+  const u = (qpx * rY - qpy * rX) / denom;
+  return t >= -eps && t <= 1 + eps && u >= -eps && u <= 1 + eps;
+}
+
+function findBlockingWallAlongMove(
+  walls: WallSegment[] | undefined,
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number
+): WallSegment | null {
+  if (!walls || walls.length === 0) return null;
+  if (fromX === toX && fromY === toY) return null;
+
+  const ax = fromX + 0.5;
+  const ay = fromY + 0.5;
+  const bx = toX + 0.5;
+  const by = toY + 0.5;
+
+  for (const w of walls) {
+    // Decorative interior lighting pillars are thin pillars inside rooms rather than impassable partition walls.
+    if (!w.isDoor && w.id.startsWith("pillar-")) continue;
+    // Unlocked, open doors allow passage cleanly.
+    if (w.isDoor && w.isOpen && !w.isLocked) continue;
+
+    if (segmentsIntersectInclusive(ax, ay, bx, by, w.x1, w.y1, w.x2, w.y2)) {
+      return w;
+    }
+  }
+  return null;
+}
+
+export function attemptMoveRoomToken(params: {
+  roomCode: string;
+  tokenId: string;
+  deltaX?: number;
+  deltaY?: number;
+  targetX?: number;
+  targetY?: number;
+  ignoreWalls?: boolean;
+}): MoveTokenResult {
+  const room = getOrCreateRoom(params.roomCode);
+  if (room.isPausedForBedtime) {
+    return {
+      room,
+      moved: false,
+      blockedMessage: "🌙 Adventure is paused for bedtime! Resume to continue moving.",
+    };
+  }
+
+  const token = room.tokens.find((t) => t.id === params.tokenId);
+  if (!token) {
+    return { room, moved: false, blockedMessage: "Token not found." };
+  }
+
+  const rawNextX =
+    typeof params.targetX === "number"
+      ? params.targetX
+      : token.gridX + (params.deltaX || 0);
+  const rawNextY =
+    typeof params.targetY === "number"
+      ? params.targetY
+      : token.gridY + (params.deltaY || 0);
+
+  if (
+    !params.ignoreWalls &&
+    (rawNextX < 0 || rawNextX >= room.gridCols || rawNextY < 0 || rawNextY >= room.gridRows)
+  ) {
+    return {
+      room,
+      moved: false,
+      blockedMessage: "🧱 Outer wall! You've reached the edge of this chamber.",
+      blockedByWallId: "wall-border",
+    };
+  }
+
+  const nextX = Math.max(0, Math.min(room.gridCols - 1, rawNextX));
+  const nextY = Math.max(0, Math.min(room.gridRows - 1, rawNextY));
+
+  if (!params.ignoreWalls) {
+    const blocker = findBlockingWallAlongMove(
+      room.walls,
+      token.gridX,
+      token.gridY,
+      nextX,
+      nextY
+    );
+    if (blocker) {
+      if (blocker.isDoor) {
+        return {
+          room,
+          moved: false,
+          blockedByWallId: blocker.id,
+          blockedByDoorId: blocker.id,
+          isLockedDoor: Boolean(blocker.isLocked),
+          blockedMessage: blocker.isLocked
+            ? `🔒 Locked (${blocker.lockLabel || "Sealed Door"})! Roll a Lockpick Check to unlock it first.`
+            : "🚪 That door is closed! Click the door icon to swing it open before stepping through.",
+        };
+      }
+      return {
+        room,
+        moved: false,
+        blockedByWallId: blocker.id,
+        blockedMessage: "🧱 Solid wall! Find an open doorway to reach the other side.",
+      };
+    }
+  }
+
+  token.gridX = nextX;
+  token.gridY = nextY;
+  autoPersistRooms();
+  return { room, moved: true };
+}
+
 export function moveRoomToken(params: {
   roomCode: string;
   tokenId: string;
@@ -302,26 +455,9 @@ export function moveRoomToken(params: {
   deltaY?: number;
   targetX?: number;
   targetY?: number;
+  ignoreWalls?: boolean;
 }): RoomSessionState {
-  const room = getOrCreateRoom(params.roomCode);
-  if (room.isPausedForBedtime) return room;
-
-  const token = room.tokens.find((t) => t.id === params.tokenId);
-  if (!token) return room;
-
-  const nextX =
-    typeof params.targetX === "number"
-      ? params.targetX
-      : token.gridX + (params.deltaX || 0);
-  const nextY =
-    typeof params.targetY === "number"
-      ? params.targetY
-      : token.gridY + (params.deltaY || 0);
-
-  token.gridX = Math.max(0, Math.min(room.gridCols - 1, nextX));
-  token.gridY = Math.max(0, Math.min(room.gridRows - 1, nextY));
-  autoPersistRooms();
-  return room;
+  return attemptMoveRoomToken(params).room;
 }
 
 export function toggleRoomZoneFog(params: {
@@ -377,12 +513,49 @@ export function advanceRoomStoryNode(params: {
         }
       }
     }
-    if (targetZone.id === "zone-oven-vault") {
-      const boss = room.tokens.find((t) => t.id === "tok-chef-boss");
-      if (boss) boss.isHiddenFromPlayers = false;
+    for (const tok of room.tokens) {
+      if (tok.gridX >= targetZone.gridX && tok.gridX < targetZone.gridX + targetZone.width) {
+        tok.isHiddenFromPlayers = false;
+      }
     }
   }
 
+  // Trigger any spoken RP / Read-Aloud modal defined for the newly entered story beat
+  if (node.rpPrompts && node.rpPrompts.length > 0) {
+    room.activeRpPrompt = node.rpPrompts[0];
+  }
+
+  autoPersistRooms();
+  return room;
+}
+
+export function triggerRoomRpPrompt(params: {
+  roomCode: string;
+  promptId?: string | null;
+  dismiss?: boolean;
+  playerReply?: string;
+}): RoomSessionState {
+  const room = getOrCreateRoom(params.roomCode);
+  if (params.playerReply) {
+    room.storyFlags = [...room.storyFlags, `RP_REPLY:${params.playerReply.slice(0, 80)}`].slice(-25);
+  }
+  if (params.dismiss) {
+    room.activeRpPrompt = null;
+    autoPersistRooms();
+    return room;
+  }
+  if (params.promptId) {
+    for (const node of room.storyNodes) {
+      const found = (node.rpPrompts || []).find((p) => p.id === params.promptId);
+      if (found) {
+        room.activeRpPrompt = found;
+        autoPersistRooms();
+        return room;
+      }
+    }
+  }
+  const activeNode = room.storyNodes.find((n) => n.id === room.activeNodeId) || room.storyNodes[0];
+  room.activeRpPrompt = activeNode?.rpPrompts?.[0] ?? null;
   autoPersistRooms();
   return room;
 }
@@ -749,7 +922,18 @@ export function attemptInteractDoor(params: {
     door.blocksVision = false;
     if (door.zoneId) {
       const zone = room.zones.find((z) => z.id === door.zoneId);
-      if (zone) zone.isRevealed = true;
+      if (zone) {
+        zone.isRevealed = true;
+        for (const tok of room.tokens) {
+          if (tok.gridX >= zone.gridX && tok.gridX < zone.gridX + zone.width) {
+            tok.isHiddenFromPlayers = false;
+          }
+        }
+        const linkedNode = room.storyNodes.find((n) => n.sceneZoneId === zone.id);
+        if (linkedNode && linkedNode.rpPrompts && linkedNode.rpPrompts.length > 0) {
+          room.activeRpPrompt = linkedNode.rpPrompts[0];
+        }
+      }
     }
     autoPersistRooms();
     return {

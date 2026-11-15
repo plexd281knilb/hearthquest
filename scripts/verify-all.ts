@@ -37,6 +37,7 @@ import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
   attemptInteractDoor,
+  attemptMoveRoomToken,
   FAMILY_CAMPAIGNS,
   forgeActorAndTokenInRoom,
   generateJoinQrSvg,
@@ -58,6 +59,7 @@ import {
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
+  triggerRoomRpPrompt,
   updateRoomAtmosphere,
   updateRoomCombat,
   updateRoomLighting,
@@ -69,6 +71,7 @@ import {
   getVttAccountByToken,
   loginVttAccount,
   registerVttAccount,
+  updateVttAccountPreferences,
 } from "../apps/quest-vtt/src/auth-store";
 import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
 import {
@@ -1266,8 +1269,157 @@ async function runVerification() {
   );
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // Suite 27: Account Game Type + Age Group Tailored Generation & Spoken RP Modals
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 27/27] Account RulesTier + AgeGroup Tailored Session & Spoken Group RP Modals ... ");
+  const cozyReg = registerVttAccount({
+    email: "storykeeper@hearthquest.test",
+    displayName: "Storykeeper Mom",
+    password: "FamilyPassword123!",
+    preferredRulesTier: "STORYBOOK_D6",
+    preferredAgeGroup: "AGES_5_7",
+    roomCode: "TAIL",
+  });
+  assert.strictEqual(cozyReg.account.preferredRulesTier, "STORYBOOK_D6");
+  assert.strictEqual(cozyReg.account.preferredAgeGroup, "AGES_5_7");
+  assert.ok(cozyReg.room, "Registration must immediately generate tailored Session 1 room");
+  assert.strictEqual(cozyReg.room.rulesTier, "STORYBOOK_D6");
+  assert.strictEqual(cozyReg.room.ageGroup, "AGES_5_7");
+  assert.strictEqual(cozyReg.room.contentRating, "COZY_G");
+  assert.ok(cozyReg.room.sessionOpeningHook && cozyReg.room.sessionOpeningHook.length > 20);
+  assert.strictEqual(cozyReg.room.activeRpPrompt?.trigger, "SESSION_START");
+  assert.ok(
+    cozyReg.room.tokens.some((t) => t.name.includes("Pip the Flour Sprite")) &&
+      cozyReg.room.tokens.some((t) => t.name.includes("Chef Snickerdoodle")),
+    "Storybook Ages 5-7 account must generate Cozy G bakery NPC & Boss cast"
+  );
+
+  // Switch preferences to 5e Teens 13+ and verify full world + difficulty + cast regeneration
+  const teenSwitch = updateVttAccountPreferences({
+    accountId: cozyReg.account.id,
+    preferredRulesTier: "STANDARD_5E",
+    preferredAgeGroup: "TEENS_13_PLUS",
+    roomCode: "TAIL",
+    regenerateRoom: true,
+  });
+  assert.strictEqual(teenSwitch.account.preferredRulesTier, "STANDARD_5E");
+  assert.strictEqual(teenSwitch.account.preferredAgeGroup, "TEENS_13_PLUS");
+  assert.strictEqual(teenSwitch.room.rulesTier, "STANDARD_5E");
+  assert.strictEqual(teenSwitch.room.ageGroup, "TEENS_13_PLUS");
+  assert.strictEqual(teenSwitch.room.contentRating, "CLASSIC_PG13");
+  assert.ok(
+    teenSwitch.room.tokens.some((t) => t.name.includes("Arch-Warden Solis")),
+    "Teens 13+ 5e regeneration must spawn Arch-Warden Solis boss"
+  );
+  const teenVaultDoor = teenSwitch.room.walls?.find((w) => w.isDoor && w.isLocked);
+  assert.strictEqual(teenVaultDoor?.lockDc, 14, "STANDARD_5E tailored vault door must scale to DC 14");
+
+  // Trigger NPC RP cue popup & record spoken group reply
+  const npcPrompt = teenSwitch.room.storyNodes[0]?.rpPrompts?.find((p) => p.trigger === "NPC_DIALOG");
+  assert.ok(npcPrompt, "Tailored Session 1 node must include NPC_DIALOG RP prompt");
+  const cuedRoom = triggerRoomRpPrompt({ roomCode: "TAIL", promptId: npcPrompt.id });
+  assert.strictEqual(cuedRoom.activeRpPrompt?.id, npcPrompt.id);
+  const repliedRoom = triggerRoomRpPrompt({
+    roomCode: "TAIL",
+    dismiss: true,
+    playerReply: "We stand with the Emberheart Forge!",
+  });
+  assert.strictEqual(repliedRoom.activeRpPrompt, null);
+  assert.ok(
+    repliedRoom.storyFlags.some((f) => f.includes("RP_REPLY:") && f.includes("Emberheart")),
+    "Group RP reply must log into storyFlags and dismiss active modal"
+  );
+
+  // Verify VTT UI exposes Account Game Type/Age controls, Cross D-Pad, Collision & Spoken Group RP Modal
+  const tailoredHtml = renderVttAppHtml(teenSwitch.room);
+  assert.ok(
+    tailoredHtml.includes("reg-rules-tier") &&
+      tailoredHtml.includes("reg-age-group") &&
+      tailoredHtml.includes("vtt-account-preferences-box") &&
+      tailoredHtml.includes("rp-readout-modal") &&
+      tailoredHtml.includes("speakRpPromptText") &&
+      tailoredHtml.includes("saveVttAccountPreferences") &&
+      tailoredHtml.includes("vtt-dpad-controller") &&
+      tailoredHtml.includes("dpad-btn-up") &&
+      tailoredHtml.includes("move-blocked-banner"),
+    "VTT HTML must render Game System & Age Group selectors, Cross D-Pad, Wall Collision Banner & Spoken Group RP Modal"
+  );
+
+  // Verify Wall & Closed/Locked Door Movement Collision (`attemptMoveRoomToken`)
+  const heroTokStart = teenSwitch.room.tokens.find((t) => t.type === "HERO");
+  assert.ok(heroTokStart, "Tailored room must have a starter HERO token");
+  // Place hero inside zone 1 near solid partition wall (3, 1) -> trying to step through wall-z1-top (4, 1) must FAIL
+  moveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    targetX: 3,
+    targetY: 1,
+    ignoreWalls: true,
+  });
+  const wallBump = attemptMoveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    deltaX: 1,
+    deltaY: 0,
+  });
+  assert.strictEqual(wallBump.moved, false, "Hero must NOT pass through solid partition wall");
+  assert.strictEqual(
+    wallBump.room.tokens.find((t) => t.id === heroTokStart.id)?.gridX,
+    3,
+    "Blocked hero X must stay at 3"
+  );
+
+  // Place hero in front of closed door-zone-2 at (3, 2) -> stepping east into (4, 2) while door is closed must FAIL
+  moveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    targetX: 3,
+    targetY: 2,
+    ignoreWalls: true,
+  });
+  const closedDoorBump = attemptMoveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    deltaX: 1,
+    deltaY: 0,
+  });
+  assert.strictEqual(closedDoorBump.moved, false, "Hero must NOT pass through closed door");
+  assert.strictEqual(closedDoorBump.blockedByDoorId, "door-zone-2");
+  assert.strictEqual(closedDoorBump.isLockedDoor, false);
+
+  // Open unlocked door-zone-2, then stepping east through (4, 2) must SUCCEED
+  attemptInteractDoor({ roomCode: "TAIL", doorId: "door-zone-2" });
+  const openDoorPass = attemptMoveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    deltaX: 1,
+    deltaY: 0,
+  });
+  assert.strictEqual(openDoorPass.moved, true, "Hero must walk smoothly through opened door");
+  assert.strictEqual(openDoorPass.room.tokens.find((t) => t.id === heroTokStart.id)?.gridX, 4);
+
+  // Step up to locked vault door-zone-3 at (6, 2) -> stepping east into (7, 2) while locked must FAIL with isLockedDoor=true
+  moveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    targetX: 6,
+    targetY: 2,
+    ignoreWalls: true,
+  });
+  const lockedDoorBump = attemptMoveRoomToken({
+    roomCode: "TAIL",
+    tokenId: heroTokStart.id,
+    deltaX: 1,
+    deltaY: 0,
+  });
+  assert.strictEqual(lockedDoorBump.moved, false, "Hero must NOT pass through locked vault door");
+  assert.strictEqual(lockedDoorBump.blockedByDoorId, "door-zone-3");
+  assert.strictEqual(lockedDoorBump.isLockedDoor, true);
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 26/26 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 27/27 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

@@ -286,6 +286,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
           <div id="vtt-door-hitboxes" class="absolute inset-0 pointer-events-none z-40"></div>
         </div>
+        <div id="move-blocked-banner" class="hidden mt-2.5 px-3 py-2 rounded-xl bg-rose-950/85 border border-rose-500/60 text-rose-100 text-xs font-bold flex items-center justify-between gap-2 shadow-lg">
+          <span id="move-blocked-text">🧱 Blocked by wall!</span>
+          <button id="move-blocked-action-btn" class="hidden px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px]">🚪 Open Door</button>
+        </div>
 
         <!-- Zone Fog-of-War, Dynamic Lighting, Ruler/Templates & Unraid Custom Tokens (GM Only) -->
         <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-2">
@@ -338,9 +342,13 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             <button onclick="speakReadAloudText()" id="btn-read-aloud-tts" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 transition">
               🔊 Read Aloud (Voice TTS)
             </button>
+            <button onclick="triggerSceneRpCue()" id="btn-open-rp-popup" class="px-2.5 py-1 rounded text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 transition">
+              🗣️ Cue Speech Popup
+            </button>
           </div>
         </div>
         <blockquote id="read-aloud-box" class="p-3.5 rounded-xl theme-inner-box border-l-4 border-amber-400 text-sm text-amber-200 italic leading-relaxed"></blockquote>
+        <div id="story-rp-cue-buttons" class="flex flex-wrap gap-1.5 mt-2"></div>
 
         <div class="mt-3">
           <p class="text-xs font-semibold text-slate-400 mb-2">🔀 Branching Story Choices (Tap what the kids decide to do):</p>
@@ -410,7 +418,30 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <div id="hero-selector-tabs" class="grid grid-cols-2 gap-2"></div>
         </div>
 
-        <!-- Selected Hero Card & Touch D-Pad -->
+        <!-- Tactile Gamepad Cross D-Pad (Static DOM so rapid taps never interrupt) -->
+        <div id="vtt-dpad-controller" class="p-3 rounded-xl theme-inner-box border flex items-center justify-between gap-3">
+          <div class="space-y-1 min-w-0 flex-1">
+            <div class="text-xs font-extrabold text-amber-400 flex items-center gap-1.5">
+              <span>🕹️ Hero D-Pad</span>
+              <span class="text-[10px] font-mono text-slate-400 font-normal">WASD / Arrows</span>
+            </div>
+            <div id="dpad-active-label" class="text-[11px] font-semibold text-slate-200 truncate">Ready to move</div>
+            <div class="text-[10px] text-slate-400">Solid walls & closed/locked doors block movement.</div>
+          </div>
+          <div id="vtt-dpad-pad" class="grid grid-cols-3 grid-rows-3 gap-1 shrink-0 select-none" style="touch-action: manipulation;">
+            <div></div>
+            <button id="dpad-btn-up" type="button" onclick="moveSelectedHero(0, -1)" aria-label="Move North" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">▲</button>
+            <div></div>
+            <button id="dpad-btn-left" type="button" onclick="moveSelectedHero(-1, 0)" aria-label="Move West" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">◀</button>
+            <button id="dpad-btn-center" type="button" onclick="openHeroSheetModal()" title="Open Selected Hero Sheet" class="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/50 text-amber-300 font-black text-sm flex items-center justify-center shadow-inner">🛡️</button>
+            <button id="dpad-btn-right" type="button" onclick="moveSelectedHero(1, 0)" aria-label="Move East" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">▶</button>
+            <div></div>
+            <button id="dpad-btn-down" type="button" onclick="moveSelectedHero(0, 1)" aria-label="Move South" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">▼</button>
+            <div></div>
+          </div>
+        </div>
+
+        <!-- Selected Hero Card -->
         <div id="active-hero-sheet" class="p-3 rounded-xl theme-inner-box border space-y-3"></div>
 
         <!-- Big Color-Coded Action Cards -->
@@ -543,17 +574,62 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       </div>
       <div id="vtt-account-summary" class="hidden p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-2"></div>
 
+      <div id="vtt-account-preferences-box" class="hidden p-3 rounded-xl theme-inner-box border border-amber-500/40 text-xs space-y-2.5">
+        <div class="font-extrabold text-amber-400">🎲 Account Adventure Generator Settings</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Game System / Rules Tier</label>
+            <select id="pref-rules-tier" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs font-semibold">
+              <option value="STORYBOOK_D6">📖 Storybook D6 (Easy)</option>
+              <option value="APPRENTICE_5E_LITE">🛡️ Apprentice 5e Lite</option>
+              <option value="STANDARD_5E">🐉 Standard 5e SRD</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Player Age Group</label>
+            <select id="pref-age-group" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs font-semibold">
+              <option value="AGES_5_7">🐣 Ages 5–7 (Cozy G)</option>
+              <option value="AGES_8_10">🧭 Ages 8–10 (Adventure PG)</option>
+              <option value="AGES_11_13">⚔️ Ages 11–13 (Champions)</option>
+              <option value="TEENS_13_PLUS">🔥 Teens 13+ (Classic PG-13)</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="saveVttAccountPreferences()" type="button" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">
+          ✨ Generate Tailored Hook, NPCs, Enemies & Boss!
+        </button>
+      </div>
+
       <div class="flex gap-2 text-xs">
         <button onclick="switchAuthTab('register')" id="tab-auth-register" class="flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 font-extrabold">✨ Create Free Account</button>
         <button onclick="switchAuthTab('login')" id="tab-auth-login" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-200 font-bold">🔑 Sign In</button>
       </div>
 
       <form id="form-vtt-register" onsubmit="submitVttRegister(event)" class="space-y-2.5 text-xs">
-        <p class="text-slate-400">Create a free demo account to launch your own room and play <strong>Session 1</strong> right on the tabletop!</p>
+        <p class="text-slate-400">Pick your game style and age group to auto-generate your Session 1 hook, scenario, NPCs, enemies &amp; boss!</p>
         <input id="reg-family-name" type="text" required placeholder="Family Name (e.g., The Miller Family)" class="w-full theme-input border rounded-xl px-3 py-2" />
         <input id="reg-email" type="email" required placeholder="Email Address" class="w-full theme-input border rounded-xl px-3 py-2" />
         <input id="reg-password" type="password" required minlength="6" placeholder="Password (6+ characters)" class="w-full theme-input border rounded-xl px-3 py-2" />
-        <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">🎮 Create Account & Play Session 1 Free</button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Game System</label>
+            <select id="reg-rules-tier" class="w-full theme-input border rounded-xl px-2.5 py-2 font-semibold">
+              <option value="STORYBOOK_D6">📖 Storybook (Easy D6)</option>
+              <option value="APPRENTICE_5E_LITE">🛡️ Apprentice (5e Lite)</option>
+              <option value="STANDARD_5E">🐉 Standard 5e (Tactical)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Age Group</label>
+            <select id="reg-age-group" class="w-full theme-input border rounded-xl px-2.5 py-2 font-semibold">
+              <option value="AGES_5_7">🐣 Ages 5–7</option>
+              <option value="AGES_8_10" selected>🧭 Ages 8–10</option>
+              <option value="AGES_11_13">⚔️ Ages 11–13</option>
+              <option value="TEENS_13_PLUS">🔥 Teens 13+</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">🎮 Create Account &amp; Generate Session 1</button>
       </form>
 
       <form id="form-vtt-login" onsubmit="submitVttLogin(event)" class="hidden space-y-2.5 text-xs">
@@ -629,6 +705,44 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     </div>
   </div>
 
+  <!-- MODAL: GROUP READ-ALOUD & SPOKEN ROLEPLAY PROMPT -->
+  <div id="rp-readout-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border-2 border-purple-500/70 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div id="rp-modal-emoji" class="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-400/60 flex items-center justify-center text-2xl shadow-md">📖</div>
+          <div>
+            <span id="rp-modal-badge" class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">STORYTELLER HOOK</span>
+            <h3 id="rp-modal-title" class="text-base font-extrabold text-amber-400 mt-1">Session Opening</h3>
+            <p id="rp-modal-speaker" class="text-[11px] text-slate-400">Speaking to the Group</p>
+          </div>
+        </div>
+        <button onclick="dismissRpPrompt()" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+
+      <blockquote id="rp-modal-spoken-text" class="p-4 rounded-2xl theme-inner-box border-l-4 border-purple-400 text-sm text-slate-100 leading-relaxed font-medium"></blockquote>
+
+      <div id="rp-modal-question-box" class="p-3 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-xs text-indigo-200 font-semibold"></div>
+
+      <div id="rp-modal-replies" class="flex flex-col gap-1.5"></div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-700/50">
+        <div class="flex items-center gap-2">
+          <button onclick="speakRpPromptText()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow">
+            🔊 Read Aloud to Group
+          </button>
+          <label class="inline-flex items-center gap-1 text-[11px] text-slate-300 cursor-pointer">
+            <input id="rp-auto-tts-toggle" type="checkbox" class="rounded" />
+            Auto-Speak
+          </label>
+        </div>
+        <button onclick="dismissRpPrompt()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs">
+          Continue Adventure →
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let state = ${serialized};
     const rawUrlMode = (new URLSearchParams(window.location.search).get("mode") || "").toUpperCase();
@@ -640,6 +754,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         : "GM_COMMAND";
 
     let selectedHeroId = state.heroes[0]?.id || "";
+    let selectedTokenId = state.tokens?.find(t => t.characterId === selectedHeroId)?.id || "";
     let activeCardId = "";
     let activeTone = "COZY_SILLY";
 
@@ -844,20 +959,32 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     function updateAccountUi() {
       const btn = document.getElementById("btn-vtt-account");
       const summary = document.getElementById("vtt-account-summary");
+      const prefsBox = document.getElementById("vtt-account-preferences-box");
       if (!currentAccount) {
         if (btn) btn.innerText = "👤 Sign Up / Demo Account";
         if (summary) summary.classList.add("hidden");
+        if (prefsBox) prefsBox.classList.add("hidden");
         return;
       }
       const isPaid = currentAccount.subscriptionTier && currentAccount.subscriptionTier !== "TRIAL_PREVIEW";
+      const rulesShort = currentAccount.preferredRulesTier === "STANDARD_5E"
+        ? "5e"
+        : currentAccount.preferredRulesTier === "APPRENTICE_5E_LITE"
+        ? "Apprentice"
+        : "Storybook";
       if (btn) {
-        btn.innerText = (isPaid ? "🔓 " : "🟢 ") + currentAccount.familyName + (isPaid ? " (" + currentAccount.subscriptionTier + ")" : " • Session 1 Free");
+        btn.innerText = (isPaid ? "🔓 " : "🟢 ") + currentAccount.familyName + " (" + rulesShort + ")";
       }
       if (summary) {
         summary.classList.remove("hidden");
         summary.innerHTML =
           "<div class='flex justify-between items-center'><strong>" + currentAccount.familyName + " (" + currentAccount.subscriptionTier + ")</strong><button onclick='logoutVttAccountUi()' class='text-rose-400 underline font-bold'>Sign Out</button></div>" +
-          "<div>Personal Demo Room: <strong class='font-mono text-amber-300'>" + currentAccount.trialRoomCode + "</strong></div>";
+          "<div>Personal Demo Room: <strong class='font-mono text-amber-300'>" + currentAccount.trialRoomCode + "</strong> • Mode: <strong>" + rulesShort + "</strong></div>";
+      }
+      if (prefsBox) {
+        prefsBox.classList.remove("hidden");
+        document.getElementById("pref-rules-tier").value = currentAccount.preferredRulesTier || "STORYBOOK_D6";
+        document.getElementById("pref-age-group").value = currentAccount.preferredAgeGroup || "AGES_8_10";
       }
     }
 
@@ -881,6 +1008,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           familyName: document.getElementById("reg-family-name").value.trim(),
           email: document.getElementById("reg-email").value.trim(),
           password: document.getElementById("reg-password").value,
+          preferredRulesTier: document.getElementById("reg-rules-tier").value,
+          preferredAgeGroup: document.getElementById("reg-age-group").value,
         }),
       });
       const data = await res.json();
@@ -899,7 +1028,39 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         renderAll();
       }
       feedback.className = "text-[11px] font-semibold text-emerald-400";
-      feedback.innerText = "🎉 Demo Account created! Your personal Session 1 Room (" + data.account.trialRoomCode + ") is ready!";
+      feedback.innerText = "🎉 Account ready! Custom adventure generated for your game system & age group!";
+      toggleVttAuthModal(false);
+    }
+
+    async function saveVttAccountPreferences() {
+      const feedback = document.getElementById("vtt-auth-feedback");
+      const res = await fetch("/api/auth/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify({
+          preferredRulesTier: document.getElementById("pref-rules-tier").value,
+          preferredAgeGroup: document.getElementById("pref-age-group").value,
+          roomCode: state.roomCode,
+          regenerateRoom: true,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        feedback.className = "text-[11px] font-semibold text-rose-400";
+        feedback.innerText = data.error || "Could not update preferences";
+        return;
+      }
+      currentAccount = data.account;
+      updateAccountUi();
+      if (data.room) {
+        lastSeenRpPromptId = "";
+        state = data.room;
+        renderAll();
+      }
+      toggleVttAuthModal(false);
     }
 
     async function submitVttLogin(e) {
@@ -1225,9 +1386,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       renderAll();
     }
 
-    function speakReadAloudText() {
-      const activeNode = state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0];
-      const textToSpeak = activeNode?.readAloudByTone[activeTone] || activeNode?.readAloudByTone.COZY_SILLY || "";
+    let lastSeenRpPromptId = "";
+
+    function speakTextOutLoud(textToSpeak) {
       if ("speechSynthesis" in window && textToSpeak) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -1237,22 +1398,154 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       }
     }
 
-    async function moveTokenToCell(x, y) {
-      const heroTok = state.tokens.find(t => t.characterId === selectedHeroId) || state.tokens[0];
-      if (!heroTok) return;
+    function speakReadAloudText() {
+      const activeNode = state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0];
+      const textToSpeak = activeNode?.readAloudByTone[activeTone] || activeNode?.readAloudByTone.COZY_SILLY || "";
+      speakTextOutLoud(textToSpeak);
+    }
 
-      // Check if moving onto a loot chest
-      const chestTok = state.tokens.find(t => t.gridX === x && t.gridY === y && t.isLootChest && !t.isChestOpened);
-      if (chestTok) {
-        await openLootChest(chestTok.id);
+    function openRpReadoutModal(prompt) {
+      if (!prompt) return;
+      lastSeenRpPromptId = prompt.id;
+      document.getElementById("rp-modal-emoji").innerText = prompt.speakerEmoji || "📖";
+      document.getElementById("rp-modal-badge").innerText = (prompt.speakerRole || "NARRATOR") + " • " + (prompt.trigger || "SCENE");
+      document.getElementById("rp-modal-title").innerText = prompt.title || "Story Moment";
+      document.getElementById("rp-modal-speaker").innerText = (prompt.speakerName || "Adventure Narrator") + " says to the group:";
+      document.getElementById("rp-modal-spoken-text").innerText = '"' + (prompt.spokenText || "") + '"';
+
+      const qBox = document.getElementById("rp-modal-question-box");
+      if (prompt.playerPromptQuestion) {
+        qBox.classList.remove("hidden");
+        qBox.innerText = "🗣️ Group Prompt: " + prompt.playerPromptQuestion;
+      } else {
+        qBox.classList.add("hidden");
       }
 
-      await apiPost("/api/room/move-token", {
+      const repliesEl = document.getElementById("rp-modal-replies");
+      repliesEl.innerHTML = "";
+      (prompt.suggestedReplyOptions || []).forEach(opt => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.onclick = () => dismissRpPrompt(opt);
+        btn.className = "text-left px-3 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/40 text-xs text-amber-200 font-semibold transition";
+        btn.innerText = "💬 Say: " + opt;
+        repliesEl.appendChild(btn);
+      });
+
+      document.getElementById("rp-readout-modal").classList.remove("hidden");
+      const autoSpeak = document.getElementById("rp-auto-tts-toggle");
+      if (autoSpeak && autoSpeak.checked) {
+        speakRpPromptText();
+      }
+    }
+
+    function speakRpPromptText() {
+      const prompt = state.activeRpPrompt;
+      const text = prompt
+        ? (prompt.spokenText || "") + (prompt.playerPromptQuestion ? " " + prompt.playerPromptQuestion : "")
+        : (document.getElementById("rp-modal-spoken-text").innerText || "");
+      speakTextOutLoud(text);
+    }
+
+    async function dismissRpPrompt(playerReply) {
+      document.getElementById("rp-readout-modal").classList.add("hidden");
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      await apiPost("/api/room/rp-prompt", {
+        roomCode: state.roomCode,
+        dismiss: true,
+        playerReply: playerReply || undefined,
+      });
+    }
+
+    async function triggerSceneRpCue(promptId) {
+      lastSeenRpPromptId = "";
+      const res = await apiPost("/api/room/rp-prompt", {
+        roomCode: state.roomCode,
+        promptId: promptId || undefined,
+      });
+      if (res && res.room) {
+        state = res.room;
+        renderAll();
+      }
+    }
+
+    let moveBlockedTimer = null;
+
+    function hideMoveBlockedBanner() {
+      const banner = document.getElementById("move-blocked-banner");
+      if (banner) banner.classList.add("hidden");
+    }
+
+    function showMoveBlockedBanner(message, blockedByDoorId, isLockedDoor) {
+      const banner = document.getElementById("move-blocked-banner");
+      const textEl = document.getElementById("move-blocked-text");
+      const btnEl = document.getElementById("move-blocked-action-btn");
+      if (!banner || !textEl) return;
+
+      textEl.innerText = message || "🧱 Blocked by wall or closed door.";
+      if (btnEl) {
+        if (blockedByDoorId) {
+          btnEl.classList.remove("hidden");
+          btnEl.innerText = isLockedDoor ? "🗝️ Pick Lock" : "🚪 Open Door";
+          btnEl.onclick = () => {
+            hideMoveBlockedBanner();
+            interactMapDoor(blockedByDoorId);
+          };
+        } else {
+          btnEl.classList.add("hidden");
+        }
+      }
+      banner.classList.remove("hidden");
+      if (moveBlockedTimer) clearTimeout(moveBlockedTimer);
+      moveBlockedTimer = setTimeout(hideMoveBlockedBanner, 4500);
+    }
+
+    function getControllableHeroToken() {
+      const heroExists = (state.heroes || []).some(h => h.id === selectedHeroId);
+      if (!heroExists && state.heroes && state.heroes.length > 0) {
+        selectedHeroId = state.heroes[0].id;
+      }
+      const tokens = state.tokens || [];
+      return (
+        tokens.find(t => t.id === selectedTokenId && (t.type === "HERO" || t.characterId)) ||
+        tokens.find(t => t.characterId === selectedHeroId) ||
+        tokens.find(t => t.type === "HERO") ||
+        tokens[0] ||
+        null
+      );
+    }
+
+    async function moveTokenToCell(x, y) {
+      const heroTok = getControllableHeroToken();
+      if (!heroTok) return;
+      selectedTokenId = heroTok.id;
+      if (heroTok.characterId) selectedHeroId = heroTok.characterId;
+
+      const res = await apiPost("/api/room/move-token", {
         roomCode: state.roomCode,
         tokenId: heroTok.id,
         targetX: x,
         targetY: y
       });
+
+      if (res && res.moved === false) {
+        AudioEngine.playFailForwardBoing();
+        showMoveBlockedBanner(res.blockedMessage, res.blockedByDoorId, res.isLockedDoor);
+        if (res.blockedByDoorId && res.isLockedDoor) {
+          interactMapDoor(res.blockedByDoorId);
+        }
+        return;
+      }
+
+      hideMoveBlockedBanner();
+      const chestTok = (state.tokens || []).find(
+        t => t.gridX === x && t.gridY === y && t.isLootChest && !t.isChestOpened
+      );
+      if (chestTok) {
+        await openLootChest(chestTok.id);
+      }
     }
 
     async function openLootChest(tokenId) {
@@ -1272,12 +1565,69 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     }
 
     async function moveSelectedHero(dx, dy) {
-      const heroTok = state.tokens.find(t => t.characterId === selectedHeroId) || state.tokens[0];
+      const heroTok = getControllableHeroToken();
       if (!heroTok) return;
-      const targetX = Math.max(0, Math.min(state.gridCols - 1, heroTok.gridX + dx));
-      const targetY = Math.max(0, Math.min(state.gridRows - 1, heroTok.gridY + dy));
-      await moveTokenToCell(targetX, targetY);
+      selectedTokenId = heroTok.id;
+      if (heroTok.characterId) selectedHeroId = heroTok.characterId;
+
+      const rawTargetX = heroTok.gridX + dx;
+      const rawTargetY = heroTok.gridY + dy;
+      const res = await apiPost("/api/room/move-token", {
+        roomCode: state.roomCode,
+        tokenId: heroTok.id,
+        deltaX: dx,
+        deltaY: dy,
+        targetX: rawTargetX,
+        targetY: rawTargetY
+      });
+
+      if (res && res.moved === false) {
+        AudioEngine.playFailForwardBoing();
+        showMoveBlockedBanner(res.blockedMessage, res.blockedByDoorId, res.isLockedDoor);
+        if (res.blockedByDoorId && res.isLockedDoor) {
+          interactMapDoor(res.blockedByDoorId);
+        }
+        return;
+      }
+
+      hideMoveBlockedBanner();
+      const movedHeroTok = (state.tokens || []).find(t => t.id === heroTok.id);
+      if (movedHeroTok) {
+        const chestTok = (state.tokens || []).find(
+          t => t.gridX === movedHeroTok.gridX && t.gridY === movedHeroTok.gridY && t.isLootChest && !t.isChestOpened
+        );
+        if (chestTok) {
+          await openLootChest(chestTok.id);
+        }
+      }
     }
+
+    document.addEventListener("keydown", (e) => {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const openModal = ["dice-modal", "lockpick-modal", "rp-readout-modal", "vtt-auth-modal", "hero-sheet-modal", "token-forge-modal"]
+        .some(id => {
+          const el = document.getElementById(id);
+          return el && !el.classList.contains("hidden");
+        });
+      if (openModal) return;
+
+      const keyMap = {
+        ArrowUp: [0, -1],
+        KeyW: [0, -1],
+        ArrowDown: [0, 1],
+        KeyS: [0, 1],
+        ArrowLeft: [-1, 0],
+        KeyA: [-1, 0],
+        ArrowRight: [1, 0],
+        KeyD: [1, 0],
+      };
+      const delta = keyMap[e.code];
+      if (delta) {
+        e.preventDefault();
+        moveSelectedHero(delta[0], delta[1]);
+      }
+    });
 
     async function toggleZone(zoneId) {
       await apiPost("/api/room/zone-fog", { roomCode: state.roomCode, zoneId });
@@ -1610,6 +1960,23 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       document.getElementById("read-aloud-box").innerText =
         activeNode.readAloudByTone[activeTone] || activeNode.readAloudByTone.COZY_SILLY;
 
+      const cueWrap = document.getElementById("story-rp-cue-buttons");
+      if (cueWrap) {
+        cueWrap.innerHTML = "";
+        (activeNode.rpPrompts || []).forEach(p => {
+          const cb = document.createElement("button");
+          cb.type = "button";
+          cb.onclick = () => triggerSceneRpCue(p.id);
+          cb.className = "px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-950/70 hover:bg-purple-800 border border-purple-500/40 text-purple-200 transition";
+          cb.innerText = (p.speakerEmoji || "🗣️") + " " + p.title;
+          cueWrap.appendChild(cb);
+        });
+      }
+
+      if (state.activeRpPrompt && state.activeRpPrompt.id !== lastSeenRpPromptId) {
+        openRpReadoutModal(state.activeRpPrompt);
+      }
+
       const whisperDefault = activeNode.gmWhisperTips.join(" • ");
       const whisperEl = document.getElementById("copilot-whisper-text");
       if (!whisperEl.innerText) {
@@ -1676,9 +2043,12 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
                 ? state.combat.entries[state.combat.activeTurnIndex]
                 : null;
               const isTurnActive = activeCombatEntry && activeCombatEntry.tokenId === tok.id;
+              const controllableTok = getControllableHeroToken();
+              const isDpadSelected = controllableTok && controllableTok.id === tok.id;
               const badge = document.createElement("div");
               badge.className =
-                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold select-none" +
+                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 text-base sm:text-lg font-bold select-none" +
+                (isDpadSelected ? " border-amber-300 ring-4 ring-amber-400/75" : " border-white") +
                 (isTurnActive ? " active-turn-ring" : "");
               badge.style.backgroundColor = tok.color || "#f59e0b";
               badge.title = tok.name;
@@ -1709,14 +2079,21 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
                 <span class="absolute -bottom-2 text-[8px] font-bold bg-slate-900/90 text-white px-1 rounded shadow-sm leading-tight truncate max-w-[46px] pointer-events-none">\${tok.name.split(" ")[0]}</span>
               \`;
 
-              // Click to inspect or open chest
+              // Click to inspect hero, open chest, or trigger NPC/Boss RP speech modal
               badge.onclick = (e) => {
                 e.stopPropagation();
                 if (tok.isLootChest && !tok.isChestOpened) {
                   openLootChest(tok.id);
-                } else if (tok.characterId) {
-                  selectedHeroId = tok.characterId;
-                  openHeroSheetModal();
+                } else if (tok.characterId || tok.type === "HERO") {
+                  if (tok.characterId) selectedHeroId = tok.characterId;
+                  selectedTokenId = tok.id;
+                  renderAll();
+                } else if (tok.type === "NPC" || tok.type === "MONSTER") {
+                  const allPrompts = (state.storyNodes || []).flatMap(n => n.rpPrompts || []);
+                  const matched = allPrompts.find(p => tok.name.toLowerCase().includes((p.speakerName || "").toLowerCase().split(" ")[0])) || allPrompts[0];
+                  if (matched) {
+                    triggerSceneRpCue(matched.id);
+                  }
                 }
               };
 
@@ -1900,6 +2277,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         const t = document.createElement("button");
         t.onclick = () => {
           selectedHeroId = h.id;
+          selectedTokenId = (state.tokens || []).find(tok => tok.characterId === h.id)?.id || "";
           renderAll();
         };
         t.className =
@@ -1914,7 +2292,20 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         tabsEl.appendChild(t);
       }
 
-      // Active Hero Sheet + Touch D-Pad
+      // Sync Active D-Pad Readout
+      const activeTok = getControllableHeroToken();
+      const dpadLabelEl = document.getElementById("dpad-active-label");
+      const dpadCenterBtn = document.getElementById("dpad-btn-center");
+      if (dpadLabelEl) {
+        dpadLabelEl.innerText = activeTok
+          ? (activeTok.avatarEmoji || "🧙") + " " + activeTok.name + " (" + activeTok.gridX + ", " + activeTok.gridY + ")"
+          : "No hero token on map";
+      }
+      if (dpadCenterBtn && activeTok) {
+        dpadCenterBtn.innerText = activeTok.avatarEmoji || "🛡️";
+      }
+
+      // Active Hero Sheet Summary
       const currentHero = state.heroes.find(h => h.id === selectedHeroId) || state.heroes[0];
       if (currentHero) {
         const sheetEl = document.getElementById("active-hero-sheet");
@@ -1928,23 +2319,19 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           : \`<span class="text-2xl shrink-0">\${currentHero.avatarEmoji}</span>\`;
 
         sheetEl.innerHTML = \`
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
               \${headerPortrait}
-              <div>
-                <div class="text-sm font-bold text-amber-400">\${currentHero.name}</div>
-                <div class="text-[11px] text-slate-400">\${currentHero.archetype} • Pet: \${currentHero.companionPet}</div>
+              <div class="min-w-0">
+                <div class="text-sm font-bold text-amber-400 truncate">\${currentHero.name}</div>
+                <div class="text-[11px] text-slate-400 truncate">\${currentHero.archetype} • Pet: \${currentHero.companionPet}</div>
               </div>
             </div>
-            <div class="text-xs font-bold text-rose-400">\${healthDisplay}</div>
-          </div>
-          <div class="flex items-center justify-between pt-2 border-t border-slate-700/50">
-            <span class="text-xs text-slate-400">🕹️ Touch D-Pad:</span>
-            <div class="flex gap-1.5">
-              <button onclick="moveSelectedHero(-1, 0)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">⬅️</button>
-              <button onclick="moveSelectedHero(0, -1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">⬆️</button>
-              <button onclick="moveSelectedHero(0, 1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">⬇️</button>
-              <button onclick="moveSelectedHero(1, 0)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-white">➡️</button>
+            <div class="text-right shrink-0 space-y-1">
+              <div class="text-xs font-bold text-rose-400">\${healthDisplay}</div>
+              <button type="button" onclick="openHeroSheetModal()" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-200">
+                📋 Sheet & Skills
+              </button>
             </div>
           </div>
         \`;

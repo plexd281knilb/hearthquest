@@ -1,5 +1,6 @@
 import {
   ActionCard,
+  AgeGroupPreset,
   AmbientLightingMode,
   AmbientSoundscapeType,
   AmbientWeatherType,
@@ -22,6 +23,7 @@ import {
   SkillId,
   StoryBranchChoice,
   StoryBranchNode,
+  StoryRpPrompt,
   WallSegment,
   HEARTHQUEST_ASSETS,
   resolveTokenAsset,
@@ -2293,5 +2295,517 @@ export function generateLevelScaledOneShot(params: {
     storyNodes,
     campaignTitle: `⚡ Lv.${partyLevel} One-Shot: ${chosen.title}`,
     campaignId: chosen.slug,
+  };
+}
+
+interface TailoredScenarioSeed {
+  contentRating: ContentRating;
+  ageLabel: string;
+  campaignId: string;
+  titlePrefix: string;
+  biome: "BAKERY" | "FOREST_TREEHOUSE" | "STARLIGHT_SHIP";
+  backdrop: SceneBackdropType;
+  weather: AmbientWeatherType;
+  soundscape: NonNullable<MapRoomZone["ambientSoundscape"]>;
+  npcName: string;
+  npcEmoji: string;
+  npcAsset: string;
+  npcLineByTier: Record<RulesTier, string>;
+  enemyName: string;
+  enemyEmoji: string;
+  enemyAsset: string;
+  bossName: string;
+  bossEmoji: string;
+  bossAsset: string;
+  bossLineByTier: Record<RulesTier, string>;
+  zoneNames: [string, string, string];
+  trapName: string;
+  lockName: string;
+  lootName: string;
+}
+
+const TAILORED_SCENARIO_BY_AGE: Record<AgeGroupPreset, TailoredScenarioSeed> = {
+  AGES_5_7: {
+    contentRating: "COZY_G",
+    ageLabel: "Ages 5–7 (Cozy Early Readers)",
+    campaignId: "camp-goblin-bakery",
+    titlePrefix: "Buttercream Caper",
+    biome: "BAKERY",
+    backdrop: "HEARTH_TAVERN",
+    weather: "HEARTH_EMBERS",
+    soundscape: "COZY_TAVERN",
+    npcName: "Pip the Flour Sprite",
+    npcEmoji: "🧁",
+    npcAsset: HEARTHQUEST_ASSETS.heroes.melodyBard.path,
+    npcLineByTier: {
+      STORYBOOK_D6:
+        "Oh thank goodness you're here! The giggling goblins took the Golden Whisk into the frosting room—will you help me get it back nicely?",
+      APPRENTICE_5E_LITE:
+        "Brave heroes! Goblins snuck past the counter toward the Pastry Hall. Check the middle door—it's unlocked, though the vault ahead is padlocked!",
+      STANDARD_5E:
+        "Keep low by the hearth ovens. Goblin scouts patrol the kneading hall, and Chef Snickerdoodle locked the spice vault door behind an iron tumbler.",
+    },
+    enemyName: "Giggling Pastry Imp",
+    enemyEmoji: "👺",
+    enemyAsset: HEARTHQUEST_ASSETS.monsters.goblinSprinkles.path,
+    bossName: "Chef Snickerdoodle",
+    bossEmoji: "👨‍🍳",
+    bossAsset: HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path,
+    bossLineByTier: {
+      STORYBOOK_D6:
+        "Halt, cookie-chasers! Nobody touches my mega-croissant unless they tell me a silly joke or beat my best roll!",
+      APPRENTICE_5E_LITE:
+        "So you picked my vault lock! Let's see if your party can outsmart my frosting cannons or persuade me to share!",
+      STANDARD_5E:
+        "Impressive lockwork, intruders. Draw your steel or talk fast—none leave my vault with the Hearthlight Crown unchallenged!",
+    },
+    zoneNames: ["1. Warm Hearth Parlor", "2. Kneading & Frosting Hall", "3. Locked Croissant Vault"],
+    trapName: "Sticky Flour-Poof Snare",
+    lockName: "Sugarglass Padlock",
+    lootName: "Golden Whisk of Sharing",
+  },
+  AGES_8_10: {
+    contentRating: "ADVENTURE_PG",
+    ageLabel: "Ages 8–10 (Adventure Explorers)",
+    campaignId: "camp-clockwork-treehouse",
+    titlePrefix: "Clockwork Canopy",
+    biome: "FOREST_TREEHOUSE",
+    backdrop: "ENCHANTED_WOODS",
+    weather: "FOREST_FIREFLIES",
+    soundscape: "WHISPERING_WOODS",
+    npcName: "Bramble the Acorn Tinker",
+    npcEmoji: "🐿️",
+    npcAsset: HEARTHQUEST_ASSETS.heroes.forestRanger.path,
+    npcLineByTier: {
+      STORYBOOK_D6:
+        "Whoa, heroes! My giant treehouse windmill stopped spinning! My brass squirrel friends went bouncy-haywire inside—can you help fix the gear?",
+      APPRENTICE_5E_LITE:
+        "Welcome to the Canopy Outpost! A haywire Brass Squirrel guards the Rope Bridge ahead, and the Clockwork Owl locked the Windmill Vault!",
+      STANDARD_5E:
+        "Watch the pressure plates along the timber deck. Mechanical sentries sweep Zone 2, and the Windmill Core is sealed behind a reinforced tumbler lock.",
+    },
+    enemyName: "Haywire Brass Squirrel",
+    enemyEmoji: "⚙️",
+    enemyAsset: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
+    bossName: "Tinkertock the Clockwork Owl",
+    bossEmoji: "🦉",
+    bossAsset: HEARTHQUEST_ASSETS.monsters.dragonPuppy.path,
+    bossLineByTier: {
+      STORYBOOK_D6:
+        "Hoot-clank! I only borrowed all the shiny acorns to build a giant music box! Trade me a cool story or roll to calm my gears!",
+      APPRENTICE_5E_LITE:
+        "Click-whir! You solved the bridge puzzle and cracked my door! Now test your wits against my spinning brass feathers!",
+      STANDARD_5E:
+        "Intruders in the Sanctum Core! My mainspring coils are wound tight—roll initiative unless you can disarm the regulator!",
+    },
+    zoneNames: ["1. Firefly Landing Deck", "2. Suspension Gear Bridge", "3. Locked Windmill Spire"],
+    trapName: "Acorn Coil Spring-Plate",
+    lockName: "Clockwork Brass Lock",
+    lootName: "Emerald Cog of Flight",
+  },
+  AGES_11_13: {
+    contentRating: "ADVENTURE_PG",
+    ageLabel: "Ages 11–13 (Quest Champions)",
+    campaignId: "camp-starlight-otter",
+    titlePrefix: "Starlight Rift",
+    biome: "STARLIGHT_SHIP",
+    backdrop: "STARLIGHT_OBSERVATORY",
+    weather: "STARLIGHT_DUST",
+    soundscape: "CRYSTAL_CAVERN",
+    npcName: "Navigator Lyra",
+    npcEmoji: "🔭",
+    npcAsset: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
+    npcLineByTier: {
+      STORYBOOK_D6:
+        "All paws on deck! Cosmic bubbles floated into the engine room and locked our star-compass behind the big vault door!",
+      APPRENTICE_5E_LITE:
+        "Our astral compass drifted off-course! Clear the Gravity Engine in Zone 2, then unlock the Bridge Door to reason with Queen Lumina!",
+      STANDARD_5E:
+        "Stay sharp—runic wards defend the Engine Deck, and a DC 14 Astral Tumbler seals Queen Lumina inside the Astrolabe Sanctum.",
+    },
+    enemyName: "Orbiting Star-Spark Drake",
+    enemyEmoji: "🐉",
+    enemyAsset: HEARTHQUEST_ASSETS.monsters.dragonPuppy.path,
+    bossName: "Queen Lumina the Nebula Sovereign",
+    bossEmoji: "🪼",
+    bossAsset: HEARTHQUEST_ASSETS.monsters.nebulaJelly.path,
+    bossLineByTier: {
+      STORYBOOK_D6:
+        "Blub-sparkle! Why did you burst into my starry dance hall? Can your crew match my cosmic rhythm?",
+      APPRENTICE_5E_LITE:
+        "So you bypassed the locks of the Observatory! Show me whether you bring wisdom, stealth, or courage to re-align the stars!",
+      STANDARD_5E:
+        "Mortal navigators dare breach my Celestial Bridge? Defend your course—my nebula shockwave charges now!",
+    },
+    zoneNames: ["1. Quarterdeck Telescope", "2. Gravity Engine Hall", "3. Locked Astrolabe Sanctum"],
+    trapName: "Glowing Astral Frost Rune",
+    lockName: "Starforged Astrolabe Lock",
+    lootName: "Prism Key of Comets",
+  },
+  TEENS_13_PLUS: {
+    contentRating: "CLASSIC_PG13",
+    ageLabel: "Teens 13+ (Classic Tactical Fantasy)",
+    campaignId: "camp-starlight-otter",
+    titlePrefix: "Eclipse Citadel",
+    biome: "STARLIGHT_SHIP",
+    backdrop: "STARLIGHT_OBSERVATORY",
+    weather: "STARLIGHT_DUST",
+    soundscape: "CRYSTAL_CAVERN",
+    npcName: "Archivist Vaelen",
+    npcEmoji: "🧙",
+    npcAsset: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
+    npcLineByTier: {
+      STORYBOOK_D6:
+        "Quickly now—the shadow eclipse sealed the inner spire, and our team must unlock the chamber before midnight!",
+      APPRENTICE_5E_LITE:
+        "Sentinels patrol the outer breach. Disable the rune ward or sneak past, pick the Archon's Lock, and confront the Warden!",
+      STANDARD_5E:
+        "Check every shadow corner. An Astral Sentinel guards the mid-gallery, an Arcane Sigil arms the threshold, and the Arch-Warden's sanctum is deadbolted at DC 14.",
+    },
+    enemyName: "Void-Forged Vanguard",
+    enemyEmoji: "🛡️",
+    enemyAsset: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
+    bossName: "Arch-Warden Solis",
+    bossEmoji: "👑",
+    bossAsset: HEARTHQUEST_ASSETS.monsters.nebulaJelly.path,
+    bossLineByTier: {
+      STORYBOOK_D6:
+        "You broke the eclipse seal! State your quest cleanly and roll for fate!",
+      APPRENTICE_5E_LITE:
+        "Few travelers pick my Sanctum Seal intact. Lower your weapons or prove your resolve!",
+      STANDARD_5E:
+        "Steel and cunning brought you across my threshold, adventurers. Roll Initiative—the Eclipse Core belongs to the bold!",
+    },
+    zoneNames: ["1. Outer Bastion", "2. Runic Gallery", "3. Locked Eclipse Vault"],
+    trapName: "Chrono-Lock Arcane Rune",
+    lockName: "Ironbound Eclipse Deadbolt",
+    lootName: "Signet of the Dawnstar",
+  },
+};
+
+/**
+ * Generates a full playable Session 1 room customized to a user's chosen
+ * Game System (`STORYBOOK_D6` | `APPRENTICE_5E_LITE` | `STANDARD_5E`) and Age Group:
+ * creates the Hook, Starting Readouts, Scenario Cast (NPC, Minion Enemy, Boss),
+ * Doors/Locks, Traps, and interactive Group Read-Aloud / RP Prompts.
+ */
+export function generateTailoredAccountSession(params: {
+  roomCode: string;
+  rulesTier: RulesTier;
+  ageGroup: AgeGroupPreset;
+  familyName?: string;
+  householdId?: string;
+}): RoomSessionState {
+  const seed = TAILORED_SCENARIO_BY_AGE[params.ageGroup] || TAILORED_SCENARIO_BY_AGE.AGES_8_10;
+  const partyName = (params.familyName || "Adventuring Party").trim();
+  const baseHeroes = createDefaultStarterHeroes().map((h) => ({
+    ...h,
+    rulesTier: params.rulesTier,
+  }));
+
+  const isStorybook = params.rulesTier === "STORYBOOK_D6";
+  const isStandard5e = params.rulesTier === "STANDARD_5E";
+  const minionHp = isStorybook ? 4 : isStandard5e ? 14 : 8;
+  const bossHp = isStorybook ? 6 : isStandard5e ? 26 : 16;
+  const lockDc = isStorybook ? 9 : isStandard5e ? 14 : 12;
+  const rulesLabel = isStorybook
+    ? "Storybook D6 (Easy Hearts & d6)"
+    : isStandard5e
+    ? "Standard 5e SRD (Tactical d20)"
+    : "Apprentice 5e Lite (Guided d20)";
+
+  const zones: MapRoomZone[] = [
+    {
+      id: "zone-tailored-1",
+      name: seed.zoneNames[0],
+      gridX: 0,
+      gridY: 0,
+      width: 4,
+      height: 6,
+      isRevealed: true,
+      ambientSoundscape: seed.soundscape,
+    },
+    {
+      id: "zone-tailored-2",
+      name: seed.zoneNames[1],
+      gridX: 4,
+      gridY: 0,
+      width: 3,
+      height: 6,
+      isRevealed: false,
+      hasSecretTrap: true,
+      trapDescription: `${seed.trapName} (DC ${isStorybook ? 4 : isStandard5e ? 14 : 11})`,
+      ambientSoundscape: seed.soundscape,
+    },
+    {
+      id: "zone-tailored-3",
+      name: seed.zoneNames[2],
+      gridX: 7,
+      gridY: 0,
+      width: 3,
+      height: 6,
+      isRevealed: false,
+      ambientSoundscape: seed.soundscape,
+    },
+  ];
+
+  const walls = createDefaultZoneWalls(zones).map((w) =>
+    w.id === "door-zone-3"
+      ? {
+          ...w,
+          isLocked: true,
+          lockDc,
+          lockLabel: seed.lockName,
+        }
+      : w
+  );
+
+  const tokens: MapToken[] = [
+    ...baseHeroes.map((h, idx) => ({
+      id: `tok-${h.id}`,
+      characterId: h.id,
+      name: h.name,
+      type: "HERO" as const,
+      avatarEmoji: h.avatarEmoji,
+      assetPath: h.assetPath,
+      color: h.tokenColor,
+      gridX: 1,
+      gridY: 2 + idx * 2,
+      hp: isStorybook ? h.storybookStats.hearts : h.attributes5e.hp,
+      maxHp: isStorybook ? h.storybookStats.maxHearts : h.attributes5e.maxHp,
+      isHiddenFromPlayers: false,
+      lightRadius: isStandard5e ? 3.2 : 4.2,
+      lightColor: h.tokenColor,
+    })),
+    {
+      id: "tok-tailored-npc",
+      name: `${seed.npcName} (Ally NPC)`,
+      type: "NPC",
+      avatarEmoji: seed.npcEmoji,
+      assetPath: seed.npcAsset,
+      color: "#38bdf8",
+      gridX: 2,
+      gridY: 1,
+      hp: isStorybook ? 3 : 10,
+      maxHp: isStorybook ? 3 : 10,
+      isHiddenFromPlayers: false,
+      lightRadius: 2.5,
+      lightColor: "#bae6fd",
+    },
+    {
+      id: "tok-tailored-minion",
+      name: seed.enemyName,
+      type: "MONSTER",
+      avatarEmoji: seed.enemyEmoji,
+      assetPath: seed.enemyAsset,
+      color: "#10b981",
+      gridX: 5,
+      gridY: 3,
+      hp: minionHp,
+      maxHp: minionHp,
+      isHiddenFromPlayers: false,
+    },
+    {
+      id: "tok-tailored-boss",
+      name: `${seed.bossName} (Boss)`,
+      type: "MONSTER",
+      avatarEmoji: seed.bossEmoji,
+      assetPath: seed.bossAsset,
+      color: "#ef4444",
+      gridX: 8,
+      gridY: 3,
+      hp: bossHp,
+      maxHp: bossHp,
+      isHiddenFromPlayers: true,
+      lightRadius: 2.6,
+      lightColor: "#f97316",
+    },
+    {
+      id: "tok-tailored-chest",
+      name: `${seed.lootName} Chest`,
+      type: "PROP",
+      avatarEmoji: "🧰",
+      assetPath: HEARTHQUEST_ASSETS.props.chestClosed.path,
+      color: "#f59e0b",
+      gridX: 8,
+      gridY: 1,
+      hp: 1,
+      maxHp: 1,
+      isHiddenFromPlayers: true,
+      isLootChest: true,
+      isChestOpened: false,
+      lootRewardName: seed.lootName,
+    },
+  ];
+
+  const openingHook = `Welcome, ${partyName}! Playing ${rulesLabel} for ${seed.ageLabel}. ${seed.npcName} waves you inside ${seed.zoneNames[0]}: ${seed.bossName} has locked the ${seed.lootName} behind the ${seed.lockName}!`;
+
+  const rpStart: StoryRpPrompt = {
+    id: `rp-start-${params.rulesTier}-${params.ageGroup}`,
+    trigger: "SESSION_START",
+    speakerName: "Adventure Narrator",
+    speakerEmoji: "📖",
+    speakerRole: "NARRATOR",
+    title: `Session 1 Hook: ${seed.titlePrefix}`,
+    spokenText: `${openingHook} Talk with ${seed.npcName}, step through the unlocked middle doorway into ${seed.zoneNames[1]}, and get ready to pick the ${seed.lockName}!`,
+    playerPromptQuestion:
+      "Ask the table before you move: How does your hero introduce themselves to the group tonight?",
+    suggestedReplyOptions: [
+      `"Follow my shield — let's talk to ${seed.npcName} first!"`,
+      `"I check my lockpicks and peek through the unlocked door!"`,
+      `"Hello ${seed.npcName}! Tell us what we're facing inside!"`,
+    ],
+  };
+
+  const rpNpc: StoryRpPrompt = {
+    id: `rp-npc-${params.rulesTier}-${params.ageGroup}`,
+    trigger: "NPC_DIALOG",
+    speakerName: seed.npcName,
+    speakerEmoji: seed.npcEmoji,
+    speakerRole: "NPC",
+    title: `${seed.npcName} Whispers a Clue`,
+    spokenText: seed.npcLineByTier[params.rulesTier],
+    playerPromptQuestion: `How will your party respond to ${seed.npcName}?`,
+    suggestedReplyOptions: [
+      `"Don't worry ${seed.npcName}, we'll rescue the ${seed.lootName}!"`,
+      `"Any tips for dealing with the ${seed.enemyName} in the next room?"`,
+    ],
+  };
+
+  const rpMid: StoryRpPrompt = {
+    id: `rp-mid-${params.rulesTier}-${params.ageGroup}`,
+    trigger: "SCENE_ENTER",
+    speakerName: seed.enemyName,
+    speakerEmoji: seed.enemyEmoji,
+    speakerRole: "NPC",
+    title: `Encounter in ${seed.zoneNames[1]}`,
+    spokenText: `A ${seed.enemyName} (${minionHp} HP) spots your torchlight near the ${seed.trapName}! Look ahead—the heavy ${seed.lockName} bars the vault!`,
+    playerPromptQuestion: "Tell the group: will you roll to distract, sneak past, or challenge the guard?",
+    suggestedReplyOptions: [
+      `"Try persuading or trading with the ${seed.enemyName}!"`,
+      `"Roll Stealth or Lockpicking on the vault door!"`,
+    ],
+  };
+
+  const rpBoss: StoryRpPrompt = {
+    id: `rp-boss-${params.rulesTier}-${params.ageGroup}`,
+    trigger: "BOSS_ENCOUNTER",
+    speakerName: seed.bossName,
+    speakerEmoji: seed.bossEmoji,
+    speakerRole: "BOSS",
+    title: `Boss Showdown: ${seed.bossName}`,
+    spokenText: seed.bossLineByTier[params.rulesTier],
+    playerPromptQuestion: `Say your hero's boldest one-liner to ${seed.bossName}!`,
+    suggestedReplyOptions: [
+      `"Time to hand back the ${seed.lootName}, ${seed.bossName}!"`,
+      `"We came to share adventure—let's make a fair deal or duel!"`,
+    ],
+  };
+
+  const storyNodes: StoryBranchNode[] = [
+    {
+      id: `node-tailored-1-${params.rulesTier}`,
+      title: `Session 1 Start: ${seed.zoneNames[0]}`,
+      sceneZoneId: zones[0].id,
+      openingHook,
+      readAloudByTone: {
+        COZY_SILLY: `${openingHook} Everyone takes a deep cozy breath as ${seed.npcName} hands out warm snacks!`,
+        ACTION_HEROIC: `Torches flare across ${seed.zoneNames[0]}! ${seed.bossName} has seized the ${seed.lootName}—step up and rally with ${seed.npcName}!`,
+        MYSTERY_ATMOSPHERIC: `Shadows stretch along ${seed.zoneNames[0]}. ${seed.npcName} leans close, pointing toward the distant locked sanctum...`,
+      },
+      readAloudByRating: {
+        COZY_G: `${openingHook} Everything here can be solved with kindness, clever clues, and teamwork!`,
+        ADVENTURE_PG: `${openingHook} Expect clever puzzles, heroic dice checks, and a locked vault door!`,
+        CLASSIC_PG13: `${openingHook} Watch for hazards, pick the DC ${lockDc} deadbolt, and prepare for tactical combat!`,
+      },
+      rpPrompts: [rpStart, rpNpc],
+      gmWhisperTips: [
+        `Tuned for ${rulesLabel} • ${seed.ageLabel}.`,
+        `Middle door is unlocked; Vault door (${seed.lockName}) requires a Sleight of Hand Lockpick Check!`,
+      ],
+      choices: [
+        {
+          id: "ch-tailored-enter-z2",
+          label: `🚪 Enter ${seed.zoneNames[1]} & Confront ${seed.enemyName}`,
+          targetNodeId: `node-tailored-2-${params.rulesTier}`,
+          requiredCheck: isStorybook ? "Storybook d6 Check (DC 4)" : `Stealth or Persuasion (DC ${isStandard5e ? 13 : 11})`,
+          consequenceTag: "TAILORED_SCENE_2_ENTERED",
+        },
+      ],
+    },
+    {
+      id: `node-tailored-2-${params.rulesTier}`,
+      title: `Chapter 2: ${seed.zoneNames[1]}`,
+      sceneZoneId: zones[1].id,
+      readAloudByTone: {
+        COZY_SILLY: `${seed.enemyName} (${minionHp} HP) is doing silly cartwheels near the ${seed.trapName}! Beyond them glows the ${seed.lockName}!`,
+        ACTION_HEROIC: `You cross the threshold into ${seed.zoneNames[1]}! ${seed.enemyName} guards the corridor leading to the locked vault!`,
+        MYSTERY_ATMOSPHERIC: `Creaking floorboards reveal ${seed.enemyName} patrolling beside an arcane ward and a heavy locked doorway...`,
+      },
+      rpPrompts: [rpMid],
+      gmWhisperTips: [
+        `GM Tip: Players can click the unlocked door freely, then click the locked vault door to roll a Lockpick check!`,
+      ],
+      choices: [
+        {
+          id: "ch-tailored-boss",
+          label: `🗝️ Unlock Vault & Confront ${seed.bossName}`,
+          targetNodeId: `node-tailored-3-${params.rulesTier}`,
+          requiredCheck: `Lockpick Sleight of Hand (DC ${isStorybook ? 3 : lockDc})`,
+          consequenceTag: "TAILORED_VAULT_BREACHED",
+        },
+      ],
+    },
+    {
+      id: `node-tailored-3-${params.rulesTier}`,
+      title: `Finale: ${seed.zoneNames[2]}`,
+      sceneZoneId: zones[2].id,
+      readAloudByTone: {
+        COZY_SILLY: `Hooray! Inside ${seed.zoneNames[2]}, ${seed.bossName} (${bossHp} HP) drops a jaw in surprise next to the glowing ${seed.lootName} Chest!`,
+        ACTION_HEROIC: `The vault swings wide! ${seed.bossName} (${bossHp} HP) stands before the ${seed.lootName}—roll for the final showdown!`,
+        MYSTERY_ATMOSPHERIC: `Moonlight illuminates ${seed.bossName} (${bossHp} HP) atop the inner dais, guarding the ancient ${seed.lootName}.`,
+      },
+      rpPrompts: [rpBoss],
+      gmWhisperTips: [
+        `Finale! Unseal the ${seed.lootName} Chest on the map to celebrate Session victory!`,
+      ],
+      choices: [],
+    },
+  ];
+
+  return {
+    roomCode: params.roomCode,
+    householdId: params.householdId || "household-demo-family",
+    campaignId: seed.campaignId,
+    campaignTitle: `${seed.titlePrefix} (${isStorybook ? "Storybook" : isStandard5e ? "5e" : "Apprentice"})`,
+    rulesTier: params.rulesTier,
+    contentRating: seed.contentRating,
+    ageGroup: params.ageGroup,
+    diceInputMode: "HYBRID_PHYSICAL_PROMPT",
+    isPausedForBedtime: false,
+    sessionOpeningHook: openingHook,
+    activeRpPrompt: rpStart,
+    activeNodeId: storyNodes[0].id,
+    gridCols: 10,
+    gridRows: 6,
+    zones,
+    tokens: enrichTokensWithLighting(tokens),
+    heroes: baseHeroes,
+    storyNodes,
+    storyFlags: [],
+    rollHistory: [],
+    spotlightRecords: computeSiblingSpotlightFairness(baseHeroes, []),
+    ambientLightMode: isStandard5e ? "TORCHLIT_DUNGEON" : "COZY_TWILIGHT",
+    walls,
+    ambientWeather: seed.weather,
+    spellTemplates: [],
+    ambientSoundscape: seed.soundscape,
+    sceneBackdrop: seed.backdrop,
+    combat: {
+      isActive: false,
+      round: 1,
+      activeTurnIndex: 0,
+      entries: [],
+    },
   };
 }

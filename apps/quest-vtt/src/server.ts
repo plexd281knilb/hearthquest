@@ -8,6 +8,7 @@ import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
   attemptInteractDoor,
+  attemptMoveRoomToken,
   FAMILY_CAMPAIGNS,
   forgeActorAndTokenInRoom,
   generateJoinQrSvg,
@@ -25,6 +26,7 @@ import {
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
+  triggerRoomRpPrompt,
   updateRoomAtmosphere,
   updateRoomCombat,
   updateRoomLighting,
@@ -37,6 +39,7 @@ import {
   getVttAccountByToken,
   loginVttAccount,
   registerVttAccount,
+  updateVttAccountPreferences,
   verifyVttLicenseKey,
 } from "./auth-store";
 import { renderVttAppHtml } from "./ui-template";
@@ -47,6 +50,7 @@ export {
   getVttAccountByToken,
   loginVttAccount,
   registerVttAccount,
+  updateVttAccountPreferences,
   verifyVttLicenseKey,
 };
 
@@ -257,17 +261,30 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/api/room/move-token" && req.method === "POST") {
     const body = await readJsonBody(req);
-    const room = moveRoomToken({
+    const result = attemptMoveRoomToken({
       roomCode: body.roomCode || "DRGN",
       tokenId: body.tokenId,
       deltaX: body.deltaX,
       deltaY: body.deltaY,
       targetX: body.targetX,
       targetY: body.targetY,
+      ignoreWalls: Boolean(body.ignoreWalls),
     });
-    broadcastRoomUpdate(room);
+    if (result.moved) {
+      broadcastRoomUpdate(result.room);
+    }
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, room }));
+    res.end(
+      JSON.stringify({
+        ok: result.moved,
+        moved: result.moved,
+        blockedMessage: result.blockedMessage,
+        blockedByWallId: result.blockedByWallId,
+        blockedByDoorId: result.blockedByDoorId,
+        isLockedDoor: result.isLockedDoor,
+        room: result.room,
+      })
+    );
     return;
   }
 
@@ -297,6 +314,8 @@ const server = http.createServer(async (req, res) => {
         familyName: body.familyName || "Adventuring Family",
         email: body.email || "",
         password: body.password || "",
+        preferredRulesTier: body.preferredRulesTier,
+        preferredAgeGroup: body.preferredAgeGroup,
       });
       res.writeHead(200, {
         "Content-Type": "application/json",
@@ -358,6 +377,47 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: err?.message || "Activation failed" }));
     }
+    return;
+  }
+
+  if (pathname === "/api/auth/preferences" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const token = extractSessionToken(req, body);
+      const account = getVttAccountByToken(token);
+      if (!account) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Sign in or create an account first." }));
+        return;
+      }
+      const result = updateVttAccountPreferences({
+        accountId: account.id,
+        preferredRulesTier: body.preferredRulesTier || account.preferredRulesTier,
+        preferredAgeGroup: body.preferredAgeGroup || account.preferredAgeGroup,
+        roomCode: body.roomCode || account.trialRoomCode,
+        regenerateRoom: body.regenerateRoom !== false,
+      });
+      broadcastRoomUpdate(result.room);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, account: result.account, room: result.room }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Failed to update account preferences" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/room/rp-prompt" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = triggerRoomRpPrompt({
+      roomCode: body.roomCode || "DRGN",
+      promptId: body.promptId,
+      dismiss: Boolean(body.dismiss),
+      playerReply: body.playerReply,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
     return;
   }
 

@@ -10,14 +10,22 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { RoomSessionState, SubscriptionTier } from "@hearthquest/shared-types";
-import { getOrCreateRoom, getVttDatabasePath, saveRoomsToDisk } from "./room-store";
+import { AgeGroupPreset, RoomSessionState, RulesTier, SubscriptionTier } from "@hearthquest/shared-types";
+import { generateTailoredAccountSession } from "@hearthquest/srd-rules";
+import {
+  getOrCreateRoom,
+  getVttDatabasePath,
+  replaceRoomSessionState,
+  saveRoomsToDisk,
+} from "./room-store";
 
 export interface VttPublicAccount {
   id: string;
   familyName: string;
   email: string;
   subscriptionTier: SubscriptionTier;
+  preferredRulesTier: RulesTier;
+  preferredAgeGroup: AgeGroupPreset;
   licenseKey?: string;
   trialRoomCode: string;
   createdAt: string;
@@ -46,6 +54,8 @@ function withAuthDb<T>(fn: (db: DatabaseSync) => T): T {
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
         subscription_tier TEXT NOT NULL DEFAULT 'TRIAL_PREVIEW',
+        preferred_rules_tier TEXT NOT NULL DEFAULT 'STORYBOOK_D6',
+        preferred_age_group TEXT NOT NULL DEFAULT 'AGES_8_10',
         license_key TEXT,
         trial_room_code TEXT NOT NULL,
         created_at TEXT NOT NULL,
@@ -68,6 +78,17 @@ function withAuthDb<T>(fn: (db: DatabaseSync) => T): T {
         updated_at TEXT NOT NULL
       );
     `);
+
+    // Safe additive schema migration for pre-existing vtt_accounts DB files
+    const cols = db
+      .prepare("PRAGMA table_info(vtt_accounts)")
+      .all() as Array<{ name: string }>;
+    if (!cols.some((c) => c.name === "preferred_rules_tier")) {
+      db.exec("ALTER TABLE vtt_accounts ADD COLUMN preferred_rules_tier TEXT NOT NULL DEFAULT 'STORYBOOK_D6';");
+    }
+    if (!cols.some((c) => c.name === "preferred_age_group")) {
+      db.exec("ALTER TABLE vtt_accounts ADD COLUMN preferred_age_group TEXT NOT NULL DEFAULT 'AGES_8_10';");
+    }
     return fn(db);
   } finally {
     try {
@@ -197,6 +218,8 @@ function syncTierFromHouseholds(
     familyName: String(accountRow.family_name),
     email: String(accountRow.email),
     subscriptionTier: tier,
+    preferredRulesTier: (accountRow.preferred_rules_tier || "STORYBOOK_D6") as RulesTier,
+    preferredAgeGroup: (accountRow.preferred_age_group || "AGES_8_10") as AgeGroupPreset,
     licenseKey,
     trialRoomCode: String(accountRow.trial_room_code),
     createdAt: String(accountRow.created_at),
@@ -217,10 +240,14 @@ export function registerVttAccount(params: {
   familyName: string;
   email: string;
   password: string;
+  preferredRulesTier?: RulesTier;
+  preferredAgeGroup?: AgeGroupPreset;
 }): { account: VttPublicAccount; token: string; room: RoomSessionState } {
   const email = (params.email || "").trim().toLowerCase();
   const familyName = (params.familyName || "Adventuring Family").trim();
   const password = String(params.password || "");
+  const preferredRulesTier: RulesTier = params.preferredRulesTier || "STORYBOOK_D6";
+  const preferredAgeGroup: AgeGroupPreset = params.preferredAgeGroup || "AGES_8_10";
 
   if (!email || !email.includes("@")) {
     throw new Error("Please enter a valid email address.");
@@ -257,14 +284,16 @@ export function registerVttAccount(params: {
     db.prepare(
       `INSERT INTO vtt_accounts (
         id, family_name, email, password_hash, subscription_tier,
-        license_key, trial_room_code, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        preferred_rules_tier, preferred_age_group, license_key, trial_room_code, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       familyName,
       email,
       hashPasswordScrypt(password),
       tier,
+      preferredRulesTier,
+      preferredAgeGroup,
       licenseKey,
       trialRoomCode,
       now,
@@ -277,15 +306,59 @@ export function registerVttAccount(params: {
     return syncTierFromHouseholds(db, inserted);
   });
 
-  // Pre-seed their playable Session 1 Room and persist
-  const room = getOrCreateRoom(account.trialRoomCode);
-  room.householdId = account.id;
+  // Generate tailored Session 1 Hook, Scenario, NPCs, Enemies & Boss from account game type + age group
+  const tailoredRoom = generateTailoredAccountSession({
+    roomCode: account.trialRoomCode,
+    rulesTier: account.preferredRulesTier,
+    ageGroup: account.preferredAgeGroup,
+    familyName: account.familyName,
+    householdId: account.id,
+  });
+  const room = replaceRoomSessionState(tailoredRoom);
   if (process.env.NODE_ENV !== "test") {
     saveRoomsToDisk();
   }
 
   const token = signSessionToken(account.id, account.email);
   return { account, token, room };
+}
+
+export function updateVttAccountPreferences(params: {
+  accountId: string;
+  preferredRulesTier: RulesTier;
+  preferredAgeGroup: AgeGroupPreset;
+  roomCode?: string;
+  regenerateRoom?: boolean;
+}): { account: VttPublicAccount; room: RoomSessionState } {
+  const account = withAuthDb((db) => {
+    const now = new Date().toISOString();
+    db.prepare(
+      "UPDATE vtt_accounts SET preferred_rules_tier = ?, preferred_age_group = ?, updated_at = ? WHERE id = ?"
+    ).run(params.preferredRulesTier, params.preferredAgeGroup, now, params.accountId);
+    const updated = db
+      .prepare("SELECT * FROM vtt_accounts WHERE id = ?")
+      .get(params.accountId) as Record<string, any> | undefined;
+    if (!updated) {
+      throw new Error("Account not found.");
+    }
+    return syncTierFromHouseholds(db, updated);
+  });
+
+  const targetCode = (params.roomCode || account.trialRoomCode).toUpperCase();
+  if (params.regenerateRoom === false) {
+    const existing = getOrCreateRoom(targetCode);
+    return { account, room: existing };
+  }
+
+  const tailoredRoom = generateTailoredAccountSession({
+    roomCode: targetCode,
+    rulesTier: account.preferredRulesTier,
+    ageGroup: account.preferredAgeGroup,
+    familyName: account.familyName,
+    householdId: account.id,
+  });
+  const room = replaceRoomSessionState(tailoredRoom);
+  return { account, room };
 }
 
 export function loginVttAccount(params: {

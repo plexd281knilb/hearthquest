@@ -10,6 +10,8 @@ export * from "./assets";
 
 export type RulesTier = "STORYBOOK_D6" | "APPRENTICE_5E_LITE" | "STANDARD_5E";
 
+export type AgeGroupPreset = "AGES_5_7" | "AGES_8_10" | "AGES_11_13" | "TEENS_13_PLUS";
+
 export type ContentRating = "COZY_G" | "ADVENTURE_PG" | "CLASSIC_PG13";
 
 export type DisplayMode = "GM_COMMAND" | "TABLE_TV_DISPLAY" | "PLAYER_CONTROLLER";
@@ -226,6 +228,18 @@ export interface StoryBranchChoice {
   consequenceTag: string;
 }
 
+export interface StoryRpPrompt {
+  id: string;
+  trigger: "SESSION_START" | "SCENE_ENTER" | "NPC_DIALOG" | "BOSS_ENCOUNTER";
+  speakerName: string;
+  speakerEmoji: string;
+  speakerRole: "NARRATOR" | "NPC" | "BOSS";
+  title: string;
+  spokenText: string;
+  playerPromptQuestion?: string;
+  suggestedReplyOptions?: string[];
+}
+
 export interface StoryBranchNode {
   id: string;
   title: string;
@@ -240,6 +254,8 @@ export interface StoryBranchNode {
     ADVENTURE_PG: string;
     CLASSIC_PG13: string;
   };
+  openingHook?: string;
+  rpPrompts?: StoryRpPrompt[];
   gmWhisperTips: string[];
   choices: StoryBranchChoice[];
 }
@@ -356,6 +372,9 @@ export interface RoomSessionState {
   combat?: CombatState;
   partyLevel?: number;
   isOneShot?: boolean;
+  ageGroup?: AgeGroupPreset;
+  sessionOpeningHook?: string;
+  activeRpPrompt?: StoryRpPrompt | null;
 }
 
 export type LoreEntryType =
