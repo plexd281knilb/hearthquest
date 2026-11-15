@@ -351,3 +351,60 @@ export interface RoomSessionState {
   sceneBackdrop?: SceneBackdropType;
   combat?: CombatState;
 }
+
+export type SubscriptionTier = "FREE_SELF_HOSTED" | "DIGITAL_PLUS" | "GAME_IN_A_BOX_PRO";
+
+export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELED" | "SANDBOX";
+
+export type PaymentMode = "STRIPE_LIVE" | "SANDBOX_SIMULATED";
+
+export type FulfillmentOrderStatus =
+  | "PENDING_PAYMENT"
+  | "PAID_QUEUED"
+  | "RENDERING_PRINT_FILES"
+  | "SENT_TO_PRINTER"
+  | "SHIPPED"
+  | "CANCELED";
+
+export interface SubscriptionPlan {
+  tier: SubscriptionTier;
+  name: string;
+  priceMonthlyUsd: number;
+  badge: string;
+  features: string[];
+}
+
+export interface HouseholdAccount extends FamilyHousehold {
+  email: string;
+  subscriptionStatus: SubscriptionStatus;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  licenseKey: string;
+  aiMonthlyQuotaUsed: number;
+  updatedAt: string;
+}
+
+export interface PrintFulfillmentOrder {
+  id: string;
+  householdId: string;
+  familyName: string;
+  email: string;
+  packageId: string;
+  packageTitle: string;
+  campaignId: string;
+  amountCents: number;
+  paymentMode: PaymentMode;
+  status: FulfillmentOrderStatus;
+  shippingName: string;
+  shippingAddress: string;
+  trackingNumber?: string;
+  printableBundleUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProcessedWebhookEvent {
+  eventId: string;
+  eventType: string;
+  processedAt: string;
+}

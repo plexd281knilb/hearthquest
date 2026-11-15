@@ -5,7 +5,22 @@ import {
   generateGmCoPilotWhisper,
   probeRtx3080Health,
 } from "../apps/quest-ai-bridge/src/index";
-import { PHYSICAL_PACKAGES, renderAdminHtml } from "../apps/quest-admin/src/server";
+import {
+  advanceFulfillmentOrder,
+  createCheckoutSession,
+  generateLicenseKey,
+  getAdminStoreSnapshot,
+  PHYSICAL_PACKAGES,
+  processPaymentWebhookEvent,
+  renderAdminHtml,
+  renderPrintableKitHtml,
+  resetAdminStoreForTesting,
+  signStripeWebhookPayloadForTest,
+  SUBSCRIPTION_PLANS,
+  verifyLicenseKey,
+  verifyOperatorPin,
+  verifyStripeWebhookSignature,
+} from "../apps/quest-admin/src/server";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
@@ -728,8 +743,117 @@ async function runVerification() {
   }
   console.log("✅ PASSED");
 
+  // Suite 21: Admin Backend, Stripe HMAC Webhooks, Idempotency, License Keys & POD Fulfillment Queue
+  process.stdout.write("21. Testing Admin Payments, Stripe HMAC Webhooks, License Keys & POD Queue... ");
+  resetAdminStoreForTesting();
+  assert.strictEqual(SUBSCRIPTION_PLANS.length, 3, "Expected 3 household subscription tiers");
+  const adminPageHtml = renderAdminHtml(await probeRtx3080Health("http://127.0.0.1:65530"));
+  assert.ok(adminPageHtml.includes("payment-gateway-badge"), "Admin UI must render payment gateway badge");
+  assert.ok(adminPageHtml.includes("orders-queue-section"), "Admin UI must render POD order queue section");
+  assert.ok(adminPageHtml.includes("checkout-modal"), "Admin UI must render storefront checkout modal");
+
+  // 1. Cryptographic License Key signing & tamper rejection
+  const signedProKey = generateLicenseKey("hh_test_family", "GAME_IN_A_BOX_PRO");
+  const verifiedPro = verifyLicenseKey(signedProKey);
+  assert.strictEqual(verifiedPro.valid, true, "Generated license key must verify cleanly");
+  assert.strictEqual(verifiedPro.tier, "GAME_IN_A_BOX_PRO");
+  const tamperedKey = signedProKey.slice(0, -2) + (signedProKey.endsWith("AA") ? "BB" : "AA");
+  assert.strictEqual(verifyLicenseKey(tamperedKey).valid, false, "Tampered license key must be rejected");
+
+  // 2. Stripe-Signature HMAC-SHA256 verification + Idempotent Webhook Processing
+  const testSecret = "whsec_unit_test_secret_2026";
+  const webhookEvent = {
+    id: "evt_stripe_idempotency_test_001",
+    type: "checkout.session.completed" as const,
+    data: {
+      object: {
+        id: "cs_test_001",
+        customer_email: "webhooks@hearthquest.local",
+        metadata: {
+          checkoutKind: "PHYSICAL_KIT" as const,
+          packageId: "pkg-deluxe-keepsake",
+          campaignId: "camp-starlight-otter",
+          familyName: "The Nova Family",
+          email: "webhooks@hearthquest.local",
+          shippingName: "The Nova Family",
+          shippingAddress: "99 Nebula Way, Austin, TX",
+          paymentMode: "STRIPE_LIVE" as const,
+        },
+      },
+    },
+  };
+  const rawWebhookPayload = JSON.stringify(webhookEvent);
+  const validSigHeader = signStripeWebhookPayloadForTest(rawWebhookPayload, testSecret);
+  assert.strictEqual(
+    verifyStripeWebhookSignature(rawWebhookPayload, validSigHeader, testSecret),
+    true,
+    "Valid Stripe-Signature HMAC must verify"
+  );
+  assert.strictEqual(
+    verifyStripeWebhookSignature(rawWebhookPayload, "t=12345,v1=deadbeef", testSecret),
+    false,
+    "Forged Stripe-Signature HMAC must be rejected"
+  );
+
+  const firstRun = processPaymentWebhookEvent(webhookEvent);
+  assert.strictEqual(firstRun.processed, true);
+  assert.strictEqual(firstRun.duplicate, false);
+  assert.strictEqual(firstRun.order?.amountCents, 5900, "Deluxe keepsake kit must lock server price at $59.00");
+  assert.strictEqual(firstRun.order?.status, "PAID_QUEUED");
+  assert.strictEqual(firstRun.household?.subscriptionTier, "DIGITAL_PLUS");
+
+  // Replay exact same webhook event.id -> must be blocked by idempotency table
+  const duplicateRun = processPaymentWebhookEvent(webhookEvent);
+  assert.strictEqual(duplicateRun.processed, false);
+  assert.strictEqual(duplicateRun.duplicate, true, "Duplicate webhook event.id must be ignored");
+  assert.strictEqual(
+    getAdminStoreSnapshot().orders.filter((o) => o.email === "webhooks@hearthquest.local").length,
+    1,
+    "Idempotency guard must prevent duplicate order creation"
+  );
+
+  // 3. Sandbox Checkout Session + Operator PIN Auth + POD Fulfillment State Machine
+  const sandboxSession = await createCheckoutSession({
+    checkoutKind: "PHYSICAL_KIT",
+    packageId: "pkg-starter-box",
+    campaignId: "camp-goblin-bakery",
+    familyName: "The Bramble Family",
+    email: "bramble@hearthquest.local",
+    shippingAddress: "42 Acorn Hollow",
+  });
+  assert.strictEqual(sandboxSession.mode, "SANDBOX_SIMULATED");
+  assert.strictEqual(sandboxSession.amountCents, 3400);
+  assert.ok(sandboxSession.order?.id, "Sandbox checkout must queue a PrintFulfillmentOrder");
+
+  assert.strictEqual(verifyOperatorPin("wrong-pin"), false, "Invalid Operator PIN must fail");
+  assert.strictEqual(verifyOperatorPin(process.env.HEARTHQUEST_ADMIN_PIN || "1234"), true);
+
+  const orderId = sandboxSession.order!.id;
+  const renderingOrder = advanceFulfillmentOrder({
+    orderId,
+    nextStatus: "RENDERING_PRINT_FILES",
+    adminPin: process.env.HEARTHQUEST_ADMIN_PIN || "1234",
+  });
+  assert.strictEqual(renderingOrder.status, "RENDERING_PRINT_FILES");
+
+  const shippedOrder = advanceFulfillmentOrder({
+    orderId,
+    nextStatus: "SHIPPED",
+    trackingNumber: "USPS-TRACK-777",
+    adminPin: process.env.HEARTHQUEST_ADMIN_PIN || "1234",
+  });
+  assert.strictEqual(shippedOrder.status, "SHIPPED");
+  assert.strictEqual(shippedOrder.trackingNumber, "USPS-TRACK-777");
+
+  const manifestHtml = renderPrintableKitHtml(orderId);
+  assert.ok(
+    manifestHtml.includes(orderId) && manifestHtml.includes("42 Acorn Hollow"),
+    "Printable kit HTML must embed order packing slip & shipping address when orderId is provided"
+  );
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 20/20 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 21/21 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }
