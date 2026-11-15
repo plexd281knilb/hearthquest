@@ -5,6 +5,7 @@ import {
   ContentRating,
   DiceInputMode,
   DiceRollResult,
+  DieType,
   RoomSessionState,
   RulesTier,
   resolveArchetypeAsset,
@@ -468,6 +469,55 @@ export function regenerateRoomProceduralMap(params: {
   room.tokens = layout.tokens;
   autoPersistRooms();
   return room;
+}
+
+/**
+ * Rolls any polyhedral die (d4, d6, d8, d10, d12, d20) from the Foundry-style
+ * quick dice tray and records it into the room's synchronized rollHistory.
+ */
+export function submitQuickPolyhedralRoll(params: {
+  roomCode: string;
+  dieType: DieType;
+  characterId?: string;
+}): { room: RoomSessionState; roll: DiceRollResult } {
+  const room = getOrCreateRoom(params.roomCode);
+  const hero = room.heroes.find((h) => h.id === params.characterId) || room.heroes[0];
+  const DIE_MAX: Record<DieType, number> = {
+    d4: 4,
+    d6: 6,
+    d8: 8,
+    d10: 10,
+    d12: 12,
+    d20: 20,
+  };
+  const dieType: DieType = DIE_MAX[params.dieType] ? params.dieType : "d20";
+  const maxFace = DIE_MAX[dieType];
+  const rawRoll = Math.floor(Math.random() * maxFace) + 1;
+  const isCrit = rawRoll === maxFace;
+
+  const roll: DiceRollResult = {
+    id: `qroll_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    characterId: hero?.id || "gm",
+    playerName: hero?.playerName || "Game Master",
+    characterName: hero?.name || "Tabletop Dice",
+    actionTitle: `Quick ${dieType.toUpperCase()} Roll`,
+    dieType,
+    source: "DIGITAL_3D_ROLLER",
+    rawRoll,
+    modifier: 0,
+    total: rawRoll,
+    targetDC: Math.ceil(maxFace / 2),
+    succeeded: rawRoll >= Math.ceil(maxFace / 2),
+    isCriticalSuccess: isCrit,
+    narrativeOutcome: isCrit
+      ? `✨ Rolled a glowing maximum ${rawRoll} on ${dieType}!`
+      : `🎲 Tossed a ${dieType} and landed on ${rawRoll}.`,
+    timestamp: new Date().toISOString(),
+  };
+
+  room.rollHistory = [roll, ...room.rollHistory].slice(0, 15);
+  autoPersistRooms();
+  return { room, roll };
 }
 
 export { FAMILY_CAMPAIGNS };

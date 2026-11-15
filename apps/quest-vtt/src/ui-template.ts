@@ -1,4 +1,5 @@
 import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
+import { renderDice3DEngineScript, renderDice3DOverlayHtml } from "./dice-3d-engine";
 
 export function renderVttAppHtml(initialState: RoomSessionState): string {
   const serialized = JSON.stringify(initialState).replace(/</g, "\\u003c");
@@ -16,6 +17,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
   <link rel="alternate icon" type="image/png" href="/assets/hearthquest-icon.png" />
   <link rel="apple-touch-icon" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <style>
     /* Dark Mode (Midnight Hearth) */
     body[data-theme="dark"] {
@@ -354,13 +356,26 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         </div>
       </div>
 
-      <!-- Live Family Dice Roll Feed -->
-      <div class="theme-card rounded-2xl p-4 border">
-        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">🎲 Live Table Dice Log</h3>
+      <!-- Live Family Dice Roll Feed & Foundry 3D Quick Tray -->
+      <div class="theme-card rounded-2xl p-4 border space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">🎲 3D Dice Tray & Log</h3>
+          <span class="text-[10px] text-amber-400 font-semibold">3D WebGL</span>
+        </div>
+        <div id="quick-dice-tray" class="grid grid-cols-6 gap-1">
+          <button onclick="quickRoll3D('d4')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d4</button>
+          <button onclick="quickRoll3D('d6')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d6</button>
+          <button onclick="quickRoll3D('d8')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d8</button>
+          <button onclick="quickRoll3D('d10')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d10</button>
+          <button onclick="quickRoll3D('d12')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d12</button>
+          <button onclick="quickRoll3D('d20')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d20</button>
+        </div>
         <div id="dice-log-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
     </aside>
   </main>
+
+  ${renderDice3DOverlayHtml()}
 
   <!-- HYBRID REAL DICE vs. DIGITAL DICE MODAL -->
   <div id="dice-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -622,6 +637,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     }
     applyTheme(currentTheme);
 
+    ${renderDice3DEngineScript()}
+
     /* ==========================================================
        3. API CALLS & HELPERS
        ========================================================== */
@@ -859,15 +876,41 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       document.getElementById("dice-modal").classList.add("hidden");
     }
 
+    let lastAnimatedRollId = (state.rollHistory && state.rollHistory[0] && state.rollHistory[0].id) || null;
+
+    function animateRollIn3D(roll) {
+      if (!roll || roll.id === lastAnimatedRollId) return;
+      lastAnimatedRollId = roll.id;
+      const hero = state.heroes.find(h => h.id === roll.characterId);
+      Dice3DEngine.rollDie({
+        die: roll.dieType || "d20",
+        rawRoll: roll.rawRoll,
+        modifier: roll.modifier,
+        total: roll.total,
+        succeeded: roll.succeeded,
+        isCrit: roll.isCriticalSuccess,
+        heroName: roll.characterName,
+        actionTitle: roll.actionTitle,
+        color: hero ? hero.tokenColor : "#f59e0b"
+      });
+    }
+
     async function triggerDigitalRoll() {
-      AudioEngine.playDiceRoll();
       await submitActionRoll("DIGITAL_3D_ROLLER");
     }
 
-    async function submitActionRoll(source, physicalRollValue) {
-      if (source === "DIGITAL_3D_ROLLER") {
-        AudioEngine.playDiceRoll();
+    async function quickRoll3D(dieType) {
+      const res = await apiPost("/api/room/quick-roll", {
+        roomCode: state.roomCode,
+        dieType,
+        characterId: selectedHeroId
+      });
+      if (res && res.roll) {
+        animateRollIn3D(res.roll);
       }
+    }
+
+    async function submitActionRoll(source, physicalRollValue) {
       closeDiceModal();
       const res = await apiPost("/api/room/roll", {
         roomCode: state.roomCode,
@@ -878,10 +921,15 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       });
 
       if (res && res.roll) {
-        if (res.roll.succeeded) {
-          AudioEngine.playSuccessChime();
+        if (source === "DIGITAL_3D_ROLLER") {
+          animateRollIn3D(res.roll);
         } else {
-          AudioEngine.playFailForwardBoing();
+          lastAnimatedRollId = res.roll.id;
+          if (res.roll.succeeded) {
+            AudioEngine.playSuccessChime();
+          } else {
+            AudioEngine.playFailForwardBoing();
+          }
         }
       }
     }
@@ -1198,6 +1246,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         if (updated && updated.roomCode) {
           state = updated;
           renderAll();
+          const latestRoll = state.rollHistory && state.rollHistory[0];
+          if (latestRoll && latestRoll.source === "DIGITAL_3D_ROLLER" && latestRoll.id !== lastAnimatedRollId) {
+            animateRollIn3D(latestRoll);
+          }
         }
       } catch {}
     };

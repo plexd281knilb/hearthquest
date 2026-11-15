@@ -14,6 +14,7 @@ import {
   openRoomLootChest,
   regenerateRoomProceduralMap,
   submitPlayerActionRoll,
+  submitQuickPolyhedralRoll,
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
@@ -236,6 +237,19 @@ const server = http.createServer(async (req, res) => {
       cardId: body.cardId,
       source: body.source || "DIGITAL_3D_ROLLER",
       physicalRollValue: body.physicalRollValue,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room, roll }));
+    return;
+  }
+
+  if (pathname === "/api/room/quick-roll" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const { room, roll } = submitQuickPolyhedralRoll({
+      roomCode: body.roomCode || "DRGN",
+      dieType: body.dieType || "d20",
+      characterId: body.characterId,
     });
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });

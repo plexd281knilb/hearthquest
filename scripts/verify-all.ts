@@ -19,6 +19,7 @@ import {
   resetRoomsForTesting,
   saveRoomsToDisk,
   submitPlayerActionRoll,
+  submitQuickPolyhedralRoll,
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
@@ -434,8 +435,36 @@ async function runVerification() {
 
   console.log("✅ PASSED");
 
+  // Suite 16: Foundry 3D Physics Dice Engine & Quick Polyhedral Roll Sync
+  process.stdout.write("[TEST] Suite 16: 3D Physics Dice Engine & Quick Roll Sync... ");
+  assert.ok(vttHtml.includes("three.min.js"), "VTT HTML must load Three.js for 3D dice");
+  assert.ok(vttHtml.includes("dice-3d-overlay"), "VTT HTML must include #dice-3d-overlay");
+  assert.ok(vttHtml.includes("dice-3d-canvas"), "VTT HTML must include #dice-3d-canvas");
+  assert.ok(vttHtml.includes("Dice3DEngine"), "VTT HTML must embed Dice3DEngine");
+  assert.ok(vttHtml.includes("createD10Geometry"), "Dice3DEngine must support d10 polyhedral geometry");
+  assert.ok(vttHtml.includes("spawnParticles"), "Dice3DEngine must support crit sparkle particle bursts");
+  assert.ok(vttHtml.includes("run2DFallbackRoll"), "Dice3DEngine must include 2D canvas fallback for offline LAN");
+  assert.ok(vttHtml.includes("quick-dice-tray"), "VTT UI must include Foundry-style quick dice tray");
+
+  const diceTypes = ["d4", "d6", "d8", "d10", "d12", "d20"] as const;
+  for (const die of diceTypes) {
+    const qRes = submitQuickPolyhedralRoll({
+      roomCode: "DICE",
+      dieType: die,
+    });
+    assert.strictEqual(qRes.roll.dieType, die, `Quick roll dieType must be ${die}`);
+    assert.strictEqual(qRes.roll.source, "DIGITAL_3D_ROLLER");
+    const maxFace = Number(die.slice(1));
+    assert.ok(
+      qRes.roll.rawRoll >= 1 && qRes.roll.rawRoll <= maxFace,
+      `Quick roll ${die} value ${qRes.roll.rawRoll} must be within 1..${maxFace}`
+    );
+    assert.strictEqual(qRes.room.rollHistory[0].id, qRes.roll.id, "Quick roll must prepend to room rollHistory");
+  }
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 15/15 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 16/16 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }
