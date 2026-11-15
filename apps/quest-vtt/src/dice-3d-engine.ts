@@ -1,7 +1,8 @@
 /**
  * Foundry-Grade 3D Polyhedral Physics Dice Engine (Three.js + 2D Canvas Fallback)
- * Renders tumbling d4, d6, d8, d10, d12, and d20 meshes across the VTT viewport,
- * with boundary collisions, crit sparkle particle bursts, and multi-screen SSE sync.
+ * Renders tumbling d4, d6, d8, d10, d12, and d20 meshes across the VTT viewport
+ * with crisp engraved face numbers (1..N), target-face landing alignment,
+ * boundary collisions, crit sparkle particle bursts, and multi-screen SSE sync.
  */
 
 export function renderDice3DOverlayHtml(): string {
@@ -65,7 +66,7 @@ export function renderDice3DEngineScript(): string {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
             this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.85);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.9);
             this.scene.add(ambient);
 
             const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.5);
@@ -92,28 +93,25 @@ export function renderDice3DEngineScript(): string {
 
       createD10Geometry() {
         const THREE = window.THREE;
+        // Clean 10-sided pentagonal bipyramid (5 upper + 5 lower crisp planar faces)
         const vertices = [];
         const indices = [];
         const sides = 5;
-        const radius = 1.15;
-        const h = 1.25;
-        const offset = 0.18;
+        const radius = 1.2;
+        const h = 1.32;
 
         // Top pole (0) and Bottom pole (1)
         vertices.push(0, h, 0);
         vertices.push(0, -h, 0);
 
-        // Alternating upper and lower equator ring (10 vertices)
-        for (let i = 0; i < sides * 2; i++) {
-          const angle = (i * Math.PI) / sides;
-          const y = i % 2 === 0 ? offset : -offset;
-          vertices.push(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+        for (let i = 0; i < sides; i++) {
+          const angle = (i * 2 * Math.PI) / sides;
+          vertices.push(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
         }
 
-        // Top & bottom kite-like triangular facets
-        for (let i = 0; i < sides * 2; i++) {
+        for (let i = 0; i < sides; i++) {
           const curr = 2 + i;
-          const next = 2 + ((i + 1) % (sides * 2));
+          const next = 2 + ((i + 1) % sides);
           indices.push(0, next, curr);
           indices.push(1, curr, next);
         }
@@ -129,19 +127,167 @@ export function renderDice3DEngineScript(): string {
         const THREE = window.THREE;
         switch (dieType) {
           case "d4":
-            return new THREE.TetrahedronGeometry(1.25);
+            return new THREE.TetrahedronGeometry(1.3);
           case "d6":
             return new THREE.BoxGeometry(1.45, 1.45, 1.45);
           case "d8":
-            return new THREE.OctahedronGeometry(1.25);
+            return new THREE.OctahedronGeometry(1.3);
           case "d10":
             return this.createD10Geometry();
           case "d12":
-            return new THREE.DodecahedronGeometry(1.15);
+            return new THREE.DodecahedronGeometry(1.18);
           case "d20":
           default:
-            return new THREE.IcosahedronGeometry(1.25);
+            return new THREE.IcosahedronGeometry(1.3);
         }
+      },
+
+      createNumberTexture(numValue, isTargetFace, isCrit) {
+        const THREE = window.THREE;
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext("2d");
+
+        ctx.clearRect(0, 0, 256, 256);
+
+        // Subtle recessed circular medallion on target or crits for legibility
+        if (isTargetFace && isCrit) {
+          ctx.beginPath();
+          ctx.arc(128, 128, 92, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(250, 204, 21, 0.25)";
+          ctx.fill();
+        }
+
+        const label = String(numValue);
+        ctx.font = label.length >= 2 ? "900 112px system-ui, sans-serif" : "900 132px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // Strong dark outline so engraved numerals pop against any color die
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 18;
+        ctx.strokeStyle = "rgba(9, 13, 22, 0.92)";
+        ctx.strokeText(label, 128, 128);
+
+        ctx.fillStyle = isTargetFace && isCrit ? "#fef08a" : "#ffffff";
+        ctx.fillText(label, 128, 128);
+
+        // Standard polyhedral 6. / 9. orientation underline bar
+        if (numValue === 6 || numValue === 9) {
+          ctx.fillStyle = isTargetFace && isCrit ? "#fef08a" : "#ffffff";
+          ctx.strokeStyle = "rgba(9, 13, 22, 0.92)";
+          ctx.lineWidth = 8;
+          ctx.strokeRect(102, 198, 52, 10);
+          ctx.fillRect(102, 198, 52, 10);
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.anisotropy = 4;
+        texture.needsUpdate = true;
+        return texture;
+      },
+
+      extractDistinctFacePlanes(geometry) {
+        const THREE = window.THREE;
+        const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry;
+        const pos = nonIndexed.getAttribute("position");
+        const groups = [];
+
+        const a = new THREE.Vector3();
+        const b = new THREE.Vector3();
+        const c = new THREE.Vector3();
+        const ab = new THREE.Vector3();
+        const ac = new THREE.Vector3();
+
+        for (let i = 0; i < pos.count; i += 3) {
+          a.fromBufferAttribute(pos, i);
+          b.fromBufferAttribute(pos, i + 1);
+          c.fromBufferAttribute(pos, i + 2);
+
+          ab.subVectors(b, a);
+          ac.subVectors(c, a);
+          const normal = new THREE.Vector3().crossVectors(ab, ac).normalize();
+          const triCenter = new THREE.Vector3().add(a).add(b).add(c).divideScalar(3);
+
+          // Group coplanar triangles (e.g. 2 triangles per face on d6, 3 per face on d12)
+          let matched = null;
+          for (const g of groups) {
+            if (g.normal.dot(normal) > 0.985) {
+              matched = g;
+              break;
+            }
+          }
+
+          if (matched) {
+            matched.centers.push(triCenter);
+          } else {
+            groups.push({ normal, centers: [triCenter] });
+          }
+        }
+
+        return groups.map((g) => {
+          const avg = new THREE.Vector3();
+          for (const pt of g.centers) avg.add(pt);
+          avg.divideScalar(g.centers.length);
+          // Ensure normal points outward from origin
+          if (avg.dot(g.normal) < 0) {
+            g.normal.negate();
+          }
+          return { center: avg, normal: g.normal };
+        });
+      },
+
+      attachFaceNumbers(mesh, geometry, dieType, rawRoll, isCrit) {
+        const THREE = window.THREE;
+        const faces = this.extractDistinctFacePlanes(geometry);
+        if (!faces || faces.length === 0) return null;
+
+        const maxVal = faces.length;
+        const targetValue = Math.max(1, Math.min(maxVal, Number(rawRoll) || maxVal));
+
+        // Build full 1..N number pool so targetValue sits on face 0 and others fill remaining faces
+        const numbers = [targetValue];
+        for (let v = 1; v <= maxVal; v++) {
+          if (v !== targetValue) numbers.push(v);
+        }
+
+        const sizeMap = {
+          d4: 0.68,
+          d6: 1.0,
+          d8: 0.7,
+          d10: 0.66,
+          d12: 0.72,
+          d20: 0.52,
+        };
+        const decalSize = sizeMap[dieType] || 0.58;
+        const decalGeom = new THREE.PlaneGeometry(decalSize, decalSize);
+
+        let targetLocalQuat = null;
+        for (let i = 0; i < faces.length; i++) {
+          const face = faces[i];
+          const numVal = numbers[i % numbers.length];
+          const texture = this.createNumberTexture(numVal, i === 0, !!isCrit);
+          const decalMat = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+          });
+          const decal = new THREE.Mesh(decalGeom, decalMat);
+          if (Math.abs(face.normal.y) > 0.9) {
+            decal.up.set(0, 0, 1);
+          }
+          decal.position.copy(face.center).addScaledVector(face.normal, 0.022);
+          decal.lookAt(face.center.clone().addScaledVector(face.normal, 2.0));
+          mesh.add(decal);
+          if (i === 0) {
+            targetLocalQuat = decal.quaternion.clone();
+          }
+        }
+
+        return targetLocalQuat;
       },
 
       clearScene() {
@@ -156,8 +302,13 @@ export function renderDice3DEngineScript(): string {
         if (this.useWebGL && this.scene) {
           if (this.activeMesh) {
             this.scene.remove(this.activeMesh);
-            this.activeMesh.geometry.dispose();
-            this.activeMesh.material.dispose();
+            this.activeMesh.traverse((obj) => {
+              if (obj.geometry) obj.geometry.dispose();
+              if (obj.material) {
+                if (obj.material.map) obj.material.map.dispose();
+                obj.material.dispose();
+              }
+            });
             this.activeMesh = null;
           }
           for (const p of this.particles) {
@@ -276,13 +427,14 @@ export function renderDice3DEngineScript(): string {
         }
 
         const THREE = window.THREE;
-        const geometry = this.createDieGeometry(opts.die || "d20");
+        const dieType = opts.die || "d20";
+        const geometry = this.createDieGeometry(dieType);
         const baseColor = new THREE.Color(opts.color || "#f59e0b");
         const material = new THREE.MeshStandardMaterial({
           color: baseColor,
           metalness: 0.35,
-          roughness: 0.22,
-          emissive: baseColor.clone().multiplyScalar(0.18),
+          roughness: 0.24,
+          emissive: baseColor.clone().multiplyScalar(0.16),
         });
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -293,6 +445,15 @@ export function renderDice3DEngineScript(): string {
         });
         const wireframe = new THREE.LineSegments(edgesGeom, edgesMat);
         mesh.add(wireframe);
+
+        // Stamp crisp engraved numbers (1..N) onto every face, with opts.rawRoll on face 0
+        const targetLocalQuat = this.attachFaceNumbers(
+          mesh,
+          geometry,
+          dieType,
+          opts.rawRoll,
+          opts.isCrit
+        );
 
         // Launch from left or right edge
         const fromLeft = Math.random() < 0.5;
@@ -309,6 +470,7 @@ export function renderDice3DEngineScript(): string {
 
         const floorY = -1.1;
         let settled = false;
+        let targetQuat = null;
         let lastTime = performance.now();
         const startTime = lastTime;
 
@@ -357,7 +519,16 @@ export function renderDice3DEngineScript(): string {
 
               if (elapsed > 1.05) {
                 settled = true;
-                this.activeMesh.position.y = floorY + 0.35;
+                this.activeMesh.position.y = floorY + 0.45;
+                if (targetLocalQuat) {
+                  const m = new THREE.Matrix4().lookAt(
+                    this.camera.position,
+                    this.activeMesh.position,
+                    new THREE.Vector3(0, 1, 0)
+                  );
+                  const camFacingQuat = new THREE.Quaternion().setFromRotationMatrix(m);
+                  targetQuat = camFacingQuat.multiply(targetLocalQuat.clone().invert());
+                }
                 if (opts.isCrit || opts.succeeded !== false) {
                   this.spawnParticles(this.activeMesh.position, !!opts.isCrit, opts.color);
                 }
@@ -372,9 +543,12 @@ export function renderDice3DEngineScript(): string {
                 this.hideOverlayLater(2600);
               }
             } else {
-              // Gentle celebratory showcase hover
-              this.activeMesh.rotation.y += 0.9 * dt;
-              this.activeMesh.position.y = floorY + 0.45 + Math.sin(elapsed * 4.5) * 0.1;
+              // Smoothly rotate settled die so the exact rolled face aims straight at the player
+              if (targetQuat) {
+                this.activeMesh.quaternion.slerp(targetQuat, Math.min(1, dt * 8));
+              }
+              this.activeMesh.position.x += (0 - this.activeMesh.position.x) * Math.min(1, dt * 5);
+              this.activeMesh.position.y = floorY + 0.6 + Math.sin(elapsed * 4.5) * 0.08;
             }
           }
 
@@ -417,7 +591,10 @@ export function renderDice3DEngineScript(): string {
         const start = performance.now();
         let shown = false;
 
-        const sides = opts.die === "d4" ? 3 : opts.die === "d6" ? 4 : opts.die === "d8" ? 4 : opts.die === "d12" ? 5 : 6;
+        const die = opts.die || "d20";
+        const maxFace = die === "d4" ? 4 : die === "d6" ? 6 : die === "d8" ? 8 : die === "d10" ? 10 : die === "d12" ? 12 : 20;
+        const sides = die === "d4" ? 3 : die === "d6" ? 4 : die === "d8" ? 4 : die === "d12" ? 5 : 6;
+
         const drawFrame = (now) => {
           const t = (now - start) / 1000;
           ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -425,8 +602,8 @@ export function renderDice3DEngineScript(): string {
           const cx = canvas.width * (0.2 + Math.min(0.3, t * 0.3));
           const bounce = Math.abs(Math.sin(t * 7.5)) * Math.max(0, 1 - t) * 140;
           const cy = canvas.height * 0.5 - bounce;
-          const radius = 56;
-          const angle = t < 1.0 ? t * 11 : Math.sin(t * 2) * 0.15;
+          const radius = 62;
+          const angle = t < 1.0 ? t * 11 : Math.sin(t * 2) * 0.1;
 
           ctx.save();
           ctx.translate(cx, cy);
@@ -445,6 +622,19 @@ export function renderDice3DEngineScript(): string {
           ctx.lineWidth = 4;
           ctx.strokeStyle = opts.isCrit ? "#fef08a" : "#ffffff";
           ctx.stroke();
+
+          // Render tumbling face numbers before settling, then lock on opts.rawRoll
+          const faceNum = t < 1.0
+            ? ((Math.floor(t * 14) % maxFace) + 1)
+            : (opts.rawRoll ?? maxFace);
+          ctx.font = "900 34px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = "rgba(9, 13, 22, 0.9)";
+          ctx.strokeText(String(faceNum), 0, 2);
+          ctx.fillStyle = opts.isCrit ? "#fef08a" : "#ffffff";
+          ctx.fillText(String(faceNum), 0, 2);
           ctx.restore();
 
           if (t >= 1.0 && !shown) {

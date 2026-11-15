@@ -457,6 +457,9 @@ async function runVerification() {
   assert.ok(vttHtml.includes("dice-3d-canvas"), "VTT HTML must include #dice-3d-canvas");
   assert.ok(vttHtml.includes("Dice3DEngine"), "VTT HTML must embed Dice3DEngine");
   assert.ok(vttHtml.includes("createD10Geometry"), "Dice3DEngine must support d10 polyhedral geometry");
+  assert.ok(vttHtml.includes("attachFaceNumbers"), "Dice3DEngine must stamp engraved numbers onto all polyhedral faces");
+  assert.ok(vttHtml.includes("createNumberTexture"), "Dice3DEngine must generate high-contrast CanvasTexture numbers");
+  assert.ok(vttHtml.includes("extractDistinctFacePlanes"), "Dice3DEngine must extract distinct face planes for each die");
   assert.ok(vttHtml.includes("spawnParticles"), "Dice3DEngine must support crit sparkle particle bursts");
   assert.ok(vttHtml.includes("run2DFallbackRoll"), "Dice3DEngine must include 2D canvas fallback for offline LAN");
   assert.ok(vttHtml.includes("quick-dice-tray"), "VTT UI must include Foundry-style quick dice tray");
