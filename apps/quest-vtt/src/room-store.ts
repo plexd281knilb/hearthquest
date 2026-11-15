@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   AmbientLightingMode,
+  AmbientSoundscapeType,
   AmbientWeatherType,
   CharacterSheet,
   ContentRating,
@@ -10,6 +11,8 @@ import {
   DieType,
   RoomSessionState,
   RulesTier,
+  SceneBackdropType,
+  SkillId,
   SpellTemplate,
   resolveArchetypeAsset,
 } from "@hearthquest/shared-types";
@@ -22,7 +25,14 @@ import {
   evaluateActionCardRoll,
   FAMILY_CAMPAIGNS,
   generateProceduralMapLayout,
+  rollHeroSkillCheck,
+  rollRoomCombatInitiative,
 } from "@hearthquest/srd-rules";
+import {
+  buildFoundryTokenSvg,
+  TokenBezelStyle,
+  TokenEmblemPreset,
+} from "./token-forge-engine";
 
 const rooms = new Map<string, RoomSessionState>();
 
@@ -165,6 +175,20 @@ export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
   }
   if (!room.spellTemplates) {
     room.spellTemplates = [];
+  }
+  if (!room.ambientSoundscape) {
+    room.ambientSoundscape = room.zones[0]?.ambientSoundscape ?? "COZY_TAVERN";
+  }
+  if (!room.sceneBackdrop) {
+    room.sceneBackdrop = "HEARTH_TAVERN";
+  }
+  if (!room.combat) {
+    room.combat = {
+      isActive: false,
+      round: 1,
+      activeTurnIndex: 0,
+      entries: [],
+    };
   }
   return room;
 }
@@ -669,6 +693,220 @@ export function spawnCustomTokenInRoom(params: {
   });
   autoPersistRooms();
   return room;
+}
+
+/**
+ * Foundry-style Combat Tracker actions: Roll Initiative, Advance Turn, or End Combat.
+ */
+export function updateRoomCombat(params: {
+  roomCode: string;
+  action: "ROLL_INITIATIVE" | "NEXT_TURN" | "END_COMBAT";
+}): RoomSessionState {
+  const room = getOrCreateRoom(params.roomCode);
+  if (params.action === "ROLL_INITIATIVE") {
+    room.combat = rollRoomCombatInitiative(room.tokens, room.heroes);
+  } else if (params.action === "NEXT_TURN") {
+    if (!room.combat || room.combat.entries.length === 0) {
+      room.combat = rollRoomCombatInitiative(room.tokens, room.heroes);
+    } else {
+      room.combat.isActive = true;
+      const nextIdx = room.combat.activeTurnIndex + 1;
+      if (nextIdx >= room.combat.entries.length) {
+        room.combat.activeTurnIndex = 0;
+        room.combat.round += 1;
+      } else {
+        room.combat.activeTurnIndex = nextIdx;
+      }
+    }
+  } else if (params.action === "END_COMBAT") {
+    room.combat = {
+      isActive: false,
+      round: 1,
+      activeTurnIndex: 0,
+      entries: [],
+    };
+  }
+  autoPersistRooms();
+  return room;
+}
+
+/**
+ * Rolls a 5e or Storybook Skill Check for a hero directly from the Character Sheet modal.
+ */
+export function submitHeroSkillRoll(params: {
+  roomCode: string;
+  characterId: string;
+  skillId: SkillId;
+}): { room: RoomSessionState; roll: DiceRollResult } {
+  const room = getOrCreateRoom(params.roomCode);
+  const hero = room.heroes.find((h) => h.id === params.characterId) || room.heroes[0];
+  const roll = rollHeroSkillCheck({
+    hero,
+    skillId: params.skillId,
+    rulesTier: room.rulesTier,
+  });
+  room.rollHistory = [roll, ...room.rollHistory].slice(0, 25);
+  const existing = room.spotlightRecords.find((r) => r.characterId === hero.id);
+  if (existing) {
+    existing.turnsTaken += 1;
+    existing.lastActionAt = new Date().toISOString();
+  }
+  room.spotlightRecords = computeSiblingSpotlightFairness(room.heroes, room.spotlightRecords);
+  autoPersistRooms();
+  return { room, roll };
+}
+
+/**
+ * Updates persistent room Ambient Soundscape and Scenic Tabletop Backdrop.
+ */
+export function updateRoomAtmosphere(params: {
+  roomCode: string;
+  ambientSoundscape?: AmbientSoundscapeType;
+  sceneBackdrop?: SceneBackdropType;
+}): RoomSessionState {
+  const room = getOrCreateRoom(params.roomCode);
+  if (params.ambientSoundscape) {
+    room.ambientSoundscape = params.ambientSoundscape;
+  }
+  if (params.sceneBackdrop) {
+    room.sceneBackdrop = params.sceneBackdrop;
+  }
+  autoPersistRooms();
+  return room;
+}
+
+/**
+ * Foundry Actor & Token Forge:
+ * Builds a custom beveled circular SVG token, persists it to /app/data/custom-tokens,
+ * registers a new CharacterSheet (if HERO) or Monster Token, and spawns it onto the grid.
+ */
+export function forgeActorAndTokenInRoom(params: {
+  roomCode: string;
+  actorType: "HERO" | "MONSTER";
+  name: string;
+  archetype?: string;
+  bezelStyle?: TokenBezelStyle;
+  emblem?: TokenEmblemPreset;
+  primaryColor?: string;
+  accentColor?: string;
+  hp?: number;
+  armorClass?: number;
+  lightRadius?: number;
+  gridX?: number;
+  gridY?: number;
+  str?: number;
+  dex?: number;
+  con?: number;
+  int?: number;
+  wis?: number;
+  cha?: number;
+  proficientSkills?: SkillId[];
+}): { room: RoomSessionState; tokenAssetUrl: string; tokenFilePath: string } {
+  const room = getOrCreateRoom(params.roomCode);
+  const safeName = (params.name || "Forged Adventurer").trim();
+  const slug =
+    safeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+    "forged-token";
+  const filename = `forge-${slug}-${Date.now().toString(36)}.svg`;
+  const customDir = getCustomTokensDir();
+  if (!fs.existsSync(customDir)) {
+    fs.mkdirSync(customDir, { recursive: true });
+  }
+  const tokenFilePath = path.join(customDir, filename);
+  const svgContent = buildFoundryTokenSvg({
+    name: safeName,
+    actorType: params.actorType,
+    bezelStyle: params.bezelStyle || "ANTIQUE_BRASS",
+    emblem:
+      params.emblem ||
+      (params.actorType === "MONSTER" ? "DRAGON_HEAD" : "KNIGHT_HELM"),
+    primaryColor: params.primaryColor || "#d97706",
+    accentColor: params.accentColor || "#fde047",
+  });
+  fs.writeFileSync(tokenFilePath, svgContent, "utf-8");
+
+  const tokenAssetUrl = `/custom-tokens/${encodeURIComponent(filename)}`;
+  const maxHp = Math.max(1, Number(params.hp || (params.actorType === "MONSTER" ? 24 : 20)));
+  const ac = Math.max(8, Number(params.armorClass || 14));
+  const gridX = Math.max(0, Math.min(9, Number(params.gridX ?? 2)));
+  const gridY = Math.max(0, Math.min(5, Number(params.gridY ?? 2)));
+  const lightRadius = Math.max(0, Number(params.lightRadius ?? (params.actorType === "HERO" ? 3.5 : 0)));
+
+  let characterId: string | undefined;
+  if (params.actorType === "HERO") {
+    characterId = `hero_forged_${Date.now()}`;
+    const str = Number(params.str || 14);
+    const dex = Number(params.dex || 12);
+    const con = Number(params.con || 14);
+    const int = Number(params.int || 10);
+    const wis = Number(params.wis || 12);
+    const cha = Number(params.cha || 13);
+    const baseHero = createStarterFamilySession().heroes[0];
+    const clonedCards = baseHero ? JSON.parse(JSON.stringify(baseHero.actionCards)) : [];
+    const newHero: CharacterSheet = {
+      id: characterId,
+      name: safeName,
+      playerName: "Table Hero",
+      playerAge: 10,
+      archetype: params.archetype || "Foundry Champion",
+      companionPet: "Ember Fox",
+      avatarEmoji: "🛡️",
+      tokenColor: params.primaryColor || "#d97706",
+      assetPath: tokenAssetUrl,
+      rulesTier: room.rulesTier,
+      storybookStats: {
+        brawn: Math.max(1, Math.floor((str - 8) / 2)),
+        brains: Math.max(1, Math.floor((Math.max(int, wis) - 8) / 2)),
+        charm: Math.max(1, Math.floor((cha - 8) / 2)),
+        hearts: 3,
+        maxHearts: 3,
+      },
+      attributes5e: {
+        str,
+        dex,
+        con,
+        int,
+        wis,
+        cha,
+        hp: maxHp,
+        maxHp,
+        armorClass: ac,
+      },
+      proficientSkills:
+        params.proficientSkills && params.proficientSkills.length > 0
+          ? params.proficientSkills
+          : ["athletics", "perception", "persuasion"],
+      actionCards: clonedCards,
+      inventory: baseHero ? JSON.parse(JSON.stringify(baseHero.inventory)) : [],
+      levelStars: 1,
+      petTrait: "Forged in the Foundry Workshop to illuminate dark corridors!",
+    };
+    room.heroes.push(newHero);
+    room.spotlightRecords = computeSiblingSpotlightFairness(
+      room.heroes,
+      room.spotlightRecords
+    );
+  }
+
+  room.tokens.push({
+    id: `tok_forge_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+    characterId,
+    name: safeName,
+    type: params.actorType === "MONSTER" ? "MONSTER" : "HERO",
+    avatarEmoji: params.actorType === "MONSTER" ? "🐉" : "🛡️",
+    assetPath: tokenAssetUrl,
+    color: params.primaryColor || "#d97706",
+    gridX,
+    gridY,
+    hp: maxHp,
+    maxHp,
+    isHiddenFromPlayers: false,
+    lightRadius,
+    lightColor: params.accentColor || "#fbbf24",
+  });
+
+  autoPersistRooms();
+  return { room, tokenAssetUrl, tokenFilePath };
 }
 
 export { FAMILY_CAMPAIGNS };

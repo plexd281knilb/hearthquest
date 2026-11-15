@@ -1,18 +1,24 @@
 import {
   ActionCard,
   AmbientLightingMode,
+  AmbientSoundscapeType,
   AmbientWeatherType,
   BedtimeFreezeSnapshot,
   CharacterSheet,
+  CombatState,
   ContentRating,
   DiceRollResult,
   DieType,
   FamilyCampaignTemplate,
+  InitiativeEntry,
   MapRoomZone,
   MapToken,
   PlayerSpotlightRecord,
   RoomSessionState,
   RulesTier,
+  SceneBackdropType,
+  SkillDefinition,
+  SkillId,
   StoryBranchChoice,
   StoryBranchNode,
   WallSegment,
@@ -387,7 +393,20 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
  * Creates fresh, deep-cloned copies of the default starter heroes.
  */
 export function createDefaultStarterHeroes(): CharacterSheet[] {
-  return JSON.parse(JSON.stringify(DEFAULT_STARTER_HEROES));
+  const heroes: CharacterSheet[] = JSON.parse(JSON.stringify(DEFAULT_STARTER_HEROES));
+  return heroes.map((h) => {
+    if (!h.proficientSkills || h.proficientSkills.length === 0) {
+      const arch = h.archetype.toLowerCase();
+      if (arch.includes("knight") || arch.includes("paladin")) {
+        h.proficientSkills = ["athletics", "perception", "persuasion"];
+      } else if (arch.includes("wizard") || arch.includes("mage")) {
+        h.proficientSkills = ["arcana", "investigation", "nature"];
+      } else {
+        h.proficientSkills = ["stealth", "acrobatics", "perception"];
+      }
+    }
+    return h;
+  });
 }
 
 /**
@@ -1292,6 +1311,15 @@ export function createCampaignSession(
       ? "STARLIGHT_DUST"
       : "HEARTH_EMBERS";
 
+  const defaultSoundscape: AmbientSoundscapeType =
+    campaign.zones[0]?.ambientSoundscape ?? "COZY_TAVERN";
+  const defaultBackdrop: SceneBackdropType =
+    campaign.theme === "FOREST_TREEHOUSE"
+      ? "ENCHANTED_WOODS"
+      : campaign.theme === "STARLIGHT_SHIP"
+      ? "STARLIGHT_OBSERVATORY"
+      : "HEARTH_TAVERN";
+
   return {
     roomCode,
     householdId: "household-demo-family",
@@ -1317,6 +1345,14 @@ export function createCampaignSession(
       : createDefaultZoneWalls(clonedZones),
     ambientWeather: defaultWeather,
     spellTemplates: [],
+    ambientSoundscape: defaultSoundscape,
+    sceneBackdrop: defaultBackdrop,
+    combat: {
+      isActive: false,
+      round: 1,
+      activeTurnIndex: 0,
+      entries: [],
+    },
   };
 }
 
@@ -1628,4 +1664,194 @@ export function generateProceduralMapLayout(
   });
 
   return { zones, tokens: enrichTokensWithLighting(tokens) };
+}
+
+/**
+ * Core HearthQuest 5e & Storybook Skills catalog with theme-aware Light/Dark styling badges.
+ */
+export const HEARTHQUEST_SKILLS: SkillDefinition[] = [
+  {
+    id: "athletics",
+    name: "Athletics",
+    ability5e: "str",
+    storybookStat: "brawn",
+    icon: "💪",
+    accentLightClass: "bg-amber-100 text-amber-900 border-amber-300",
+    accentDarkClass: "bg-amber-950/70 text-amber-300 border-amber-700/60",
+  },
+  {
+    id: "acrobatics",
+    name: "Acrobatics",
+    ability5e: "dex",
+    storybookStat: "brawn",
+    icon: "🤸",
+    accentLightClass: "bg-orange-100 text-orange-900 border-orange-300",
+    accentDarkClass: "bg-orange-950/70 text-orange-300 border-orange-700/60",
+  },
+  {
+    id: "stealth",
+    name: "Stealth",
+    ability5e: "dex",
+    storybookStat: "brawn",
+    icon: "🥷",
+    accentLightClass: "bg-slate-200 text-slate-900 border-slate-400",
+    accentDarkClass: "bg-slate-800/80 text-slate-200 border-slate-600",
+  },
+  {
+    id: "arcana",
+    name: "Arcana",
+    ability5e: "int",
+    storybookStat: "brains",
+    icon: "✨",
+    accentLightClass: "bg-purple-100 text-purple-900 border-purple-300",
+    accentDarkClass: "bg-purple-950/70 text-purple-300 border-purple-700/60",
+  },
+  {
+    id: "investigation",
+    name: "Investigation",
+    ability5e: "int",
+    storybookStat: "brains",
+    icon: "🔍",
+    accentLightClass: "bg-indigo-100 text-indigo-900 border-indigo-300",
+    accentDarkClass: "bg-indigo-950/70 text-indigo-300 border-indigo-700/60",
+  },
+  {
+    id: "nature",
+    name: "Nature",
+    ability5e: "int",
+    storybookStat: "brains",
+    icon: "🌿",
+    accentLightClass: "bg-emerald-100 text-emerald-900 border-emerald-300",
+    accentDarkClass: "bg-emerald-950/70 text-emerald-300 border-emerald-700/60",
+  },
+  {
+    id: "perception",
+    name: "Perception",
+    ability5e: "wis",
+    storybookStat: "brains",
+    icon: "👀",
+    accentLightClass: "bg-teal-100 text-teal-900 border-teal-300",
+    accentDarkClass: "bg-teal-950/70 text-teal-300 border-teal-700/60",
+  },
+  {
+    id: "survival",
+    name: "Survival",
+    ability5e: "wis",
+    storybookStat: "brains",
+    icon: "🧭",
+    accentLightClass: "bg-lime-100 text-lime-900 border-lime-300",
+    accentDarkClass: "bg-lime-950/70 text-lime-300 border-lime-700/60",
+  },
+  {
+    id: "persuasion",
+    name: "Persuasion",
+    ability5e: "cha",
+    storybookStat: "charm",
+    icon: "💬",
+    accentLightClass: "bg-rose-100 text-rose-900 border-rose-300",
+    accentDarkClass: "bg-rose-950/70 text-rose-300 border-rose-700/60",
+  },
+  {
+    id: "performance",
+    name: "Performance",
+    ability5e: "cha",
+    storybookStat: "charm",
+    icon: "🎵",
+    accentLightClass: "bg-sky-100 text-sky-900 border-sky-300",
+    accentDarkClass: "bg-sky-950/70 text-sky-300 border-sky-700/60",
+  },
+];
+
+export function computeAbilityModifier(score: number): number {
+  return Math.floor((score - 10) / 2);
+}
+
+export function getHeroSkillModifiers(
+  hero: CharacterSheet,
+  rulesTier: RulesTier = hero.rulesTier
+): Array<SkillDefinition & { modifier: number; proficient: boolean }> {
+  const profs = new Set<SkillId>(hero.proficientSkills || []);
+  const profBonus = rulesTier === "STORYBOOK_D6" ? 1 : 2;
+  return HEARTHQUEST_SKILLS.map((skill) => {
+    const base =
+      rulesTier === "STORYBOOK_D6"
+        ? hero.storybookStats[skill.storybookStat]
+        : computeAbilityModifier(hero.attributes5e[skill.ability5e]);
+    const proficient = profs.has(skill.id);
+    return {
+      ...skill,
+      proficient,
+      modifier: base + (proficient ? profBonus : 0),
+    };
+  });
+}
+
+export function rollHeroSkillCheck(params: {
+  hero: CharacterSheet;
+  skillId: SkillId;
+  rulesTier: RulesTier;
+}): DiceRollResult {
+  const skills = getHeroSkillModifiers(params.hero, params.rulesTier);
+  const skill = skills.find((s) => s.id === params.skillId) ?? skills[0];
+  const dieType: DieType = params.rulesTier === "STORYBOOK_D6" ? "d6" : "d20";
+  const maxFace = dieType === "d6" ? 6 : 20;
+  const rawRoll = Math.floor(Math.random() * maxFace) + 1;
+  const total = rawRoll + skill.modifier;
+  const targetDC = params.rulesTier === "STORYBOOK_D6" ? 4 : 12;
+  const succeeded = total >= targetDC;
+  const isCrit = rawRoll === maxFace;
+
+  return {
+    id: `sroll_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    characterId: params.hero.id,
+    playerName: params.hero.playerName,
+    characterName: params.hero.name,
+    actionTitle: `${skill.icon} ${skill.name} Check`,
+    dieType,
+    source: "DIGITAL_3D_ROLLER",
+    rawRoll,
+    modifier: skill.modifier,
+    total,
+    targetDC,
+    succeeded,
+    isCriticalSuccess: isCrit,
+    narrativeOutcome: isCrit
+      ? `🌟 Natural ${maxFace}! ${params.hero.name} aces ${skill.name} with effortless flair!`
+      : succeeded
+      ? `✅ ${params.hero.name} succeeds at ${skill.name} (Total ${total} vs DC ${targetDC}).`
+      : `💫 ${params.hero.name} misses DC ${targetDC} on ${skill.name} (${total}), learning a helpful clue instead!`,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export function rollRoomCombatInitiative(
+  tokens: MapToken[],
+  heroes: CharacterSheet[]
+): CombatState {
+  const combatants = tokens.filter((t) => t.type !== "PROP");
+  const entries: InitiativeEntry[] = combatants.map((t) => {
+    const hero = heroes.find((h) => h.id === t.characterId);
+    const dexMod = hero ? computeAbilityModifier(hero.attributes5e.dex) : 1;
+    const roll = Math.floor(Math.random() * 20) + 1 + dexMod;
+    return {
+      id: `init_${t.id}`,
+      tokenId: t.id,
+      characterId: t.characterId,
+      name: t.name,
+      type: t.type,
+      initiative: roll,
+      hp: t.hp,
+      maxHp: t.maxHp,
+      avatarEmoji: t.avatarEmoji,
+      assetPath: t.assetPath,
+    };
+  });
+
+  entries.sort((a, b) => b.initiative - a.initiative);
+  return {
+    isActive: entries.length > 0,
+    round: 1,
+    activeTurnIndex: 0,
+    entries,
+  };
 }

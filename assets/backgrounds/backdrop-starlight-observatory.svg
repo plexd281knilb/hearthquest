@@ -1,0 +1,584 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <!-- Deep Cosmic Midnight Sky Gradient -->
+    <linearGradient id="soCosmicBase" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#040612" />
+      <stop offset="30%" stop-color="#0a0e27" />
+      <stop offset="65%" stop-color="#14113c" />
+      <stop offset="100%" stop-color="#1e1145" />
+    </linearGradient>
+
+    <!-- Swirling Nebula Cloud Gradients -->
+    <radialGradient id="soNebulaRose" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.8" />
+      <stop offset="35%" stop-color="#c026d3" stop-opacity="0.45" />
+      <stop offset="70%" stop-color="#701a75" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#040612" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="soNebulaCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.85" />
+      <stop offset="30%" stop-color="#06b6d4" stop-opacity="0.45" />
+      <stop offset="65%" stop-color="#0e7490" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#040612" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="soNebulaGold" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.75" />
+      <stop offset="35%" stop-color="#f59e0b" stop-opacity="0.38" />
+      <stop offset="75%" stop-color="#b45309" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#040612" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Celestial Moon & Lunar Halo -->
+    <radialGradient id="soMoonHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef9c3" stop-opacity="1" />
+      <stop offset="25%" stop-color="#bfdbfe" stop-opacity="0.6" />
+      <stop offset="60%" stop-color="#818cf8" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Ringed Planet Shading & Rings -->
+    <linearGradient id="soPlanetSphere" x1="15%" y1="15%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#fed7aa" />
+      <stop offset="25%" stop-color="#f97316" />
+      <stop offset="55%" stop-color="#a855f7" />
+      <stop offset="85%" stop-color="#431407" />
+      <stop offset="100%" stop-color="#0f0728" />
+    </linearGradient>
+
+    <linearGradient id="soPlanetRings" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.9" />
+      <stop offset="35%" stop-color="#fed7aa" stop-opacity="0.75" />
+      <stop offset="50%" stop-color="#0f0728" stop-opacity="0.1" /> <!-- Cassini Division -->
+      <stop offset="65%" stop-color="#c084fc" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.35" />
+    </linearGradient>
+
+    <!-- Polished Brass & Bronze Telescope Gradients -->
+    <linearGradient id="soBrassHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef9c3" />
+      <stop offset="22%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#d97706" />
+      <stop offset="78%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+
+    <linearGradient id="soBrassDiagonal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="15%" stop-color="#fef08a" />
+      <stop offset="45%" stop-color="#d97706" />
+      <stop offset="75%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+
+    <linearGradient id="soBronzeDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1c1917" />
+      <stop offset="30%" stop-color="#57412e" />
+      <stop offset="70%" stop-color="#78593e" />
+      <stop offset="100%" stop-color="#291e15" />
+    </linearGradient>
+
+    <!-- Observatory Marble & Stone Gradients -->
+    <linearGradient id="soMarbleFloor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#131424" />
+      <stop offset="45%" stop-color="#1f233a" />
+      <stop offset="80%" stop-color="#171828" />
+      <stop offset="100%" stop-color="#090a14" />
+    </linearGradient>
+
+    <linearGradient id="soStoneArch" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#33374d" />
+      <stop offset="50%" stop-color="#23263b" />
+      <stop offset="100%" stop-color="#111320" />
+    </linearGradient>
+
+    <!-- Blur & Glow Filters -->
+    <filter id="soGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="soNebulaBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="35" />
+    </filter>
+
+    <filter id="soSoftStarGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+
+    <!-- Observatory Tabletop Vignette -->
+    <radialGradient id="soObservatoryVignette" cx="50%" cy="52%" r="58%">
+      <stop offset="48%" stop-color="#000000" stop-opacity="0" />
+      <stop offset="78%" stop-color="#060614" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#02020a" stop-opacity="0.82" />
+    </radialGradient>
+  </defs>
+
+  <!-- LAYER 1: DEEP COSMIC SKY BASE -->
+  <rect width="1200" height="720" fill="url(#soCosmicBase)" />
+
+  <!-- Dense Distant Starfield Background (Tiny Pinprick Stars) -->
+  <g fill="#ffffff" opacity="0.6">
+    <circle cx="95" cy="85" r="0.8" />
+    <circle cx="140" cy="190" r="1.0" />
+    <circle cx="185" cy="70" r="0.7" />
+    <circle cx="210" cy="240" r="1.1" />
+    <circle cx="275" cy="110" r="0.8" />
+    <circle cx="350" cy="65" r="1.2" />
+    <circle cx="390" cy="210" r="0.9" />
+    <circle cx="430" cy="95" r="1.0" />
+    <circle cx="480" cy="180" r="0.7" />
+    <circle cx="530" cy="75" r="1.1" />
+    <circle cx="570" cy="230" r="0.8" />
+    <circle cx="620" cy="120" r="1.2" />
+    <circle cx="670" cy="80" r="0.7" />
+    <circle cx="715" cy="215" r="1.0" />
+    <circle cx="760" cy="90" r="0.9" />
+    <circle cx="805" cy="250" r="0.8" />
+    <circle cx="860" cy="60" r="1.1" />
+    <circle cx="910" cy="170" r="0.7" />
+    <circle cx="965" cy="115" r="1.2" />
+    <circle cx="1020" cy="230" r="0.9" />
+    <circle cx="1075" cy="85" r="0.8" />
+    <circle cx="1120" cy="160" r="1.0" />
+    <circle cx="1155" cy="100" r="0.7" />
+    <!-- Lower sky stars -->
+    <circle cx="150" cy="330" r="0.9" />
+    <circle cx="290" cy="370" r="0.8" />
+    <circle cx="410" cy="350" r="1.0" />
+    <circle cx="690" cy="360" r="0.8" />
+    <circle cx="780" cy="340" r="1.1" />
+    <circle cx="920" cy="370" r="0.9" />
+    <circle cx="1050" cy="350" r="1.0" />
+  </g>
+
+  <!-- LAYER 2: CELESTIAL SWIRLING NEBULA CLOUDS -->
+  <g pointer-events="none">
+    <!-- Rose Magenta Nebula Swirl (Upper Center-Left) -->
+    <ellipse cx="480" cy="190" rx="260" ry="140" fill="url(#soNebulaRose)" transform="rotate(-15 480 190)" filter="url(#soNebulaBlur)" />
+    <!-- Cyan Turquoise Stardust Stream (Upper Center-Right) -->
+    <ellipse cx="780" cy="170" rx="280" ry="150" fill="url(#soNebulaCyan)" transform="rotate(18 780 170)" filter="url(#soNebulaBlur)" />
+    <!-- Cosmic Amber Nebula Heart (Center Core) -->
+    <ellipse cx="630" cy="160" rx="160" ry="90" fill="url(#soNebulaGold)" filter="url(#soNebulaBlur)" />
+    <!-- Distant Spiral Galaxy (Far Left Space) -->
+    <ellipse cx="180" cy="170" rx="50" ry="18" fill="#c084fc" opacity="0.4" transform="rotate(-30 180 170)" filter="url(#soNebulaBlur)" />
+    <ellipse cx="180" cy="170" rx="20" ry="8" fill="#fbcfe8" opacity="0.6" transform="rotate(-30 180 170)" filter="url(#soSoftStarGlow)" />
+  </g>
+
+  <!-- LAYER 3: CELESTIAL BODIES (RINGED PLANET & CRESCENT MOON) -->
+  <!-- 1. The Ringed Planet (Saturn-like Majesty, Upper Right) -->
+  <g id="soRingedPlanet" transform="translate(850, 160)">
+    <!-- Back Half of Planetary Rings (drawn behind planet disk) -->
+    <ellipse cx="0" cy="0" rx="120" ry="34" fill="none" stroke="url(#soPlanetRings)" stroke-width="26" transform="rotate(-22)" opacity="0.85" />
+    <ellipse cx="0" cy="0" rx="100" ry="28" fill="none" stroke="#fed7aa" stroke-width="3" transform="rotate(-22)" opacity="0.6" />
+
+    <!-- Planet Spherical Body -->
+    <circle cx="0" cy="0" r="50" fill="url(#soPlanetSphere)" stroke="#2e1065" stroke-width="1.5" />
+    <!-- Atmospheric Cloud Bands on Planet Surface -->
+    <g opacity="0.35" stroke="#fef08a" stroke-width="2.5" fill="none">
+      <path d="M -46 -15 Q 0 -10 46 -15" />
+      <path d="M -49 0 Q 0 6 49 0" stroke="#f97316" stroke-width="4" />
+      <path d="M -47 16 Q 0 22 47 16" stroke="#c084fc" stroke-width="3" />
+    </g>
+    <!-- Shadow Cast by Planet Disk onto Back Rings -->
+    <ellipse cx="-6" cy="-4" rx="46" ry="46" fill="#040612" opacity="0.45" />
+
+    <!-- Front Half of Planetary Rings (clipped to pass in front of planet) -->
+    <g>
+      <clipPath id="soRingsFrontClip">
+        <rect x="-160" y="0" width="320" height="120" transform="rotate(-22)" />
+      </clipPath>
+      <ellipse cx="0" cy="0" rx="120" ry="34" fill="none" stroke="url(#soPlanetRings)" stroke-width="26" transform="rotate(-22)" clip-path="url(#soRingsFrontClip)" />
+      <ellipse cx="0" cy="0" rx="100" ry="28" fill="none" stroke="#fed7aa" stroke-width="3" transform="rotate(-22)" opacity="0.75" clip-path="url(#soRingsFrontClip)" />
+    </g>
+
+    <!-- Ring Shadow Cast on Planet Surface -->
+    <path d="M -44 14 Q 0 22 44 14" stroke="#090514" stroke-width="6" opacity="0.7" fill="none" />
+
+    <!-- Orbiting Tiny Moons -->
+    <circle cx="-135" cy="55" r="4.5" fill="#fef08a" filter="url(#soSoftStarGlow)" />
+    <circle cx="140" cy="-65" r="3.2" fill="#bae6fd" filter="url(#soSoftStarGlow)" />
+  </g>
+
+  <!-- 2. Crescent Moon with Ethereal Lunar Halo (Upper Left) -->
+  <g id="soCrescentMoon" transform="translate(320, 130)">
+    <!-- Lunar Aura Glow -->
+    <circle cx="0" cy="0" r="85" fill="url(#soMoonHalo)" pointer-events="none" />
+    <!-- Crescent Moon Silhouette -->
+    <path d="M 18 -38 C -6 -38 -26 -18 -26 6 C -26 30 -6 50 18 50 C 2 50 -12 36 -12 6 C -12 -24 2 -38 18 -38 Z"
+          fill="#fef9c3" stroke="#fde047" stroke-width="1.5" filter="url(#soGlow)" />
+    <!-- Crater Shadows in Crescent -->
+    <ellipse cx="-16" cy="2" rx="3.5" ry="5" fill="#e2e8f0" opacity="0.6" />
+    <ellipse cx="-18" cy="18" rx="2.5" ry="4" fill="#e2e8f0" opacity="0.6" />
+    <ellipse cx="-12" cy="-14" rx="2" ry="3" fill="#e2e8f0" opacity="0.6" />
+  </g>
+
+  <!-- LAYER 4: GLITTERING CONSTELLATIONS & FOUR-POINTED STARS -->
+  <!-- Tabletop Constellation 1: The Hearth Dragon (Connecting Stars Center Sky) -->
+  <g id="soConstellationDragon">
+    <!-- Star Connection Lines -->
+    <g stroke="#93c5fd" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.7" fill="none">
+      <!-- Head / Snout -->
+      <line x1="560" y1="90" x2="600" y2="70" />
+      <line x1="600" y1="70" x2="625" y2="100" />
+      <line x1="625" y1="100" x2="560" y2="90" />
+      <!-- Neck & Spine -->
+      <line x1="560" y1="90" x2="510" y2="120" />
+      <line x1="510" y1="120" x2="470" y2="170" />
+      <line x1="470" y1="170" x2="440" y2="230" />
+      <!-- Wing Span -->
+      <line x1="510" y1="120" x2="520" y2="50" />
+      <line x1="520" y1="50" x2="465" y2="65" />
+      <line x1="465" y1="65" x2="470" y2="170" />
+      <!-- Tail Sweep -->
+      <line x1="440" y1="230" x2="390" y2="260" />
+      <line x1="390" y1="260" x2="360" y2="250" />
+    </g>
+
+    <!-- Star Nodes (Dragon Constellation) -->
+    <!-- Dragon Eye (Brilliant Golden Star) -->
+    <path d="M 590 82 Q 590 88 584 88 Q 590 88 590 94 Q 590 88 596 88 Q 590 88 590 82 Z" fill="#fde047" filter="url(#soGlow)" />
+    <circle cx="590" cy="88" r="2" fill="#ffffff" />
+
+    <!-- Dragon Spine & Wing Stars -->
+    <circle cx="560" cy="90" r="3" fill="#ffffff" filter="url(#soSoftStarGlow)" />
+    <circle cx="600" cy="70" r="2.8" fill="#bae6fd" />
+    <circle cx="625" cy="100" r="2.5" fill="#fef08a" />
+    <circle cx="520" cy="50" r="3.2" fill="#ffffff" filter="url(#soSoftStarGlow)" />
+    <circle cx="465" cy="65" r="2.6" fill="#bae6fd" />
+    <circle cx="510" cy="120" r="3" fill="#ffffff" />
+    <circle cx="470" cy="170" r="3.5" fill="#fde047" filter="url(#soSoftStarGlow)" />
+    <circle cx="440" cy="230" r="2.8" fill="#bae6fd" />
+    <circle cx="390" cy="260" r="2.5" fill="#ffffff" />
+    <circle cx="360" cy="250" r="2.8" fill="#fef08a" filter="url(#soSoftStarGlow)" />
+  </g>
+
+  <!-- Tabletop Constellation 2: The Starlight Wand / Quill (Upper Right Sky) -->
+  <g id="soConstellationWand">
+    <g stroke="#fef08a" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.65" fill="none">
+      <line x1="980" y1="60" x2="1030" y2="100" />
+      <line x1="1030" y1="100" x2="1080" y2="140" />
+      <line x1="1080" y1="140" x2="1140" y2="190" />
+      <!-- Feather barbs / Starburst tip -->
+      <line x1="980" y1="60" x2="960" y2="40" />
+      <line x1="980" y1="60" x2="1000" y2="35" />
+      <line x1="980" y1="60" x2="955" y2="75" />
+    </g>
+    <!-- Wand Tip Brilliant Flare -->
+    <path d="M 980 48 Q 980 60 968 60 Q 980 60 980 72 Q 980 60 992 60 Q 980 60 980 48 Z" fill="#ffffff" filter="url(#soGlow)" />
+    <circle cx="1030" cy="100" r="2.8" fill="#bae6fd" />
+    <circle cx="1080" cy="140" r="3.2" fill="#fef08a" filter="url(#soSoftStarGlow)" />
+    <circle cx="1140" cy="190" r="2.6" fill="#ffffff" />
+  </g>
+
+  <!-- Large Sparkling 4-Pointed Navigational Stars -->
+  <g filter="url(#soGlow)">
+    <!-- Star 1 (Polaris style, Top Center-Left) -->
+    <path d="M 420 50 Q 420 66 404 66 Q 420 66 420 82 Q 420 66 436 66 Q 420 66 420 50 Z" fill="#ffffff" />
+    <circle cx="420" cy="66" r="3.5" fill="#fef9c3" />
+
+    <!-- Star 2 (Vega style, Top Right) -->
+    <path d="M 720 70 Q 720 82 708 82 Q 720 82 720 94 Q 720 82 732 82 Q 720 82 720 70 Z" fill="#67e8f9" />
+    <circle cx="720" cy="82" r="2.8" fill="#ffffff" />
+
+    <!-- Star 3 (Sirius style, Mid Left) -->
+    <path d="M 230 260 Q 230 272 218 272 Q 230 272 230 284 Q 230 272 242 272 Q 230 272 230 260 Z" fill="#fde047" />
+    <circle cx="230" cy="272" r="2.8" fill="#ffffff" />
+  </g>
+
+  <!-- LAYER 5: OBSERVATORY DOME APERTURE & BRASS ARMILLARY ARCHES -->
+  <!-- Arched Opening Frame of the Dome Aperture Overhead -->
+  <path d="M 0 0 L 1200 0 L 1200 240 C 1000 70 800 15 600 15 C 400 15 200 70 0 240 Z" fill="url(#soStoneArch)" stroke="#0b0d18" stroke-width="3" />
+
+  <!-- Massive Curved Brass Dome Rib Across Top -->
+  <path d="M 0 240 C 200 70 400 15 600 15 C 800 15 1000 70 1200 240" fill="none" stroke="url(#soBrassHighlight)" stroke-width="14" />
+  <path d="M 0 246 C 200 76 400 21 600 21 C 800 21 1000 76 1200 246" fill="none" stroke="#451a03" stroke-width="3" />
+  <path d="M 0 234 C 200 64 400 9 600 9 C 800 9 1000 64 1200 234" fill="none" stroke="#fef9c3" stroke-width="2" opacity="0.8" />
+
+  <!-- Secondary Parallel Astronomical Armillary Rib -->
+  <path d="M 40 220 C 220 75 410 32 600 32 C 790 32 980 75 1160 220" fill="none" stroke="url(#soBrassHighlight)" stroke-width="6" opacity="0.9" />
+
+  <!-- Geared Astronomical Teeth & Degree Marks on Arch -->
+  <g stroke="#fde047" stroke-width="2" opacity="0.75">
+    <line x1="200" y1="125" x2="195" y2="135" />
+    <line x1="250" y1="98" x2="246" y2="108" />
+    <line x1="300" y1="76" x2="297" y2="86" />
+    <line x1="350" y1="58" x2="348" y2="68" />
+    <line x1="400" y1="44" x2="399" y2="54" />
+    <line x1="450" y1="34" x2="450" y2="44" />
+    <line x1="500" y1="27" x2="500" y2="37" />
+    <line x1="550" y1="23" x2="550" y2="33" />
+    <line x1="600" y1="21" x2="600" y2="31" />
+    <line x1="650" y1="23" x2="650" y2="33" />
+    <line x1="700" y1="27" x2="700" y2="37" />
+    <line x1="750" y1="34" x2="750" y2="44" />
+    <line x1="800" y1="44" x2="801" y2="54" />
+    <line x1="850" y1="58" x2="852" y2="68" />
+    <line x1="900" y1="76" x2="903" y2="86" />
+    <line x1="950" y1="98" x2="954" y2="108" />
+    <line x1="1000" y1="125" x2="1005" y2="135" />
+  </g>
+
+  <!-- Left & Right Heavy Observatory Stone Pilasters -->
+  <rect x="0" y="230" width="85" height="490" fill="url(#soStoneArch)" stroke="#0b0d18" stroke-width="2.5" />
+  <rect x="1115" y="230" width="85" height="490" fill="url(#soStoneArch)" stroke="#0b0d18" stroke-width="2.5" />
+
+  <!-- Ornate Brass Wall Brackets & Astrolabe Wall Plaques -->
+  <!-- Left Wall Astrolabe Plaque -->
+  <g transform="translate(42, 340)">
+    <circle cx="0" cy="0" r="28" fill="#1e1828" stroke="url(#soBrassHighlight)" stroke-width="3" />
+    <circle cx="0" cy="0" r="22" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 2" />
+    <path d="M 0 -22 L 0 22 M -22 0 L 22 0" stroke="url(#soBrassHighlight)" stroke-width="1.8" />
+    <circle cx="0" cy="0" r="6" fill="url(#soBrassHighlight)" />
+  </g>
+
+  <!-- Right Wall Astrolabe Plaque -->
+  <g transform="translate(1158, 340)">
+    <circle cx="0" cy="0" r="28" fill="#1e1828" stroke="url(#soBrassHighlight)" stroke-width="3" />
+    <circle cx="0" cy="0" r="22" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 2" />
+    <path d="M 0 -22 L 0 22 M -22 0 L 22 0" stroke="url(#soBrassHighlight)" stroke-width="1.8" />
+    <circle cx="0" cy="0" r="6" fill="url(#soBrassHighlight)" />
+  </g>
+
+  <!-- LAYER 6: OBSERVATORY DECK, PARAPET & INLAID ZODIAC MARBLE FLOOR -->
+  <!-- Curved Stone Balustrade / Parapet Railing Separating Deck from Void -->
+  <path d="M 70 515 C 300 485 900 485 1130 515 L 1130 545 C 900 515 300 515 70 545 Z" fill="#2d3048" stroke="#121320" stroke-width="2" />
+  <!-- Balusters (Vertical railing posts) -->
+  <g stroke="#1a1c2e" stroke-width="5" opacity="0.8">
+    <line x1="120" y1="510" x2="120" y2="538" />
+    <line x1="200" y1="504" x2="200" y2="532" />
+    <line x1="280" y1="499" x2="280" y2="527" />
+    <line x1="360" y1="496" x2="360" y2="524" />
+    <line x1="440" y1="494" x2="440" y2="522" />
+    <line x1="520" y1="493" x2="520" y2="521" />
+    <line x1="600" y1="493" x2="600" y2="521" />
+    <line x1="680" y1="493" x2="680" y2="521" />
+    <line x1="760" y1="494" x2="760" y2="522" />
+    <line x1="840" y1="496" x2="840" y2="524" />
+    <line x1="920" y1="499" x2="920" y2="527" />
+    <line x1="1000" y1="504" x2="1000" y2="532" />
+    <line x1="1080" y1="510" x2="1080" y2="538" />
+  </g>
+  <!-- Brass Balustrade Top Railing -->
+  <path d="M 60 510 C 300 480 900 480 1140 510" fill="none" stroke="url(#soBrassHighlight)" stroke-width="6" />
+
+  <!-- Polished Celestial Marble Observation Floor -->
+  <path d="M 0 535 C 300 505 900 505 1200 535 L 1200 720 L 0 720 Z" fill="url(#soMarbleFloor)" stroke="#090a14" stroke-width="2" />
+
+  <!-- Inlaid Brass Astronomical Compass Rose & Celestial Zodiac Dais on the Floor -->
+  <g transform="translate(600, 630)" opacity="0.85">
+    <!-- Outer Inlaid Brass Ring -->
+    <ellipse cx="0" cy="0" rx="280" ry="65" fill="none" stroke="url(#soBrassHighlight)" stroke-width="4" />
+    <!-- Inner Inlaid Brass Ring -->
+    <ellipse cx="0" cy="0" rx="240" ry="55" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="10 6" />
+    <ellipse cx="0" cy="0" rx="160" ry="36" fill="none" stroke="url(#soBrassHighlight)" stroke-width="2" />
+
+    <!-- Compass Points / Star Inlay on Floor -->
+    <!-- North Point (Towards Stars) -->
+    <polygon points="0,-55 -25,-5 0,-15 25,-5" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.2" />
+    <!-- South Point (Towards Viewer) -->
+    <polygon points="0,55 -25,5 0,15 25,5" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.2" />
+    <!-- East & West Points -->
+    <polygon points="-240,0 -40,-12 -60,0 -40,12" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.2" />
+    <polygon points="240,0 40,-12 60,0 40,12" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.2" />
+
+    <!-- Center Polished Brass Centerpiece Disk -->
+    <ellipse cx="0" cy="0" rx="26" ry="8" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+    <ellipse cx="0" cy="0" rx="10" ry="3.5" fill="#fef9c3" />
+  </g>
+
+  <!-- LAYER 7: HERO FOCAL PROP - THE GRAND BRASS TELESCOPE -->
+  <!-- Geared Cast-Brass Pedestal & Tripod Base -->
+  <g id="soTelescopeMount" transform="translate(460, 470)">
+    <!-- Heavy Base Shadow on Floor -->
+    <ellipse cx="0" cy="70" rx="65" ry="18" fill="#080912" opacity="0.8" />
+
+    <!-- Tripod Legs (Geared Cast Bronze) -->
+    <!-- Center Leg -->
+    <polygon points="-12,20 12,20 16,70 -16,70" fill="url(#soBronzeDark)" stroke="#1c1917" stroke-width="2" />
+    <!-- Left Leg -->
+    <polygon points="-10,20 -5,20 -60,65 -75,60" fill="url(#soBronzeDark)" stroke="#1c1917" stroke-width="2" />
+    <!-- Right Leg -->
+    <polygon points="10,20 5,20 60,65 75,60" fill="url(#soBronzeDark)" stroke="#1c1917" stroke-width="2" />
+    <!-- Brass Leg Leveling Screws & Feet -->
+    <circle cx="-68" cy="63" r="6" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+    <circle cx="68" cy="63" r="6" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+    <circle cx="0" cy="70" r="7" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+
+    <!-- Central Geared Brass Column Pier -->
+    <rect x="-18" y="-45" width="36" height="70" rx="4" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <!-- Column Fluting Lines -->
+    <line x1="-10" y1="-40" x2="-10" y2="20" stroke="#fef08a" stroke-width="1.5" />
+    <line x1="0" y1="-40" x2="0" y2="20" stroke="#fef08a" stroke-width="2" />
+    <line x1="10" y1="-40" x2="10" y2="20" stroke="#92400e" stroke-width="1.5" />
+
+    <!-- Equatorial Mount Head & Setting Circles -->
+    <ellipse cx="0" cy="-45" rx="26" ry="10" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <!-- Large Toothed Altitude / Declination Brass Gear Wheel -->
+    <circle cx="5" cy="-75" r="32" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2.5" />
+    <circle cx="5" cy="-75" r="24" fill="#57412e" stroke="#291e15" stroke-width="2" />
+    <!-- Gear Spokes & Degree Ticks -->
+    <g stroke="url(#soBrassHighlight)" stroke-width="2.5">
+      <line x1="5" y1="-99" x2="5" y2="-51" />
+      <line x1="-19" y1="-75" x2="29" y2="-75" />
+      <line x1="-12" y1="-92" x2="22" y2="-58" />
+      <line x1="-12" y1="-58" x2="22" y2="-92" />
+    </g>
+    <circle cx="5" cy="-75" r="8" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+
+    <!-- Counterweight Shaft & Heavy Brass Counterweight Ball -->
+    <line x1="5" y1="-75" x2="-65" y2="-20" stroke="#291e15" stroke-width="7" stroke-linecap="round" />
+    <circle cx="-55" cy="-28" r="16" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <circle cx="-55" cy="-28" r="11" fill="none" stroke="#fef08a" stroke-width="1.5" />
+  </g>
+
+  <!-- The Grand Brass Refractor Barrel Assembly (Angled at ~34° Towards Celestial Dome) -->
+  <g id="soTelescopeBarrel" transform="translate(465, 395) rotate(-34)">
+    <!-- Main Telescope Brass Tube (Tapered Refractor) -->
+    <!-- Main Cylinder Body -->
+    <polygon points="-90,-16 260,-22 260,22 -90,16" fill="url(#soBrassHighlight)" stroke="#3b1502" stroke-width="2.5" />
+    <!-- Polished Gold Highlight Streak Along Tube -->
+    <line x1="-88" y1="-6" x2="258" y2="-8" stroke="#ffffff" stroke-width="3" opacity="0.75" />
+    <line x1="-88" y1="-1" x2="258" y2="-2" stroke="#fef9c3" stroke-width="5" opacity="0.85" />
+    <!-- Tube Shadow Underside -->
+    <line x1="-88" y1="11" x2="258" y2="15" stroke="#451a03" stroke-width="4" opacity="0.65" />
+
+    <!-- Heavy Decorative Brass Reinforcement Bands & Knurled Collars -->
+    <rect x="-85" y="-18" width="16" height="36" rx="2" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.8" />
+    <rect x="0" y="-19" width="22" height="38" rx="2" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <rect x="130" y="-21" width="18" height="42" rx="2" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+
+    <!-- Objective Lens Cell (Front Giant End of Telescope) -->
+    <rect x="258" y="-25" width="22" height="50" rx="4" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <!-- Objective Lens Glass & Starlight Reflection Flare -->
+    <path d="M 280 -23 C 286 -12 286 12 280 23 Z" fill="#67e8f9" stroke="#38bdf8" stroke-width="2" />
+    <!-- Lens Flare Sparkle -->
+    <ellipse cx="282" cy="0" rx="3" ry="12" fill="#ffffff" filter="url(#soGlow)" />
+
+    <!-- Finder Scope (Small Parallel Spotter Scope Mounted on Top) -->
+    <g transform="translate(50, -32)">
+      <line x1="10" y1="0" x2="10" y2="10" stroke="#78350f" stroke-width="3" />
+      <line x1="110" y1="0" x2="110" y2="10" stroke="#78350f" stroke-width="3" />
+      <polygon points="-10,-5 130,-7 130,7 -10,5" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+      <line x1="-9" y1="-1" x2="129" y2="-2" stroke="#ffffff" stroke-width="1.5" opacity="0.8" />
+      <!-- Objective & Eyepiece of finderscope -->
+      <rect x="130" y="-9" width="8" height="18" rx="2" fill="url(#soBrassHighlight)" />
+      <rect x="-18" y="-6" width="9" height="12" rx="1.5" fill="#451a03" />
+    </g>
+
+    <!-- Eyepiece Focuser Drawtube & Diagonal Prism (Back End) -->
+    <!-- Chrome / Brass Focuser Tube -->
+    <rect x="-135" y="-10" width="46" height="20" rx="2" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" />
+    <!-- Knurled Focus Knob Wheels -->
+    <circle cx="-110" cy="-14" r="8" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+    <circle cx="-110" cy="-14" r="5" fill="#57412e" />
+
+    <!-- Star Diagonal 90° Prism Housing -->
+    <polygon points="-135,-12 -160,-12 -160,18 -135,10" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <!-- Eyepiece Tube (Angled for the Astronomer's Eye) -->
+    <rect x="-162" y="16" width="15" height="26" rx="3" transform="rotate(56 -162 16)" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+    <!-- Rubber Eyecup -->
+    <ellipse cx="-178" cy="40" rx="9" ry="5" transform="rotate(56 -178 40)" fill="#1c1917" stroke="#451a03" stroke-width="1" />
+  </g>
+
+  <!-- Giant Starlight Lens Flare Burst Radiating from Objective Lens -->
+  <g transform="translate(685, 245)" pointer-events="none">
+    <!-- Starburst Spikes -->
+    <line x1="-45" y1="0" x2="45" y2="0" stroke="#ffffff" stroke-width="2.5" filter="url(#soGlow)" />
+    <line x1="0" y1="-45" x2="0" y2="45" stroke="#ffffff" stroke-width="2.5" filter="url(#soGlow)" />
+    <line x1="-30" y1="-30" x2="30" y2="30" stroke="#67e8f9" stroke-width="1.8" filter="url(#soGlow)" />
+    <line x1="-30" y1="30" x2="30" y2="-30" stroke="#67e8f9" stroke-width="1.8" filter="url(#soGlow)" />
+    <!-- Core Flare Spark -->
+    <circle cx="0" cy="0" r="10" fill="#ffffff" filter="url(#soGlow)" />
+    <circle cx="0" cy="0" r="28" fill="#67e8f9" opacity="0.35" filter="url(#soGlow)" />
+  </g>
+
+  <!-- LAYER 8: OBSERVATORY ACCESSORIES - ARMILLARY SPHERE & CELESTIAL STAR CHARTS -->
+  <!-- Left Side: Astronomical Library Table with Star Charts -->
+  <g id="soStarChartTable" transform="translate(140, 520)">
+    <!-- Round Wooden Pedestal Table -->
+    <ellipse cx="60" cy="70" rx="60" ry="18" fill="#1b1c2b" stroke="#0d0e17" stroke-width="2" />
+    <path d="M 0 70 L 15 130 L 105 130 L 120 70 Z" fill="#282a40" stroke="#121320" stroke-width="2" />
+
+    <!-- Unrolled Celestial Constellation Parchment Map -->
+    <polygon points="15,64 95,50 115,75 35,90" fill="#fef3c7" stroke="#b45309" stroke-width="1.8" />
+    <path d="M 12 64 Q 16 56 20 63" fill="none" stroke="#b45309" stroke-width="2" /> <!-- Curled paper corner -->
+    <!-- Constellation Chart Drawing on Map -->
+    <g stroke="#3b82f6" stroke-width="1.2" opacity="0.75" fill="none">
+      <circle cx="65" cy="68" r="12" />
+      <line x1="55" y1="62" x2="75" y2="74" />
+      <line x1="55" y1="74" x2="75" y2="62" />
+      <circle cx="55" cy="62" r="1.5" fill="#f59e0b" />
+      <circle cx="75" cy="74" r="1.5" fill="#f59e0b" />
+      <circle cx="65" cy="68" r="2" fill="#d97706" />
+    </g>
+
+    <!-- Brass Astrolabe / Caliper resting on Chart -->
+    <path d="M 80 58 L 98 78 M 80 58 L 105 68" stroke="url(#soBrassHighlight)" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="80" cy="58" r="3.5" fill="url(#soBrassHighlight)" />
+
+    <!-- Starlight Glowing Ink Bottle -->
+    <rect x="25" y="52" width="14" height="18" rx="3" fill="#0284c7" stroke="#0369a1" stroke-width="1.2" />
+    <ellipse cx="32" cy="52" rx="4" ry="2" fill="#bae6fd" />
+    <circle cx="32" cy="60" r="18" fill="#38bdf8" opacity="0.3" filter="url(#soSoftStarGlow)" />
+  </g>
+
+  <!-- Right Side: Brass Armillary Sphere on Carved Column Pedestal -->
+  <g id="soArmillarySphere" transform="translate(980, 480)">
+    <!-- Stone / Bronze Pedestal Column -->
+    <polygon points="40,90 80,90 85,160 35,160" fill="url(#soBronzeDark)" stroke="#110d18" stroke-width="2" />
+    <ellipse cx="60" cy="90" rx="30" ry="10" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="1.5" />
+
+    <!-- Brass Armillary Sphere Mechanism -->
+    <!-- Base Bracket & Horizon Ring -->
+    <ellipse cx="60" cy="45" rx="36" ry="12" fill="none" stroke="url(#soBrassHighlight)" stroke-width="3" />
+    <!-- Meridian Ring (Vertical) -->
+    <circle cx="60" cy="45" r="36" fill="none" stroke="url(#soBrassHighlight)" stroke-width="3.5" />
+    <!-- Tilted Celestial Equator & Ecliptic Rings -->
+    <ellipse cx="60" cy="45" rx="36" ry="14" fill="none" stroke="url(#soBrassHighlight)" stroke-width="2.5" transform="rotate(-30 60 45)" />
+    <ellipse cx="60" cy="45" rx="36" ry="14" fill="none" stroke="url(#soBrassHighlight)" stroke-width="2" stroke-dasharray="6 3" transform="rotate(35 60 45)" />
+
+    <!-- Central Miniature Golden Sun Sphere -->
+    <circle cx="60" cy="45" r="9" fill="#fde047" stroke="#d97706" stroke-width="1.5" filter="url(#soGlow)" />
+    <!-- Mini Orbiting Planet Bead -->
+    <circle cx="80" cy="38" r="3" fill="#67e8f9" filter="url(#soSoftStarGlow)" />
+
+    <!-- Armillary Sphere Golden Starlight Radiance -->
+    <circle cx="60" cy="45" r="70" fill="url(#soNebulaGold)" opacity="0.6" pointer-events="none" />
+  </g>
+
+  <!-- LAYER 9: FLOATING ARCANE STARDUST MOTES & SOFT TABLETOP VIGNETTE -->
+  <!-- Arcane Glowing Stardust Specks Drifting in Observatory -->
+  <g fill="#bae6fd" opacity="0.75" filter="url(#soSoftStarGlow)" pointer-events="none">
+    <circle cx="340" cy="420" r="2.0" />
+    <circle cx="410" cy="360" r="1.6" />
+    <circle cx="490" cy="310" r="2.2" />
+    <circle cx="580" cy="360" r="1.8" />
+    <circle cx="660" cy="390" r="2.4" />
+    <circle cx="740" cy="320" r="1.5" />
+    <circle cx="820" cy="410" r="2.0" />
+    <circle cx="890" cy="460" r="1.6" />
+    <circle cx="530" cy="540" r="2.2" />
+    <circle cx="670" cy="570" r="1.8" />
+    <circle cx="380" cy="590" r="2.0" />
+    <circle cx="810" cy="600" r="1.7" />
+  </g>
+
+  <g fill="#fde047" opacity="0.6" pointer-events="none">
+    <circle cx="520" cy="450" r="1.8" />
+    <circle cx="630" cy="420" r="1.5" />
+    <circle cx="700" cy="480" r="2.0" />
+    <circle cx="450" cy="510" r="1.6" />
+    <circle cx="780" cy="530" r="1.9" />
+  </g>
+
+  <!-- TABLETOP SOFT VIGNETTE (Frames cards, tokens, and active tabletop play) -->
+  <rect width="1200" height="720" fill="url(#soObservatoryVignette)" pointer-events="none" />
+
+  <!-- Observatory Zenith Apex Star Emblem (Top Center Keystone) -->
+  <g transform="translate(600, 15)" pointer-events="none">
+    <circle cx="0" cy="0" r="14" fill="url(#soBrassHighlight)" stroke="#451a03" stroke-width="2" />
+    <path d="M 0 -10 Q 0 0 -8 0 Q 0 0 0 10 Q 0 0 8 0 Q 0 0 0 -10 Z" fill="#ffffff" filter="url(#soGlow)" />
+  </g>
+</svg>

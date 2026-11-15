@@ -1,0 +1,634 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <!-- Background & Wall Gradients -->
+    <linearGradient id="htWallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1f140e" />
+      <stop offset="40%" stop-color="#2d1c13" />
+      <stop offset="80%" stop-color="#23150d" />
+      <stop offset="100%" stop-color="#140b06" />
+    </linearGradient>
+
+    <linearGradient id="htPlankGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2e1b12" />
+      <stop offset="50%" stop-color="#3d2519" />
+      <stop offset="100%" stop-color="#24140c" />
+    </linearGradient>
+
+    <linearGradient id="htTimberBeam" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#452719" />
+      <stop offset="30%" stop-color="#341c11" />
+      <stop offset="85%" stop-color="#221109" />
+      <stop offset="100%" stop-color="#150a04" />
+    </linearGradient>
+
+    <!-- Stone Hearth Gradients -->
+    <linearGradient id="htStoneChimney" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3c3733" />
+      <stop offset="25%" stop-color="#5a524c" />
+      <stop offset="50%" stop-color="#6e655d" />
+      <stop offset="75%" stop-color="#4e4641" />
+      <stop offset="100%" stop-color="#2e2926" />
+    </linearGradient>
+
+    <linearGradient id="htMantleWood" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6a3e22" />
+      <stop offset="25%" stop-color="#553018" />
+      <stop offset="70%" stop-color="#3d200e" />
+      <stop offset="100%" stop-color="#251206" />
+    </linearGradient>
+
+    <!-- Hearth Fire & Lighting Gradients -->
+    <radialGradient id="htFireAmbient" cx="50%" cy="65%" r="55%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.55" />
+      <stop offset="35%" stop-color="#ea580c" stop-opacity="0.32" />
+      <stop offset="65%" stop-color="#9a3412" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#1a0d07" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="htHearthGlowCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbeb" stop-opacity="1" />
+      <stop offset="20%" stop-color="#fef08a" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.6" />
+      <stop offset="80%" stop-color="#dc2626" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0" />
+    </radialGradient>
+
+    <linearGradient id="htFlameOuter" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#b91c1c" />
+      <stop offset="30%" stop-color="#ea580c" />
+      <stop offset="70%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#fef08a" />
+    </linearGradient>
+
+    <linearGradient id="htFlameCore" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="45%" stop-color="#fde047" />
+      <stop offset="85%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+
+    <!-- Metallic Gradients -->
+    <linearGradient id="htCopperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa" />
+      <stop offset="20%" stop-color="#f97316" />
+      <stop offset="45%" stop-color="#ea580c" />
+      <stop offset="70%" stop-color="#c2410c" />
+      <stop offset="90%" stop-color="#7c2d12" />
+      <stop offset="100%" stop-color="#431407" />
+    </linearGradient>
+
+    <linearGradient id="htBrassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef9c3" />
+      <stop offset="30%" stop-color="#fde047" />
+      <stop offset="60%" stop-color="#d97706" />
+      <stop offset="90%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+
+    <linearGradient id="htIronGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="40%" stop-color="#3f3f46" />
+      <stop offset="70%" stop-color="#27272a" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+
+    <!-- Leaded Window Light -->
+    <radialGradient id="htWindowSky" cx="50%" cy="60%" r="60%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.4" />
+      <stop offset="40%" stop-color="#1e3a8a" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.8" />
+    </radialGradient>
+
+    <radialGradient id="htLanternGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.85" />
+      <stop offset="35%" stop-color="#f59e0b" stop-opacity="0.45" />
+      <stop offset="70%" stop-color="#ea580c" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Floor Perspective Gradient -->
+    <linearGradient id="htFloorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1612" />
+      <stop offset="40%" stop-color="#2c1f17" />
+      <stop offset="70%" stop-color="#221711" />
+      <stop offset="100%" stop-color="#110a06" />
+    </linearGradient>
+
+    <!-- Soft Blur Glow Filter -->
+    <filter id="htGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="htSoftLight" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+
+    <!-- Tabletop Vignette Frame -->
+    <radialGradient id="htTabletopVignette" cx="50%" cy="52%" r="58%">
+      <stop offset="50%" stop-color="#000000" stop-opacity="0" />
+      <stop offset="75%" stop-color="#0c0704" stop-opacity="0.38" />
+      <stop offset="100%" stop-color="#050302" stop-opacity="0.78" />
+    </radialGradient>
+  </defs>
+
+  <!-- LAYER 1: BASE ROOM & STONE WALLS -->
+  <rect width="1200" height="720" fill="url(#htWallGrad)" />
+
+  <!-- Wall Planks Pattern (Subtle Timber Wainscoting / Backdrop) -->
+  <g opacity="0.35">
+    <line x1="120" y1="0" x2="120" y2="570" stroke="#000000" stroke-width="2" />
+    <line x1="240" y1="0" x2="240" y2="570" stroke="#000000" stroke-width="2" />
+    <line x1="360" y1="0" x2="360" y2="570" stroke="#000000" stroke-width="2" />
+    <line x1="840" y1="0" x2="840" y2="570" stroke="#000000" stroke-width="2" />
+    <line x1="960" y1="0" x2="960" y2="570" stroke="#000000" stroke-width="2" />
+    <line x1="1080" y1="0" x2="1080" y2="570" stroke="#000000" stroke-width="2" />
+  </g>
+
+  <!-- Rustic Stone Wall Block Shadows (behind hearth & sides) -->
+  <g opacity="0.22" stroke="#000000" stroke-width="1.5" fill="none">
+    <path d="M 40 180 h 70 v 40 h -70 z M 40 230 h 85 v 45 h -85 z M 130 180 h 80 v 40 h -80 z" />
+    <path d="M 980 180 h 80 v 40 h -80 z M 1065 180 h 90 v 40 h -90 z M 990 230 h 100 v 45 h -100 z" />
+    <path d="M 40 380 h 75 v 45 h -75 z M 120 380 h 90 v 45 h -90 z M 40 435 h 85 v 45 h -85 z" />
+    <path d="M 980 380 h 85 v 45 h -85 z M 1070 380 h 80 v 45 h -80 z M 995 435 h 95 v 45 h -95 z" />
+  </g>
+
+  <!-- LAYER 2: TAVERN WINDOWS (Left & Right with Diamond Panes & Mountain Dusk) -->
+  <!-- Left Window -->
+  <g id="htLeftWindow">
+    <!-- Window Frame Inset -->
+    <path d="M 160 160 C 160 120 250 120 250 160 L 250 330 C 250 335 245 340 240 340 L 170 340 C 165 340 160 335 160 330 Z"
+          fill="url(#htWindowSky)" stroke="#1f140e" stroke-width="10" />
+    <!-- Distant Stars & Moonlit Hill -->
+    <path d="M 160 300 Q 200 280 250 310 L 250 340 L 160 340 Z" fill="#091322" opacity="0.6" />
+    <circle cx="225" cy="180" r="16" fill="#fef9c3" opacity="0.6" filter="url(#htSoftLight)" />
+    <!-- Diamond Leaded Glass Grids -->
+    <path d="M 205 130 L 165 180 M 205 130 L 245 180 M 165 180 L 205 230 M 245 180 L 205 230 
+             M 205 230 L 165 280 M 205 230 L 245 280 M 165 280 L 205 330 M 245 280 L 205 330"
+          stroke="#452719" stroke-width="2" opacity="0.75" />
+    <line x1="205" y1="130" x2="205" y2="340" stroke="#341c11" stroke-width="3" />
+    <!-- Window Sill with Warm Candle -->
+    <rect x="150" y="338" width="110" height="12" rx="3" fill="#3a1e12" stroke="#1c0f08" stroke-width="2" />
+    <!-- Small Window Candle -->
+    <rect x="185" y="318" width="10" height="20" rx="2" fill="#fef08a" />
+    <ellipse cx="190" cy="314" rx="4" ry="7" fill="#f59e0b" filter="url(#htSoftLight)" />
+    <circle cx="190" cy="318" r="28" fill="url(#htLanternGlow)" opacity="0.7" />
+  </g>
+
+  <!-- Right Window -->
+  <g id="htRightWindow">
+    <path d="M 950 160 C 950 120 1040 120 1040 160 L 1040 330 C 1040 335 1035 340 1030 340 L 960 340 C 955 340 950 335 950 330 Z"
+          fill="url(#htWindowSky)" stroke="#1f140e" stroke-width="10" />
+    <!-- Distant Pine Tree Silhouettes -->
+    <path d="M 975 340 L 985 270 L 995 340 Z M 1005 340 L 1015 280 L 1025 340 Z" fill="#091322" opacity="0.65" />
+    <!-- Diamond Leaded Glass Grids -->
+    <path d="M 995 130 L 955 180 M 995 130 L 1035 180 M 955 180 L 995 230 M 1035 180 L 995 230 
+             M 995 230 L 955 280 M 995 230 L 1035 280 M 955 280 L 995 330 M 1035 280 L 995 330"
+          stroke="#452719" stroke-width="2" opacity="0.75" />
+    <line x1="995" y1="130" x2="995" y2="340" stroke="#341c11" stroke-width="3" />
+    <rect x="940" y="338" width="110" height="12" rx="3" fill="#3a1e12" stroke="#1c0f08" stroke-width="2" />
+    <!-- Ceramic Herb Pot on Sill -->
+    <path d="M 965 338 L 968 322 L 984 322 L 987 338 Z" fill="#7c2d12" stroke="#431407" stroke-width="1.5" />
+    <ellipse cx="976" cy="318" rx="8" ry="6" fill="#15803d" />
+  </g>
+
+  <!-- LAYER 3: PERSPECTIVE TAVERN FLOOR -->
+  <path d="M 0 540 L 1200 540 L 1200 720 L 0 720 Z" fill="url(#htFloorGrad)" />
+  <!-- Flagstone Grooves & Bevels -->
+  <g stroke="#0f0a07" stroke-width="2" opacity="0.6" fill="none">
+    <!-- Perspective horizontal joint lines -->
+    <line x1="0" y1="580" x2="1200" y2="580" />
+    <line x1="0" y1="630" x2="1200" y2="630" />
+    <line x1="0" y1="685" x2="1200" y2="685" />
+    <!-- Flagstone staggering -->
+    <line x1="160" y1="540" x2="140" y2="580" />
+    <line x1="380" y1="540" x2="350" y2="580" />
+    <line x1="600" y1="540" x2="600" y2="580" />
+    <line x1="820" y1="540" x2="850" y2="580" />
+    <line x1="1040" y1="540" x2="1060" y2="580" />
+
+    <line x1="70" y1="580" x2="40" y2="630" />
+    <line x1="260" y1="580" x2="230" y2="630" />
+    <line x1="480" y1="580" x2="460" y2="630" />
+    <line x1="720" y1="580" x2="740" y2="630" />
+    <line x1="940" y1="580" x2="970" y2="630" />
+    <line x1="1130" y1="580" x2="1160" y2="630" />
+
+    <line x1="150" y1="630" x2="110" y2="685" />
+    <line x1="370" y1="630" x2="340" y2="685" />
+    <line x1="600" y1="630" x2="600" y2="685" />
+    <line x1="830" y1="630" x2="860" y2="685" />
+    <line x1="1050" y1="630" x2="1090" y2="685" />
+  </g>
+
+  <!-- LAYER 4: CENTRAL STONE HEARTH & FIREPLACE -->
+  <!-- Hearth Chimney Breast -->
+  <path d="M 430 0 L 770 0 L 785 300 L 415 300 Z" fill="url(#htStoneChimney)" />
+  <!-- Chimney Masonry Details -->
+  <g stroke="#241e1b" stroke-width="2" opacity="0.45" fill="none">
+    <line x1="440" y1="60" x2="760" y2="60" />
+    <line x1="435" y1="120" x2="765" y2="120" />
+    <line x1="428" y1="180" x2="772" y2="180" />
+    <line x1="422" y1="240" x2="778" y2="240" />
+    <!-- Vertical joints -->
+    <line x1="530" y1="0" x2="530" y2="60" />
+    <line x1="660" y1="0" x2="660" y2="60" />
+    <line x1="485" y1="60" x2="485" y2="120" />
+    <line x1="610" y1="60" x2="610" y2="120" />
+    <line x1="720" y1="60" x2="720" y2="120" />
+    <line x1="540" y1="120" x2="540" y2="180" />
+    <line x1="670" y1="120" x2="670" y2="180" />
+    <line x1="480" y1="180" x2="480" y2="240" />
+    <line x1="600" y1="180" x2="600" y2="240" />
+    <line x1="725" y1="180" x2="725" y2="240" />
+  </g>
+
+  <!-- Chimney Warm Flame Wash Reflection -->
+  <path d="M 460 295 L 740 295 L 680 140 L 520 140 Z" fill="#ea580c" opacity="0.12" filter="url(#htGlow)" />
+
+  <!-- Carved Crest / Hearth Sign: Crossed Wheat Stalks & Rolling Pin (Goblin Bakery) -->
+  <g transform="translate(600, 110)">
+    <circle cx="0" cy="0" r="32" fill="#2d221c" stroke="#d97706" stroke-width="2.5" />
+    <!-- Little Flame Emblem -->
+    <path d="M 0 -18 C 10 -6 14 4 10 14 C 6 22 -6 22 -10 14 C -14 4 -10 -6 0 -18 Z" fill="#f59e0b" />
+    <path d="M 0 -8 C 5 -1 7 5 5 10 C 3 14 -3 14 -5 10 C -7 5 -5 -1 0 -8 Z" fill="#fef08a" />
+    <!-- Wheat Ears Left & Right -->
+    <path d="M -20 10 Q -28 -4 -16 -12 M 20 10 Q 28 -4 16 -12" stroke="#d97706" stroke-width="2" fill="none" />
+  </g>
+
+  <!-- Grand Stone Fireplace Arch Structure -->
+  <!-- Hearth Outer Stone Frame -->
+  <path d="M 370 295 L 830 295 L 840 565 L 360 565 Z" fill="#3a3430" stroke="#1d1917" stroke-width="3" />
+  <!-- Stone Voussoirs (Arch Stones) -->
+  <path d="M 440 560 L 440 400 C 440 310 760 310 760 400 L 760 560 Z" fill="#140f0c" stroke="#524841" stroke-width="8" />
+
+  <!-- Arched Stones Detailing Ring -->
+  <g stroke="#26211e" stroke-width="3" fill="#4d443c">
+    <!-- Keystone -->
+    <polygon points="585,290 615,290 622,340 578,340" fill="#665b51" stroke="#26211e" stroke-width="2" />
+    <!-- Left arch stones -->
+    <polygon points="545,296 580,292 574,342 541,348" />
+    <polygon points="505,308 540,298 537,349 505,361" />
+    <polygon points="468,328 500,311 501,363 472,382" />
+    <polygon points="440,358 465,332 470,384 448,408" />
+    <!-- Right arch stones -->
+    <polygon points="620,292 655,296 659,348 626,342" />
+    <polygon points="660,298 695,308 695,361 663,349" />
+    <polygon points="700,311 732,328 728,382 699,363" />
+    <polygon points="735,332 760,358 752,408 730,384" />
+  </g>
+
+  <!-- Firebox Interior Cavity (Dark Soot-Stained Brick) -->
+  <path d="M 456 560 L 456 410 C 456 340 744 340 744 410 L 744 560 Z" fill="#120c08" />
+  <!-- Soot Brick Lines Inside Firebox -->
+  <g stroke="#241710" stroke-width="1.5" opacity="0.6">
+    <line x1="470" y1="420" x2="730" y2="420" />
+    <line x1="470" y1="450" x2="730" y2="450" />
+    <line x1="470" y1="480" x2="730" y2="480" />
+    <line x1="470" y1="510" x2="730" y2="510" />
+    <line x1="470" y1="540" x2="730" y2="540" />
+    <!-- Vertical stagger -->
+    <line x1="535" y1="390" x2="535" y2="420" />
+    <line x1="665" y1="390" x2="665" y2="420" />
+    <line x1="500" y1="420" x2="500" y2="450" />
+    <line x1="600" y1="420" x2="600" y2="450" />
+    <line x1="700" y1="420" x2="700" y2="450" />
+    <line x1="550" y1="450" x2="550" y2="480" />
+    <line x1="650" y1="450" x2="650" y2="480" />
+    <line x1="510" y1="480" x2="510" y2="510" />
+    <line x1="610" y1="480" x2="610" y2="510" />
+    <line x1="690" y1="480" x2="690" y2="510" />
+    <line x1="560" y1="510" x2="560" y2="540" />
+    <line x1="640" y1="510" x2="640" y2="540" />
+  </g>
+
+  <!-- Heavy Oak Fireplace Mantle Shelf -->
+  <rect x="360" y="278" width="480" height="26" rx="4" fill="url(#htMantleWood)" stroke="#1c0e06" stroke-width="2.5" />
+  <rect x="375" y="304" width="450" height="8" rx="2" fill="#251206" opacity="0.8" />
+  <!-- Timber brackets supporting the mantel -->
+  <polygon points="380,304 405,304 380,345" fill="#30180a" stroke="#1c0e06" stroke-width="1.5" />
+  <polygon points="820,304 795,304 820,345" fill="#30180a" stroke="#1c0e06" stroke-width="1.5" />
+
+  <!-- MANTELPIECE TREASURES & PROPS (Bakery Spices, Candlesticks, Honey) -->
+  <g id="htMantelProps">
+    <!-- Left Candlestick & Dripping Candle -->
+    <path d="M 405 278 L 417 278 L 413 260 L 409 260 Z" fill="url(#htBrassGrad)" />
+    <rect x="408" y="235" width="6" height="25" rx="1.5" fill="#fef9c3" />
+    <path d="M 407 242 Q 405 248 407 252" stroke="#fef08a" stroke-width="1.5" fill="none" />
+    <!-- Candle Flame -->
+    <ellipse cx="411" cy="228" rx="3.5" ry="6.5" fill="#f59e0b" filter="url(#htGlow)" />
+    <ellipse cx="411" cy="229" rx="1.8" ry="3.5" fill="#ffffff" />
+    <circle cx="411" cy="228" r="45" fill="url(#htLanternGlow)" opacity="0.6" />
+
+    <!-- Goblin Bakery Honey & Spice Jars -->
+    <rect x="432" y="258" width="16" height="20" rx="3" fill="#b45309" stroke="#78350f" stroke-width="1.2" opacity="0.85" />
+    <rect x="435" y="254" width="10" height="4" rx="1" fill="#fef08a" />
+    <rect x="455" y="250" width="14" height="28" rx="3" fill="#047857" stroke="#064e3b" stroke-width="1.2" opacity="0.85" />
+    <ellipse cx="462" cy="249" rx="5" ry="2" fill="#a7f3d0" />
+    <rect x="475" y="262" width="18" height="16" rx="2" fill="#a16207" stroke="#713f12" stroke-width="1.2" />
+
+    <!-- Center Clock / Hearth Charm -->
+    <circle cx="600" cy="265" r="12" fill="url(#htBrassGrad)" stroke="#451a03" stroke-width="1.5" />
+    <circle cx="600" cy="265" r="9" fill="#fef9c3" />
+    <line x1="600" y1="265" x2="600" y2="259" stroke="#1c1917" stroke-width="1.2" />
+    <line x1="600" y1="265" x2="604" y2="265" stroke="#1c1917" stroke-width="1.2" />
+
+    <!-- Right Candlestick & Teapot -->
+    <!-- Copper Mini Kettle -->
+    <ellipse cx="725" cy="268" rx="14" ry="10" fill="url(#htCopperGrad)" stroke="#431407" stroke-width="1.2" />
+    <path d="M 714 262 Q 710 252 725 252 Q 740 252 736 262" fill="none" stroke="#7c2d12" stroke-width="2" />
+    <path d="M 737 266 Q 744 260 746 256" fill="none" stroke="#ea580c" stroke-width="2.5" />
+
+    <!-- Right Candle -->
+    <path d="M 775 278 L 787 278 L 783 258 L 779 258 Z" fill="url(#htBrassGrad)" />
+    <rect x="778" y="230" width="6" height="28" rx="1.5" fill="#fef9c3" />
+    <ellipse cx="781" cy="222" rx="3.5" ry="7" fill="#f59e0b" filter="url(#htGlow)" />
+    <ellipse cx="781" cy="223" rx="1.8" ry="4" fill="#ffffff" />
+    <circle cx="781" cy="222" r="50" fill="url(#htLanternGlow)" opacity="0.6" />
+  </g>
+
+  <!-- WROUGHT IRON FIREPLACE GRATE & HEARTH STONES -->
+  <!-- Hearth Base Flagstones / Hearthstone Step -->
+  <polygon points="340,560 860,560 885,585 315,585" fill="#443c35" stroke="#1c1613" stroke-width="2.5" />
+  <rect x="315" y="585" width="570" height="14" rx="2" fill="#2d2621" stroke="#1c1613" stroke-width="2" />
+
+  <!-- Iron Andirons / Fire Grate -->
+  <g id="htIronGrate">
+    <rect x="490" y="525" width="220" height="8" rx="2" fill="url(#htIronGrad)" />
+    <!-- Grate Legs & Front Curled Finials -->
+    <path d="M 495 540 L 495 500 C 495 488 510 488 510 496 L 510 540" fill="none" stroke="url(#htIronGrad)" stroke-width="6" stroke-linecap="round" />
+    <path d="M 705 540 L 705 500 C 705 488 690 488 690 496 L 690 540" fill="none" stroke="url(#htIronGrad)" stroke-width="6" stroke-linecap="round" />
+    <!-- Cross bars -->
+    <line x1="520" y1="525" x2="520" y2="495" stroke="#18181b" stroke-width="4" />
+    <line x1="560" y1="525" x2="560" y2="490" stroke="#18181b" stroke-width="4" />
+    <line x1="600" y1="525" x2="600" y2="488" stroke="#18181b" stroke-width="4" />
+    <line x1="640" y1="525" x2="640" y2="490" stroke="#18181b" stroke-width="4" />
+    <line x1="680" y1="525" x2="680" y2="495" stroke="#18181b" stroke-width="4" />
+  </g>
+
+  <!-- Stacked Firewood Logs -->
+  <g id="htFireLogs">
+    <!-- Rear Dark Logs -->
+    <rect x="500" y="515" width="180" height="22" rx="10" transform="rotate(-8 590 525)" fill="#3b2011" stroke="#1e1008" stroke-width="2" />
+    <rect x="520" y="510" width="170" height="20" rx="9" transform="rotate(10 605 520)" fill="#4c2916" stroke="#1e1008" stroke-width="2" />
+    <!-- Front Birch Log with Bark Marks -->
+    <rect x="505" y="525" width="190" height="26" rx="12" fill="#5c3822" stroke="#2a1409" stroke-width="2.5" />
+    <!-- Bark Highlights -->
+    <line x1="530" y1="532" x2="550" y2="532" stroke="#251206" stroke-width="3" stroke-linecap="round" />
+    <line x1="580" y1="538" x2="615" y2="538" stroke="#251206" stroke-width="3" stroke-linecap="round" />
+    <line x1="645" y1="531" x2="675" y2="531" stroke="#251206" stroke-width="3" stroke-linecap="round" />
+    <!-- Cut Wood Log End Ring -->
+    <ellipse cx="692" cy="538" rx="8" ry="12" fill="#78472a" stroke="#2a1409" stroke-width="2" />
+    <ellipse cx="692" cy="538" rx="4" ry="6" fill="#935b37" />
+  </g>
+
+  <!-- LAYER 5: THE ROARING HEARTH FIRE & EMBERS -->
+  <!-- Glowing Embers Bed -->
+  <ellipse cx="600" cy="535" rx="110" ry="24" fill="#ea580c" opacity="0.8" filter="url(#htGlow)" />
+  <ellipse cx="600" cy="538" rx="75" ry="15" fill="#fde047" opacity="0.9" />
+
+  <!-- Volumetric Hearth Ambient Glow Circle -->
+  <circle cx="600" cy="460" r="380" fill="url(#htFireAmbient)" pointer-events="none" />
+  <ellipse cx="600" cy="470" rx="150" ry="100" fill="url(#htHearthGlowCore)" opacity="0.75" filter="url(#htGlow)" />
+
+  <!-- Roaring Flames Group -->
+  <g id="htFlames">
+    <!-- Outer Deep Amber Flame Tongue - Left -->
+    <path d="M 540 535 C 520 490 530 435 555 390 C 565 430 575 440 580 470 C 560 490 550 515 540 535 Z"
+          fill="url(#htFlameOuter)" opacity="0.85" filter="url(#htGlow)" />
+
+    <!-- Outer Deep Amber Flame Tongue - Right -->
+    <path d="M 660 535 C 680 490 670 435 645 390 C 635 430 625 440 620 470 C 640 490 650 515 660 535 Z"
+          fill="url(#htFlameOuter)" opacity="0.85" filter="url(#htGlow)" />
+
+    <!-- Main Central Tower Flame -->
+    <path d="M 550 530 C 540 460 580 410 590 355 C 605 385 615 415 610 440 C 625 410 645 375 640 340 C 655 380 660 425 655 465 C 650 505 625 530 550 530 Z"
+          fill="url(#htFlameOuter)" filter="url(#htGlow)" />
+
+    <!-- Mid Vibrant Flame Layer -->
+    <path d="M 565 530 C 560 470 585 430 595 385 C 605 420 615 440 615 465 C 625 435 635 405 632 375 C 645 415 645 460 635 500 C 625 525 600 530 565 530 Z"
+          fill="url(#htFlameCore)" />
+
+    <!-- Inner Golden Heart Flames -->
+    <path d="M 580 530 C 575 490 590 450 600 415 C 608 445 612 460 615 480 C 620 460 626 435 625 410 C 632 445 630 480 620 515 C 610 530 595 530 580 530 Z"
+          fill="#fef08a" />
+
+    <!-- White-Hot Core Spark Center -->
+    <ellipse cx="600" cy="505" rx="20" ry="28" fill="#ffffff" filter="url(#htSoftLight)" />
+  </g>
+
+  <!-- Dancing Hearth Fire Sparks & Rising Embers -->
+  <g fill="#fef08a" filter="url(#htSoftLight)">
+    <circle cx="585" cy="360" r="2.5" opacity="0.9" />
+    <circle cx="615" cy="335" r="3.2" opacity="0.85" />
+    <circle cx="570" cy="320" r="2.0" opacity="0.8" />
+    <circle cx="630" cy="305" r="2.8" opacity="0.9" />
+    <circle cx="595" cy="285" r="2.2" opacity="0.75" />
+    <circle cx="610" cy="250" r="3.0" opacity="0.8" />
+    <circle cx="580" cy="225" r="2.0" opacity="0.7" />
+    <circle cx="620" cy="195" r="2.5" opacity="0.65" />
+    <circle cx="600" cy="165" r="2.0" opacity="0.6" />
+    <circle cx="605" cy="130" r="1.5" opacity="0.5" />
+  </g>
+
+  <!-- Warm Light Cast on Hearthstone Floor -->
+  <ellipse cx="600" cy="590" rx="240" ry="45" fill="#f59e0b" opacity="0.22" filter="url(#htGlow)" />
+  <ellipse cx="600" cy="620" rx="360" ry="60" fill="#ea580c" opacity="0.12" filter="url(#htGlow)" />
+
+  <!-- Cozy Hearth Rug / Woven Mat in front of Fire -->
+  <ellipse cx="600" cy="635" rx="160" ry="26" fill="#78350f" stroke="#92400e" stroke-width="3" stroke-dasharray="10 6" opacity="0.65" />
+  <ellipse cx="600" cy="635" rx="140" ry="20" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.5" />
+
+  <!-- LAYER 6: TAVERN PROPS - COPPER PANS, BAKERY COUNTER, SHELVES -->
+  <!-- Left Overhead Iron Rack & Hanging Copper Pans -->
+  <g id="htHangingPans">
+    <!-- Rack Bar & Hanging Chains -->
+    <line x1="80" y1="80" x2="80" y2="150" stroke="#18181b" stroke-width="2.5" stroke-dasharray="5 3" />
+    <line x1="330" y1="80" x2="330" y2="150" stroke="#18181b" stroke-width="2.5" stroke-dasharray="5 3" />
+    <rect x="70" y="148" width="270" height="7" rx="2" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+
+    <!-- Hanging Hooks -->
+    <!-- Hook 1: Large Round Copper Skillet -->
+    <path d="M 115 155 L 115 175" stroke="#27272a" stroke-width="2.5" />
+    <circle cx="115" cy="215" r="34" fill="url(#htCopperGrad)" stroke="#431407" stroke-width="2" />
+    <circle cx="115" cy="215" r="28" fill="none" stroke="#fed7aa" stroke-width="1" opacity="0.4" />
+    <rect x="112" y="175" width="6" height="15" rx="1" fill="#431407" />
+
+    <!-- Hook 2: Copper Saucepan -->
+    <path d="M 180 155 L 180 185" stroke="#27272a" stroke-width="2.5" />
+    <ellipse cx="180" cy="215" rx="26" ry="24" fill="url(#htCopperGrad)" stroke="#431407" stroke-width="2" />
+    <rect x="177" y="185" width="6" height="12" rx="1" fill="#431407" />
+
+    <!-- Hook 3: Polished Brass Ladle & Skimmer -->
+    <path d="M 235 155 L 235 240" stroke="url(#htBrassGrad)" stroke-width="3" stroke-linecap="round" />
+    <ellipse cx="235" cy="245" rx="11" ry="8" fill="url(#htBrassGrad)" stroke="#451a03" stroke-width="1.2" />
+
+    <!-- Hook 4: Hanging Braided Garlic & Herbs -->
+    <path d="M 290 155 L 290 230" stroke="#a16207" stroke-width="2" />
+    <!-- Garlic bulbs -->
+    <circle cx="288" cy="180" r="8" fill="#fef3c7" stroke="#d97706" stroke-width="1" />
+    <circle cx="294" cy="192" r="9" fill="#fef3c7" stroke="#d97706" stroke-width="1" />
+    <circle cx="287" cy="206" r="9" fill="#fef3c7" stroke="#d97706" stroke-width="1" />
+    <circle cx="292" cy="220" r="8" fill="#fde68a" stroke="#d97706" stroke-width="1" />
+    <!-- Dried rosemary sprig -->
+    <path d="M 310 155 Q 315 190 312 225 M 312 175 L 305 168 M 313 185 L 320 180 M 312 200 L 306 195"
+          stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round" />
+  </g>
+
+  <!-- Right Rustic Wooden Shelf & Bakery Props -->
+  <g id="htRightShelf">
+    <!-- Heavy Wood Shelf -->
+    <rect x="850" y="190" width="280" height="16" rx="3" fill="url(#htTimberBeam)" stroke="#1c0e06" stroke-width="2" />
+    <polygon points="870,206 890,206 870,235" fill="#341c11" stroke="#1c0e06" stroke-width="1.5" />
+    <polygon points="1100,206 1120,206 1100,235" fill="#341c11" stroke="#1c0e06" stroke-width="1.5" />
+
+    <!-- Items on Shelf -->
+    <!-- Goblin Bakery Ceramic Mixing Bowls (Stacked) -->
+    <ellipse cx="895" cy="186" rx="22" ry="7" fill="#fef3c7" stroke="#78350f" stroke-width="2" />
+    <ellipse cx="895" cy="180" rx="18" ry="6" fill="#fde68a" stroke="#78350f" stroke-width="1.8" />
+    <ellipse cx="895" cy="175" rx="14" ry="5" fill="#fef08a" stroke="#78350f" stroke-width="1.5" />
+
+    <!-- Wooden Rolling Pin -->
+    <rect x="930" y="180" width="70" height="9" rx="4" fill="#a16207" stroke="#451a03" stroke-width="1.5" transform="rotate(-6 965 184)" />
+
+    <!-- Pewter / Brass Tavern Tankards -->
+    <rect x="1020" y="160" width="22" height="30" rx="3" fill="url(#htBrassGrad)" stroke="#451a03" stroke-width="1.5" />
+    <path d="M 1042 165 C 1052 165 1052 185 1042 185" fill="none" stroke="url(#htBrassGrad)" stroke-width="3" />
+
+    <rect x="1055" y="162" width="20" height="28" rx="3" fill="#64748b" stroke="#334155" stroke-width="1.5" />
+    <path d="M 1075 167 C 1083 167 1083 183 1075 183" fill="none" stroke="#64748b" stroke-width="3" />
+
+    <!-- Golden Braided Pretzel Hanging Under Shelf -->
+    <g transform="translate(930, 215) scale(0.7)">
+      <path d="M 15 15 C 30 0 50 20 40 35 C 30 50 10 30 25 15 C 35 5 45 10 50 25 C 55 40 35 50 25 35"
+            fill="none" stroke="#d97706" stroke-width="6" stroke-linecap="round" />
+      <circle cx="28" cy="22" r="1.5" fill="#fef08a" />
+      <circle cx="38" cy="28" r="1.5" fill="#fef08a" />
+      <circle cx="20" cy="32" r="1.5" fill="#fef08a" />
+    </g>
+  </g>
+
+  <!-- Left Tavern Foreground: Cider Barrel & Baker's Sack -->
+  <g id="htLeftForeground">
+    <!-- Oak Barrel -->
+    <ellipse cx="65" cy="510" rx="45" ry="18" fill="#543019" stroke="#221109" stroke-width="2.5" />
+    <path d="M 20 510 C 10 570 12 620 28 660 L 102 660 C 118 620 120 570 110 510 Z" fill="#3f2312" stroke="#221109" stroke-width="2.5" />
+    <!-- Barrel Iron Hoops -->
+    <path d="M 17 545 C 45 558 85 558 113 545" fill="none" stroke="url(#htIronGrad)" stroke-width="6" />
+    <path d="M 14 595 C 45 610 85 610 116 595" fill="none" stroke="url(#htIronGrad)" stroke-width="6" />
+    <path d="M 24 645 C 50 656 80 656 106 645" fill="none" stroke="url(#htIronGrad)" stroke-width="6" />
+    <!-- Brass Spigot -->
+    <rect x="75" y="585" width="16" height="7" rx="1.5" fill="url(#htBrassGrad)" stroke="#451a03" stroke-width="1" />
+    <path d="M 88 592 L 88 602" stroke="url(#htBrassGrad)" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Baker's Flour Sack Resting by Barrel -->
+    <path d="M 105 660 C 95 625 110 590 145 595 C 175 600 185 635 175 660 Z" fill="#d6d3d1" stroke="#78716c" stroke-width="2" />
+    <path d="M 132 595 Q 140 588 148 595" stroke="#78350f" stroke-width="3" fill="none" />
+    <!-- Flour Flecks -->
+    <circle cx="135" cy="620" r="3" fill="#ffffff" opacity="0.6" />
+    <circle cx="150" cy="635" r="4" fill="#ffffff" opacity="0.5" />
+  </g>
+
+  <!-- Right Tavern Foreground: Bakery Basket with Fresh Golden Bread Loaves -->
+  <g id="htRightForeground">
+    <!-- Woven Bread Basket -->
+    <ellipse cx="1120" cy="610" rx="55" ry="20" fill="#78350f" stroke="#451a03" stroke-width="2" />
+    <path d="M 1065 610 C 1070 650 1080 670 1120 670 C 1160 670 1170 650 1175 610 Z" fill="#92400e" stroke="#451a03" stroke-width="2.5" />
+    <!-- Basket Cross Weave Detailing -->
+    <g stroke="#451a03" stroke-width="2" opacity="0.45" fill="none">
+      <line x1="1075" y1="620" x2="1145" y2="665" />
+      <line x1="1090" y1="615" x2="1160" y2="655" />
+      <line x1="1165" y1="620" x2="1095" y2="665" />
+      <line x1="1150" y1="615" x2="1080" y2="655" />
+    </g>
+    <!-- Golden Crusty Bread Loaves in Basket -->
+    <ellipse cx="1105" cy="600" rx="24" ry="14" fill="#d97706" stroke="#78350f" stroke-width="2" transform="rotate(-15 1105 600)" />
+    <line x1="1095" y1="596" x2="1115" y2="602" stroke="#fef08a" stroke-width="2.5" stroke-linecap="round" />
+
+    <ellipse cx="1135" cy="596" rx="26" ry="15" fill="#b45309" stroke="#451a03" stroke-width="2" transform="rotate(12 1135 596)" />
+    <line x1="1125" y1="592" x2="1145" y2="598" stroke="#fef08a" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- Fresh Small Croissant / Bun -->
+    <circle cx="1120" cy="612" r="10" fill="#f59e0b" stroke="#78350f" stroke-width="1.5" />
+  </g>
+
+  <!-- LAYER 7: WALL LANTERNS & WARM AMBIENT LIGHT SCONCES -->
+  <!-- Left Wall Sconce & Lantern -->
+  <g id="htLeftLantern">
+    <!-- Iron Wall Mount Plate -->
+    <rect x="72" y="315" width="12" height="50" rx="3" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+    <!-- Curved Forged Bracket -->
+    <path d="M 84 330 C 115 330 115 365 105 385 L 105 395" fill="none" stroke="url(#htIronGrad)" stroke-width="4.5" stroke-linecap="round" />
+    <!-- Lantern Cap & Base -->
+    <polygon points="90,395 120,395 112,410 98,410" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+    <polygon points="95,438 115,438 120,448 90,448" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+    <line x1="98" y1="410" x2="95" y2="438" stroke="#18181b" stroke-width="2.5" />
+    <line x1="112" y1="410" x2="115" y2="438" stroke="#18181b" stroke-width="2.5" />
+    <!-- Glass with Candle Glow -->
+    <rect x="97" y="410" width="16" height="28" fill="#fef08a" opacity="0.9" />
+    <ellipse cx="105" cy="424" rx="4" ry="7" fill="#f59e0b" />
+    <!-- Big Radial Lantern Halo -->
+    <circle cx="105" cy="424" r="120" fill="url(#htLanternGlow)" opacity="0.65" pointer-events="none" />
+  </g>
+
+  <!-- Right Wall Sconce & Lantern -->
+  <g id="htRightLantern">
+    <rect x="1116" y="315" width="12" height="50" rx="3" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+    <path d="M 1116 330 C 1085 330 1085 365 1095 385 L 1095 395" fill="none" stroke="url(#htIronGrad)" stroke-width="4.5" stroke-linecap="round" />
+    <polygon points="1080,395 1110,395 1102,410 1088,410" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+    <polygon points="1085,438 1105,438 1110,448 1080,448" fill="url(#htIronGrad)" stroke="#09090b" stroke-width="1.5" />
+    <line x1="1088" y1="410" x2="1085" y2="438" stroke="#18181b" stroke-width="2.5" />
+    <line x1="1102" y1="410" x2="1105" y2="438" stroke="#18181b" stroke-width="2.5" />
+    <rect x="1087" y="410" width="16" height="28" fill="#fef08a" opacity="0.9" />
+    <ellipse cx="1095" cy="424" rx="4" ry="7" fill="#f59e0b" />
+    <circle cx="1095" cy="424" r="120" fill="url(#htLanternGlow)" opacity="0.65" pointer-events="none" />
+  </g>
+
+  <!-- LAYER 8: MASSIVE TIMBER BEAMS & ARCHITECTURAL FRAMING -->
+  <!-- Heavy Ceiling Beam Across Top -->
+  <rect x="0" y="0" width="1200" height="75" fill="url(#htTimberBeam)" stroke="#0a0503" stroke-width="3" />
+  <!-- Ceiling Beam Chamfer & Wood Grain Lines -->
+  <line x1="0" y1="65" x2="1200" y2="65" stroke="#5d3522" stroke-width="2" opacity="0.7" />
+  <line x1="0" y1="73" x2="1200" y2="73" stroke="#150a04" stroke-width="3" />
+  <!-- Grain Streaks -->
+  <path d="M 60 25 Q 240 32 420 24 M 480 30 Q 720 22 960 30 M 1000 26 Q 1100 32 1200 25" stroke="#2a1409" stroke-width="2" fill="none" opacity="0.5" />
+
+  <!-- Left & Right Heavy Support Columns / Posts -->
+  <rect x="0" y="70" width="45" height="650" fill="url(#htTimberBeam)" stroke="#0a0503" stroke-width="2.5" />
+  <rect x="1155" y="70" width="45" height="650" fill="url(#htTimberBeam)" stroke="#0a0503" stroke-width="2.5" />
+
+  <!-- Heavy Diagonal Timber Brackets at Top Corners -->
+  <polygon points="45,72 135,72 45,162" fill="#2d170d" stroke="#0f0704" stroke-width="2.5" />
+  <circle cx="68" cy="95" r="4.5" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+  <circle cx="112" cy="80" r="4.5" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+  <circle cx="53" cy="138" r="4.5" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+
+  <polygon points="1155,72 1065,72 1155,162" fill="#2d170d" stroke="#0f0704" stroke-width="2.5" />
+  <circle cx="1132" cy="95" r="4.5" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+  <circle cx="1088" cy="80" r="4.5" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+  <circle cx="1147" cy="138" r="4.5" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+
+  <!-- LAYER 9: TABLETOP SOFT VIGNETTE & WARM ATMOSPHERE -->
+  <!-- Tabletop Vignette Frame (edges darkened for cards/dice/tokens clarity) -->
+  <rect width="1200" height="720" fill="url(#htTabletopVignette)" pointer-events="none" />
+
+  <!-- Warm Atmospheric Particle Specks (Flour Dust & Hearth Sparks) -->
+  <g fill="#fef08a" opacity="0.4" pointer-events="none">
+    <circle cx="340" cy="420" r="1.8" />
+    <circle cx="390" cy="380" r="1.4" />
+    <circle cx="450" cy="460" r="2.0" />
+    <circle cx="510" cy="380" r="1.5" />
+    <circle cx="680" cy="380" r="1.7" />
+    <circle cx="720" cy="450" r="1.5" />
+    <circle cx="830" cy="410" r="2.2" />
+    <circle cx="880" cy="460" r="1.4" />
+    <circle cx="280" cy="270" r="1.8" />
+    <circle cx="910" cy="280" r="1.6" />
+    <circle cx="540" cy="620" r="2.2" />
+    <circle cx="660" cy="610" r="1.8" />
+  </g>
+
+  <!-- Golden Adventure Sparkle Above Hearth -->
+  <path d="M 600 80 Q 600 95 590 95 Q 600 95 600 110 Q 600 95 610 95 Q 600 95 600 80 Z"
+        fill="#fde047" opacity="0.8" filter="url(#htGlow)" pointer-events="none" />
+</svg>

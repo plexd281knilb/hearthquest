@@ -6,7 +6,7 @@
 export interface HearthQuestAsset {
   id: string;
   name: string;
-  category: "hero" | "monster" | "prop" | "tile" | "icon";
+  category: "hero" | "monster" | "prop" | "tile" | "background" | "icon";
   path: string;
   tags: string[];
 }
@@ -120,6 +120,23 @@ export const HEARTHQUEST_ASSETS = {
       path: "/assets/tiles/tile-starlight-deck.svg",
     },
   },
+  backgrounds: {
+    hearthTavern: {
+      id: "bg-hearth-tavern",
+      name: "Hearth & Bakery Warmth",
+      path: "/assets/backgrounds/backdrop-hearth-tavern.svg",
+    },
+    enchantedWoods: {
+      id: "bg-enchanted-woods",
+      name: "Enchanted Canopy & Fireflies",
+      path: "/assets/backgrounds/backdrop-enchanted-woods.svg",
+    },
+    starlightObservatory: {
+      id: "bg-starlight-observatory",
+      name: "Starlight Celestial Observatory",
+      path: "/assets/backgrounds/backdrop-starlight-observatory.svg",
+    },
+  },
 } as const;
 
 /**
@@ -189,4 +206,21 @@ export function resolveCampaignTileAsset(campaignIdOrTheme: string): string {
     return HEARTHQUEST_ASSETS.tiles.starlightDeck.path;
   }
   return HEARTHQUEST_ASSETS.tiles.bakeryFloor.path;
+}
+
+/**
+ * Resolves a scenic tabletop SVG backdrop asset for a scene backdrop key or campaign theme.
+ */
+export function resolveSceneBackdropAsset(backdropOrTheme: string): string {
+  const norm = backdropOrTheme.toLowerCase();
+  if (norm.includes("wood") || norm.includes("forest") || norm.includes("treehouse")) {
+    return HEARTHQUEST_ASSETS.backgrounds.enchantedWoods.path;
+  }
+  if (norm.includes("starlight") || norm.includes("observatory") || norm.includes("ship")) {
+    return HEARTHQUEST_ASSETS.backgrounds.starlightObservatory.path;
+  }
+  if (norm.includes("hearth") || norm.includes("tavern") || norm.includes("bakery")) {
+    return HEARTHQUEST_ASSETS.backgrounds.hearthTavern.path;
+  }
+  return "";
 }

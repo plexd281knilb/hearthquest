@@ -10,6 +10,7 @@ import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
   FAMILY_CAMPAIGNS,
+  forgeActorAndTokenInRoom,
   generateJoinQrSvg,
   getOrCreateRoom,
   loadRoomsFromDisk,
@@ -21,11 +22,14 @@ import {
   getCustomTokensDir,
   listCustomTokenAssets,
   spawnCustomTokenInRoom,
+  submitHeroSkillRoll,
   submitPlayerActionRoll,
   submitQuickPolyhedralRoll,
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
+  updateRoomAtmosphere,
+  updateRoomCombat,
   updateRoomLighting,
   updateRoomToolsAndWeather,
 } from "../apps/quest-vtt/src/room-store";
@@ -37,6 +41,7 @@ import {
   HEARTHQUEST_ASSETS,
   resolveArchetypeAsset,
   resolveCampaignTileAsset,
+  resolveSceneBackdropAsset,
   resolveTokenAsset,
 } from "../packages/shared-types/src/index";
 import {
@@ -46,6 +51,8 @@ import {
   computeSiblingSpotlightFairness,
   computeVisibilityPolygon,
   createStarterFamilySession,
+  getHeroSkillModifiers,
+  HEARTHQUEST_SKILLS,
   enforceAgeTieredGuardrails,
   evaluateActionCardRoll,
   SRD_51_CC_BY_40_ATTRIBUTION,
@@ -599,8 +606,127 @@ async function runVerification() {
   }
   console.log("✅ PASSED");
 
+  // Suite 19: Combat Initiative Tracker, Light/Dark Skills & Character Sheets, Soundscapes & Backdrops
+  process.stdout.write("19. Testing Combat Tracker, 5e/Storybook Skills, Ambient Audio & Scene Backdrops... ");
+  assert.ok(vttHtml.includes("combat-tracker-bar"), "VTT HTML must render combat tracker strip");
+  assert.ok(vttHtml.includes("AmbientAudioEngine"), "VTT HTML must embed AmbientAudioEngine soundscape synthesizer");
+  assert.ok(vttHtml.includes("select-scene-backdrop"), "VTT HTML must include scene backdrop selector");
+  assert.ok(vttHtml.includes("select-ambient-soundscape"), "VTT HTML must include soundscape selector");
+  assert.ok(vttHtml.includes("SKILL_CATALOG"), "VTT HTML must embed serialized skill catalog");
+
+  assert.strictEqual(HEARTHQUEST_SKILLS.length, 10, "Expected 10 core skills in HEARTHQUEST_SKILLS");
+  for (const sk of HEARTHQUEST_SKILLS) {
+    assert.ok(sk.accentLightClass && sk.accentDarkClass, `Skill ${sk.name} must define both light & dark theme styles`);
+  }
+
+  for (const bg of Object.values(HEARTHQUEST_ASSETS.backgrounds)) {
+    const absPath = path.join(process.cwd(), bg.path.replace(/^\//, ""));
+    assert.ok(fs.existsSync(absPath), `Missing backdrop SVG asset on disk: ${absPath}`);
+  }
+  assert.strictEqual(
+    resolveSceneBackdropAsset("FOREST_TREEHOUSE"),
+    "/assets/backgrounds/backdrop-enchanted-woods.svg"
+  );
+
+  const combatRoom = getOrCreateRoom("CMBT");
+  const skillsForHero = getHeroSkillModifiers(combatRoom.heroes[0], combatRoom.rulesTier);
+  assert.strictEqual(skillsForHero.length, 10);
+  const { room: afterSkillRoom, roll: skillRoll } = submitHeroSkillRoll({
+    roomCode: "CMBT",
+    characterId: combatRoom.heroes[0].id,
+    skillId: "athletics",
+  });
+  assert.ok(skillRoll.actionTitle.includes("Athletics"));
+  assert.strictEqual(afterSkillRoom.rollHistory[0].id, skillRoll.id);
+
+  const rolledCombat = updateRoomCombat({ roomCode: "CMBT", action: "ROLL_INITIATIVE" });
+  assert.strictEqual(rolledCombat.combat?.isActive, true);
+  assert.ok((rolledCombat.combat?.entries.length || 0) >= 2, "Expected combatants in initiative order");
+  assert.strictEqual(rolledCombat.combat?.round, 1);
+
+  const totalEntries = rolledCombat.combat!.entries.length;
+  for (let step = 0; step < totalEntries; step++) {
+    updateRoomCombat({ roomCode: "CMBT", action: "NEXT_TURN" });
+  }
+  assert.strictEqual(getOrCreateRoom("CMBT").combat?.round, 2, "Advancing full turn cycle must increment round to 2");
+
+  const endedCombat = updateRoomCombat({ roomCode: "CMBT", action: "END_COMBAT" });
+  assert.strictEqual(endedCombat.combat?.isActive, false);
+
+  const atmoRoom = updateRoomAtmosphere({
+    roomCode: "CMBT",
+    ambientSoundscape: "CRYSTAL_CAVERN",
+    sceneBackdrop: "STARLIGHT_OBSERVATORY",
+  });
+  assert.strictEqual(atmoRoom.ambientSoundscape, "CRYSTAL_CAVERN");
+  assert.strictEqual(atmoRoom.sceneBackdrop, "STARLIGHT_OBSERVATORY");
+  console.log("✅ PASSED");
+
+  // Suite 20: Foundry-Style Actor & Token Forge (Heroes + Monsters + SVG Generation)
+  process.stdout.write("20. Testing Foundry Actor & Token Forge (Character/Monster SVG Generator)... ");
+  assert.ok(vttHtml.includes("token-forge-modal"), "VTT HTML must render Foundry Token Forge modal");
+  assert.ok(vttHtml.includes("openTokenForgeModal"), "VTT HTML must bind openTokenForgeModal()");
+  assert.ok(vttHtml.includes("FORGE_PRESETS"), "VTT HTML must embed Foundry Actor & Monster presets");
+
+  const forgeFs = await import("fs");
+  const forgedPaths: string[] = [];
+  try {
+    const forgedHero = forgeActorAndTokenInRoom({
+      roomCode: "CMBT",
+      actorType: "HERO",
+      name: "Valkyrie Astra",
+      archetype: "Starlight Paladin",
+      bezelStyle: "ASTRAL_SILVER",
+      emblem: "KNIGHT_HELM",
+      primaryColor: "#4f46e5",
+      accentColor: "#38bdf8",
+      hp: 28,
+      armorClass: 17,
+      lightRadius: 4,
+      gridX: 3,
+      gridY: 2,
+      proficientSkills: ["athletics", "arcana", "perception"],
+    });
+    forgedPaths.push(forgedHero.tokenFilePath);
+    assert.ok(forgeFs.existsSync(forgedHero.tokenFilePath), "Expected forged Hero SVG saved to custom-tokens dir");
+    const heroSvg = forgeFs.readFileSync(forgedHero.tokenFilePath, "utf-8");
+    assert.ok(heroSvg.includes("<svg") && heroSvg.includes("Valkyrie Astra") && heroSvg.includes("HERO"));
+    const createdHero = forgedHero.room.heroes.find((h) => h.name === "Valkyrie Astra");
+    assert.ok(createdHero && createdHero.assetPath === forgedHero.tokenAssetUrl);
+
+    const forgedMonster = forgeActorAndTokenInRoom({
+      roomCode: "CMBT",
+      actorType: "MONSTER",
+      name: "Embermaw Wyrm",
+      archetype: "Ancient Fire Drake",
+      bezelStyle: "OBSIDIAN_CRIMSON",
+      emblem: "DRAGON_HEAD",
+      primaryColor: "#b91c1c",
+      accentColor: "#fb923c",
+      hp: 45,
+      armorClass: 16,
+      lightRadius: 3,
+      gridX: 6,
+      gridY: 3,
+    });
+    forgedPaths.push(forgedMonster.tokenFilePath);
+    assert.ok(forgeFs.existsSync(forgedMonster.tokenFilePath), "Expected forged Monster SVG saved to custom-tokens dir");
+    const monsterSvg = forgeFs.readFileSync(forgedMonster.tokenFilePath, "utf-8");
+    assert.ok(monsterSvg.includes("<svg") && monsterSvg.includes("Embermaw Wyrm") && monsterSvg.includes("FOE"));
+    const spawnedMonster = forgedMonster.room.tokens.find((t) => t.name === "Embermaw Wyrm");
+    assert.ok(spawnedMonster && spawnedMonster.type === "MONSTER" && spawnedMonster.assetPath === forgedMonster.tokenAssetUrl);
+
+    const listedCustom = listCustomTokenAssets();
+    assert.ok(listedCustom.some((c) => c.url === forgedMonster.tokenAssetUrl), "Forged SVG must appear in custom-tokens scanner");
+  } finally {
+    for (const p of forgedPaths) {
+      if (forgeFs.existsSync(p)) forgeFs.unlinkSync(p);
+    }
+  }
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 18/18 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 20/20 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

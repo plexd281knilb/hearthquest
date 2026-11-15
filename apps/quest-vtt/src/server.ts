@@ -8,6 +8,7 @@ import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
   FAMILY_CAMPAIGNS,
+  forgeActorAndTokenInRoom,
   generateJoinQrSvg,
   getCustomTokensDir,
   getOrCreateRoom,
@@ -16,11 +17,14 @@ import {
   openRoomLootChest,
   regenerateRoomProceduralMap,
   spawnCustomTokenInRoom,
+  submitHeroSkillRoll,
   submitPlayerActionRoll,
   submitQuickPolyhedralRoll,
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
+  updateRoomAtmosphere,
+  updateRoomCombat,
   updateRoomLighting,
   updateRoomSettings,
   updateRoomToolsAndWeather,
@@ -309,6 +313,80 @@ const server = http.createServer(async (req, res) => {
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/combat" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = updateRoomCombat({
+      roomCode: body.roomCode || "DRGN",
+      action: body.action || "ROLL_INITIATIVE",
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/skill-roll" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const result = submitHeroSkillRoll({
+      roomCode: body.roomCode || "DRGN",
+      characterId: body.characterId,
+      skillId: body.skillId || "perception",
+    });
+    broadcastRoomUpdate(result.room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, roll: result.roll, room: result.room }));
+    return;
+  }
+
+  if (pathname === "/api/room/atmosphere" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = updateRoomAtmosphere({
+      roomCode: body.roomCode || "DRGN",
+      ambientSoundscape: body.ambientSoundscape,
+      sceneBackdrop: body.sceneBackdrop,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/forge-actor" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const forged = forgeActorAndTokenInRoom({
+      roomCode: body.roomCode || "DRGN",
+      actorType: body.actorType === "MONSTER" ? "MONSTER" : "HERO",
+      name: body.name || "Forged Actor",
+      archetype: body.archetype,
+      bezelStyle: body.bezelStyle,
+      emblem: body.emblem,
+      primaryColor: body.primaryColor,
+      accentColor: body.accentColor,
+      hp: body.hp,
+      armorClass: body.armorClass,
+      lightRadius: body.lightRadius,
+      gridX: body.gridX,
+      gridY: body.gridY,
+      str: body.str,
+      dex: body.dex,
+      con: body.con,
+      int: body.int,
+      wis: body.wis,
+      cha: body.cha,
+      proficientSkills: body.proficientSkills,
+    });
+    broadcastRoomUpdate(forged.room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        tokenAssetUrl: forged.tokenAssetUrl,
+        room: forged.room,
+      })
+    );
     return;
   }
 

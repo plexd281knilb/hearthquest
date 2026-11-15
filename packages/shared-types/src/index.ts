@@ -20,6 +20,61 @@ export type AmbientLightingMode = "BRIGHT_DAYLIGHT" | "COZY_TWILIGHT" | "TORCHLI
 
 export type AmbientWeatherType = "NONE" | "HEARTH_EMBERS" | "FOREST_FIREFLIES" | "STARLIGHT_DUST";
 
+export type AmbientSoundscapeType =
+  | "SILENT"
+  | "COZY_TAVERN"
+  | "WHISPERING_WOODS"
+  | "GOBLIN_KITCHEN"
+  | "CRYSTAL_CAVERN";
+
+export type SceneBackdropType =
+  | "NONE"
+  | "HEARTH_TAVERN"
+  | "ENCHANTED_WOODS"
+  | "STARLIGHT_OBSERVATORY";
+
+export type SkillId =
+  | "athletics"
+  | "acrobatics"
+  | "stealth"
+  | "arcana"
+  | "investigation"
+  | "nature"
+  | "perception"
+  | "persuasion"
+  | "performance"
+  | "survival";
+
+export interface SkillDefinition {
+  id: SkillId;
+  name: string;
+  ability5e: "str" | "dex" | "con" | "int" | "wis" | "cha";
+  storybookStat: "brawn" | "brains" | "charm";
+  icon: string;
+  accentLightClass: string;
+  accentDarkClass: string;
+}
+
+export interface InitiativeEntry {
+  id: string;
+  tokenId: string;
+  characterId?: string;
+  name: string;
+  type: "HERO" | "NPC" | "MONSTER" | "PROP";
+  initiative: number;
+  hp: number;
+  maxHp: number;
+  avatarEmoji: string;
+  assetPath?: string;
+}
+
+export interface CombatState {
+  isActive: boolean;
+  round: number;
+  activeTurnIndex: number;
+  entries: InitiativeEntry[];
+}
+
 export interface SpellTemplate {
   id: string;
   shape: "CIRCLE" | "CONE" | "LINE";
@@ -121,6 +176,7 @@ export interface CharacterSheet {
   bioStory?: string;
   petTrait?: string;
   assetPath?: string;
+  proficientSkills?: SkillId[];
 }
 
 export interface MapToken {
@@ -291,4 +347,7 @@ export interface RoomSessionState {
   walls?: WallSegment[];
   ambientWeather?: AmbientWeatherType;
   spellTemplates?: SpellTemplate[];
+  ambientSoundscape?: AmbientSoundscapeType;
+  sceneBackdrop?: SceneBackdropType;
+  combat?: CombatState;
 }

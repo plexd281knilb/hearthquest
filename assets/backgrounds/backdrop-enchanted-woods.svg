@@ -1,0 +1,497 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <defs>
+    <!-- Sky & Canopy Atmosphere Gradients -->
+    <linearGradient id="ewSkyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#081426" />
+      <stop offset="35%" stop-color="#0c2530" />
+      <stop offset="70%" stop-color="#0d3b36" />
+      <stop offset="100%" stop-color="#082822" />
+    </linearGradient>
+
+    <!-- Celestial Moonbeam Radiance -->
+    <radialGradient id="ewMoonGlow" cx="55%" cy="18%" r="45%">
+      <stop offset="0%" stop-color="#fef9c3" stop-opacity="0.9" />
+      <stop offset="20%" stop-color="#a7f3d0" stop-opacity="0.5" />
+      <stop offset="55%" stop-color="#34d399" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#0d3b36" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Sunbeam / Moonlit Ray Gradients -->
+    <linearGradient id="ewRayGrad1" x1="0%" y1="0%" x2="40%" y2="100%">
+      <stop offset="0%" stop-color="#ecfdf5" stop-opacity="0.45" />
+      <stop offset="40%" stop-color="#a7f3d0" stop-opacity="0.22" />
+      <stop offset="80%" stop-color="#6ee7b7" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="ewRayGrad2" x1="10%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.38" />
+      <stop offset="45%" stop-color="#a7f3d0" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#047857" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Redwood Bark Gradients -->
+    <linearGradient id="ewRedwoodBarkDeep" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1a0c08" />
+      <stop offset="35%" stop-color="#3d1d13" />
+      <stop offset="70%" stop-color="#4a2417" />
+      <stop offset="100%" stop-color="#24110b" />
+    </linearGradient>
+
+    <linearGradient id="ewRedwoodMossy" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#121b14" />
+      <stop offset="35%" stop-color="#2d3a24" />
+      <stop offset="65%" stop-color="#41522f" />
+      <stop offset="100%" stop-color="#192418" />
+    </linearGradient>
+
+    <!-- Treehouse Wood Gradient -->
+    <linearGradient id="ewTreehousePlanks" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#633b1e" />
+      <stop offset="50%" stop-color="#4d2c14" />
+      <stop offset="100%" stop-color="#2c1708" />
+    </linearGradient>
+
+    <!-- Emerald Firefly Glow Radial -->
+    <radialGradient id="ewFireflyEmerald" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="25%" stop-color="#6ee7b7" stop-opacity="0.9" />
+      <stop offset="55%" stop-color="#10b981" stop-opacity="0.55" />
+      <stop offset="85%" stop-color="#047857" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#064e3b" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="ewFireflyAmber" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="28%" stop-color="#fef08a" stop-opacity="0.9" />
+      <stop offset="60%" stop-color="#f59e0b" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#b45309" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Lantern Glow Radial -->
+    <radialGradient id="ewLanternGlowAmber" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbeb" stop-opacity="1" />
+      <stop offset="25%" stop-color="#fef08a" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.45" />
+      <stop offset="75%" stop-color="#b45309" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#78350f" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="ewLanternGlowEmerald" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ecfdf5" stop-opacity="1" />
+      <stop offset="25%" stop-color="#6ee7b7" stop-opacity="0.85" />
+      <stop offset="55%" stop-color="#10b981" stop-opacity="0.45" />
+      <stop offset="85%" stop-color="#047857" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#064e3b" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Bioluminescent Mushroom Glow -->
+    <radialGradient id="ewShroomGlowTeal" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#99f6e4" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#14b8a6" stop-opacity="0.5" />
+      <stop offset="80%" stop-color="#0f766e" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#134e4a" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Soft Blur Glow Filters -->
+    <filter id="ewGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="ewAtmosphereBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18" />
+    </filter>
+
+    <!-- Forest Tabletop Vignette -->
+    <radialGradient id="ewWoodsVignette" cx="50%" cy="50%" r="58%">
+      <stop offset="48%" stop-color="#000000" stop-opacity="0" />
+      <stop offset="78%" stop-color="#03120f" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#010807" stop-opacity="0.82" />
+    </radialGradient>
+  </defs>
+
+  <!-- LAYER 1: TWILIGHT SKY & MISTY CANOPY HORIZON -->
+  <rect width="1200" height="720" fill="url(#ewSkyGrad)" />
+
+  <!-- Luminous Crescent Moon & Canopy Halo -->
+  <circle cx="640" cy="110" r="140" fill="url(#ewMoonGlow)" />
+  <path d="M 660 70 C 630 70 605 95 605 125 C 605 155 630 180 660 180 C 640 180 622 165 622 125 C 622 85 640 70 660 70 Z"
+        fill="#fef9c3" opacity="0.95" filter="url(#ewGlow)" />
+
+  <!-- Distant Layer 1 Trunks (Deepest Forest Silhouettes - Low Contrast Teal) -->
+  <g fill="#0b2829" opacity="0.45">
+    <rect x="290" y="0" width="35" height="580" />
+    <rect x="360" y="0" width="45" height="580" />
+    <rect x="490" y="0" width="40" height="580" />
+    <rect x="740" y="0" width="45" height="580" />
+    <rect x="830" y="0" width="38" height="580" />
+    <!-- Distant Foliage Domes -->
+    <circle cx="310" cy="90" r="85" />
+    <circle cx="380" cy="70" r="100" />
+    <circle cx="510" cy="80" r="95" />
+    <circle cx="760" cy="75" r="90" />
+    <circle cx="850" cy="85" r="85" />
+  </g>
+
+  <!-- Distant Ground Mist Bank -->
+  <path d="M 0 460 Q 300 420 600 450 Q 900 480 1200 440 L 1200 580 L 0 580 Z" fill="#0d3b36" opacity="0.35" filter="url(#ewAtmosphereBlur)" />
+
+  <!-- Mid-Distance Layer 2 Redwood Trunks (Mossy Silhouette Teal-Brown) -->
+  <g fill="#0e241c" opacity="0.75">
+    <!-- Mid Trunk 1 -->
+    <path d="M 180 0 L 220 0 L 230 580 L 170 580 Z" />
+    <!-- Mid Trunk 2 -->
+    <path d="M 430 0 L 485 0 L 495 580 L 420 580 Z" />
+    <!-- Mid Trunk 3 -->
+    <path d="M 680 0 L 730 0 L 738 580 L 670 580 Z" />
+    <!-- Mid Trunk 4 -->
+    <path d="M 900 0 L 950 0 L 960 580 L 890 580 Z" />
+    <!-- Overarching Boughs -->
+    <path d="M 180 180 Q 320 140 450 170 Q 300 170 200 210 Z" />
+    <path d="M 700 160 Q 820 130 920 165 Q 810 170 690 190 Z" />
+  </g>
+
+  <!-- LAYER 2: VOLUMETRIC SUNBEAMS / MOONBEAM GODRAYS -->
+  <g pointer-events="none">
+    <!-- Center Left Shaft -->
+    <polygon points="560,0 640,0 420,720 280,720" fill="url(#ewRayGrad1)" />
+    <!-- Center Main Shaft hitting Forest Floor -->
+    <polygon points="620,0 700,0 680,720 520,720" fill="url(#ewRayGrad2)" />
+    <!-- Center Right Shaft hitting Treehouse Bridge -->
+    <polygon points="670,0 740,0 950,720 820,720" fill="url(#ewRayGrad1)" opacity="0.8" />
+    <!-- Secondary Far Left Beam -->
+    <polygon points="380,0 440,0 160,720 70,720" fill="url(#ewRayGrad2)" opacity="0.5" />
+    <!-- Secondary Far Right Beam -->
+    <polygon points="800,0 860,0 1140,720 1020,720" fill="url(#ewRayGrad1)" opacity="0.4" />
+  </g>
+
+  <!-- LAYER 3: GIANT REDWOOD TRUNKS (Foreground Left & Right Foundations) -->
+  <!-- Left Giant Redwood Trunk -->
+  <path d="M -20 0 L 140 0 C 130 180 115 380 145 560 C 160 640 180 690 220 720 L -20 720 Z"
+        fill="url(#ewRedwoodBarkDeep)" stroke="#0d0604" stroke-width="2.5" />
+  <!-- Left Trunk Bark Ridges & Deep Furrows -->
+  <g stroke="#130704" stroke-width="3" opacity="0.75" fill="none">
+    <path d="M 25 0 C 20 180 15 360 25 560 C 30 640 40 700 50 720" />
+    <path d="M 65 0 C 58 190 52 380 62 560 C 70 640 90 690 110 720" />
+    <path d="M 105 0 C 95 170 85 360 105 540 C 118 630 140 680 170 720" />
+  </g>
+  <!-- Moss Patch Highlights on Left Redwood -->
+  <path d="M 90 280 Q 120 320 95 380 Q 75 340 90 280 Z" fill="#2d4a20" opacity="0.8" />
+  <path d="M 115 440 Q 145 490 120 540 Q 95 490 115 440 Z" fill="#3f692d" opacity="0.7" />
+
+  <!-- Right Giant Redwood Trunk (Cradling the Treehouse) -->
+  <path d="M 1020 0 L 1220 0 L 1220 720 C 1170 710 1130 670 1105 600 C 1080 440 1065 240 1050 0 Z"
+        fill="url(#ewRedwoodBarkDeep)" stroke="#0d0604" stroke-width="2.5" />
+  <!-- Right Trunk Bark Grooves -->
+  <g stroke="#130704" stroke-width="3" opacity="0.75" fill="none">
+    <path d="M 1065 0 C 1080 220 1095 440 1120 620 C 1135 670 1160 700 1180 720" />
+    <path d="M 1110 0 C 1125 210 1140 420 1165 580 C 1180 640 1200 680 1215 720" />
+  </g>
+  <!-- Moss on Right Trunk -->
+  <path d="M 1055 240 Q 1035 300 1060 360 Q 1080 310 1055 240 Z" fill="#3f692d" opacity="0.75" />
+  <path d="M 1085 460 Q 1065 520 1090 580 Q 1110 530 1085 460 Z" fill="#2d4a20" opacity="0.8" />
+
+  <!-- LAYER 4: GNARLED BOUGHS, SUSPENSION BRIDGE & TREEHOUSE OUTPOST -->
+  <!-- Giant Horizontal Support Bough Arching Across -->
+  <path d="M 1050 330 C 950 330 840 345 720 365 C 640 380 540 395 430 420 C 340 440 230 450 130 430 L 135 465 C 240 485 360 475 450 455 C 560 430 660 415 740 400 C 860 380 960 370 1050 370 Z"
+        fill="url(#ewRedwoodMossy)" stroke="#0f1910" stroke-width="3" />
+
+  <!-- Hanging Spanish Moss & Wild Climbing Vines Drifting from Bough -->
+  <g stroke="#1b3d22" stroke-width="2" fill="none">
+    <!-- Tendril 1 -->
+    <path d="M 320 455 Q 315 500 325 540 Q 320 570 322 590" />
+    <path d="M 325 470 Q 335 510 330 550" opacity="0.6" />
+    <!-- Tendril 2 -->
+    <path d="M 460 440 Q 455 490 468 535 Q 460 565 464 585" />
+    <!-- Tendril 3 -->
+    <path d="M 600 410 Q 595 460 605 505 Q 600 535 602 550" />
+    <!-- Tendril 4 -->
+    <path d="M 760 395 Q 755 440 765 480" />
+  </g>
+  <!-- Moss Frill Drapery -->
+  <path d="M 300 450 Q 320 480 340 450 Q 360 485 380 445 Q 400 475 420 440" fill="#2d5328" opacity="0.65" />
+  <path d="M 580 405 Q 600 435 620 405 Q 640 440 660 400" fill="#2d5328" opacity="0.65" />
+
+  <!-- TREEHOUSE OUTPOST (Right Bough Nestled Against Giant Redwood) -->
+  <g id="ewTreehouseGroup">
+    <!-- Treehouse Foundation Timbers & Brackets -->
+    <polygon points="840,360 880,310 880,360" fill="#2e1708" stroke="#130802" stroke-width="2" />
+    <polygon points="1010,345 970,305 970,345" fill="#2e1708" stroke="#130802" stroke-width="2" />
+    <!-- Support Pilings Under Cabin -->
+    <line x1="860" y1="360" x2="890" y2="305" stroke="#3b1f0c" stroke-width="6" stroke-linecap="round" />
+    <line x1="1000" y1="345" x2="970" y2="305" stroke="#3b1f0c" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Main Deck Platform Planks -->
+    <polygon points="825,310 1025,300 1030,320 820,330" fill="url(#ewTreehousePlanks)" stroke="#1a0c03" stroke-width="2.5" />
+    <line x1="823" y1="318" x2="1027" y2="308" stroke="#6f421e" stroke-width="2" />
+
+    <!-- Treehouse Dwelling Cabin Body -->
+    <path d="M 875 305 L 875 220 L 985 215 L 985 300 Z" fill="#422511" stroke="#190d04" stroke-width="2" />
+    <!-- Cabin Timber Planking -->
+    <line x1="875" y1="240" x2="985" y2="235" stroke="#2c1708" stroke-width="1.5" />
+    <line x1="875" y1="260" x2="985" y2="255" stroke="#2c1708" stroke-width="1.5" />
+    <line x1="875" y1="280" x2="985" y2="275" stroke="#2c1708" stroke-width="1.5" />
+
+    <!-- Cozy Glowing Round Porthole Window -->
+    <circle cx="930" cy="255" r="14" fill="#fef08a" stroke="#d97706" stroke-width="2.5" />
+    <circle cx="930" cy="255" r="11" fill="#f59e0b" opacity="0.8" />
+    <!-- Window Crossbar -->
+    <line x1="930" y1="241" x2="930" y2="269" stroke="#78350f" stroke-width="2" />
+    <line x1="916" y1="255" x2="944" y2="255" stroke="#78350f" stroke-width="2" />
+    <!-- Window Warm Glow Radiance -->
+    <circle cx="930" cy="255" r="50" fill="url(#ewLanternGlowAmber)" opacity="0.6" pointer-events="none" />
+
+    <!-- Conical Thatch / Bark Shingle Roof -->
+    <polygon points="855,225 930,140 1005,220" fill="#2d421e" stroke="#14210a" stroke-width="2.5" />
+    <!-- Moss & Thatch Overhang Layers -->
+    <polygon points="865,220 930,150 995,216" fill="#3f5e29" />
+    <polygon points="880,210 930,165 980,208" fill="#527d35" />
+    <!-- Tiny Stone / Clay Chimney with Warm Smoke Wisp -->
+    <rect x="955" y="155" width="12" height="25" rx="2" fill="#57534e" stroke="#292524" stroke-width="1.5" />
+    <!-- Smoke wisp -->
+    <path d="M 961 150 Q 958 135 965 125 Q 972 115 968 100" fill="none" stroke="#ecfdf5" stroke-width="2.5" opacity="0.4" stroke-linecap="round" />
+
+    <!-- Deck Balustrade / Rustic Wooden Railing -->
+    <line x1="828" y1="285" x2="875" y2="283" stroke="#2e1708" stroke-width="3" />
+    <line x1="840" y1="285" x2="840" y2="315" stroke="#2e1708" stroke-width="2.5" />
+    <line x1="855" y1="284" x2="855" y2="314" stroke="#2e1708" stroke-width="2.5" />
+    <line x1="870" y1="283" x2="870" y2="313" stroke="#2e1708" stroke-width="2.5" />
+
+    <line x1="985" y1="280" x2="1025" y2="278" stroke="#2e1708" stroke-width="3" />
+    <line x1="1000" y1="279" x2="1000" y2="307" stroke="#2e1708" stroke-width="2.5" />
+    <line x1="1018" y1="278" x2="1018" y2="304" stroke="#2e1708" stroke-width="2.5" />
+
+    <!-- Spiral Wooden Steps Wrapping Down Redwood Trunk -->
+    <polygon points="1035,350 1075,340 1075,355 1035,365" fill="#4d2c14" stroke="#1a0c03" stroke-width="1.5" />
+    <polygon points="1040,380 1080,370 1080,385 1040,395" fill="#4d2c14" stroke="#1a0c03" stroke-width="1.5" />
+    <polygon points="1045,410 1085,400 1085,415 1045,425" fill="#4d2c14" stroke="#1a0c03" stroke-width="1.5" />
+  </g>
+
+  <!-- ROPE SUSPENSION BRIDGE CONNECTING CANOPY OUTPOSTS -->
+  <g id="ewSuspensionBridge">
+    <!-- Hanging Catinary Main Ropes -->
+    <!-- Top Handrail Rope -->
+    <path d="M 520 375 Q 670 410 825 285" fill="none" stroke="#78350f" stroke-width="3" stroke-dasharray="6 2" />
+    <!-- Bottom Walkway Stringer Rope -->
+    <path d="M 525 405 Q 675 440 825 315" fill="none" stroke="#542508" stroke-width="4" stroke-dasharray="6 2" />
+
+    <!-- Vertical Rungs & Slats -->
+    <line x1="560" y1="384" x2="563" y2="413" stroke="#451a03" stroke-width="1.8" />
+    <line x1="600" y1="392" x2="603" y2="422" stroke="#451a03" stroke-width="1.8" />
+    <line x1="640" y1="397" x2="643" y2="427" stroke="#451a03" stroke-width="1.8" />
+    <line x1="680" y1="395" x2="683" y2="425" stroke="#451a03" stroke-width="1.8" />
+    <line x1="720" y1="386" x2="723" y2="416" stroke="#451a03" stroke-width="1.8" />
+    <line x1="760" y1="368" x2="763" y2="398" stroke="#451a03" stroke-width="1.8" />
+    <line x1="795" y1="337" x2="798" y2="367" stroke="#451a03" stroke-width="1.8" />
+
+    <!-- Wooden Bridge Planks Swaying Across -->
+    <polygon points="555,411 575,415 573,421 553,417" fill="#603b1e" stroke="#251307" stroke-width="1" />
+    <polygon points="595,420 615,423 613,429 593,426" fill="#603b1e" stroke="#251307" stroke-width="1" />
+    <polygon points="635,425 655,426 653,432 633,431" fill="#603b1e" stroke="#251307" stroke-width="1" />
+    <polygon points="675,423 695,421 693,427 673,429" fill="#603b1e" stroke="#251307" stroke-width="1" />
+    <polygon points="715,414 735,409 733,415 713,420" fill="#603b1e" stroke="#251307" stroke-width="1" />
+    <polygon points="755,396 775,388 773,394 753,402" fill="#603b1e" stroke="#251307" stroke-width="1" />
+
+    <!-- Left Lookout Perch / Tree Platform -->
+    <polygon points="450,420 535,400 540,416 448,436" fill="url(#ewTreehousePlanks)" stroke="#1a0c03" stroke-width="2" />
+    <line x1="465" y1="390" x2="525" y2="375" stroke="#2e1708" stroke-width="2.5" />
+    <line x1="475" y1="390" x2="475" y2="425" stroke="#2e1708" stroke-width="2" />
+    <line x1="510" y1="380" x2="510" y2="415" stroke="#2e1708" stroke-width="2" />
+  </g>
+
+  <!-- LAYER 5: HANGING LANTERN BRANCHES -->
+  <!-- Lantern 1: Hanging from Treehouse Balcony (Warm Amber Glow) -->
+  <g id="ewLanternTreehouse">
+    <!-- Brass Suspension Chain -->
+    <line x1="840" y1="330" x2="840" y2="375" stroke="#d97706" stroke-width="1.8" stroke-dasharray="3 2" />
+    <!-- Hexagonal Acorn Lantern Housing -->
+    <polygon points="832,375 848,375 844,383 836,383" fill="#b45309" stroke="#451a03" stroke-width="1.2" />
+    <polygon points="830,383 850,383 846,408 834,408" fill="#fef08a" stroke="#78350f" stroke-width="1.5" />
+    <polygon points="834,408 846,408 840,416" fill="#b45309" stroke="#451a03" stroke-width="1.2" />
+    <!-- Inner Flame -->
+    <ellipse cx="840" cy="395" rx="3.5" ry="6" fill="#f59e0b" />
+    <circle cx="840" cy="395" r="75" fill="url(#ewLanternGlowAmber)" opacity="0.75" pointer-events="none" />
+  </g>
+
+  <!-- Lantern 2: Suspended from Mossy Redwood Branch - Center (Emerald Glass Fairy Lantern) -->
+  <g id="ewLanternBoughCenter">
+    <path d="M 640 432 Q 638 465 642 490" fill="none" stroke="#047857" stroke-width="2" />
+    <!-- Ornate Brass Top Cap -->
+    <polygon points="633,490 651,490 647,497 637,497" fill="#d97706" stroke="#451a03" stroke-width="1" />
+    <!-- Blown Emerald Glass Vessel -->
+    <ellipse cx="642" cy="510" rx="10" ry="14" fill="#a7f3d0" stroke="#047857" stroke-width="1.5" />
+    <ellipse cx="642" cy="510" rx="5" ry="8" fill="#ffffff" opacity="0.8" />
+    <polygon points="638,524 646,524 642,530" fill="#d97706" />
+    <!-- Magical Emerald Radiance Halo -->
+    <circle cx="642" cy="510" r="90" fill="url(#ewLanternGlowEmerald)" opacity="0.8" pointer-events="none" />
+  </g>
+
+  <!-- Lantern 3: Left Lookout Perch Lantern (Warm Amber) -->
+  <g id="ewLanternLeftPerch">
+    <line x1="470" y1="428" x2="470" y2="455" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3 2" />
+    <polygon points="463,455 477,455 474,461 466,461" fill="#92400e" stroke="#451a03" stroke-width="1" />
+    <rect x="464" y="461" width="12" height="18" rx="2" fill="#fef9c3" stroke="#b45309" stroke-width="1.2" />
+    <ellipse cx="470" cy="470" rx="2.5" ry="4.5" fill="#f59e0b" />
+    <polygon points="465,479 475,479 470,485" fill="#92400e" stroke="#451a03" stroke-width="1" />
+    <circle cx="470" cy="470" r="65" fill="url(#ewLanternGlowAmber)" opacity="0.7" pointer-events="none" />
+  </g>
+
+  <!-- LAYER 6: FOREST FLOOR, MOSSY BOULDERS, GNARLED ROOTS -->
+  <!-- Rolling Forest Floor Terrain -->
+  <path d="M 0 540 Q 350 510 650 540 Q 950 570 1200 530 L 1200 720 L 0 720 Z" fill="#092019" />
+  <path d="M 0 590 Q 280 565 600 580 Q 920 600 1200 570 L 1200 720 L 0 720 Z" fill="#051511" />
+
+  <!-- Massive Gnarled Redwood Roots Creeping Over Ground -->
+  <!-- Left Giant Root -->
+  <path d="M 120 540 C 180 560 260 550 340 590 C 400 620 480 610 550 635 L 530 655 C 460 630 380 640 320 610 C 240 575 160 585 105 570 Z"
+        fill="#26120b" stroke="#0d0603" stroke-width="2.5" />
+  <!-- Moss on Root -->
+  <path d="M 220 560 Q 280 555 330 590 Q 270 575 220 560 Z" fill="#2d5328" />
+
+  <!-- Right Giant Root -->
+  <path d="M 1080 580 C 1010 600 920 580 840 620 C 760 660 680 650 600 670 L 610 690 C 690 670 770 680 850 640 C 930 600 1020 620 1090 605 Z"
+        fill="#26120b" stroke="#0d0603" stroke-width="2.5" />
+  <path d="M 950 590 Q 880 600 830 630 Q 900 610 950 590 Z" fill="#2d5328" />
+
+  <!-- Left Mossy Boulder Silhouette -->
+  <path d="M 0 620 Q 80 560 170 590 Q 240 615 220 720 L 0 720 Z" fill="#0c2e25" stroke="#051410" stroke-width="2.5" />
+  <path d="M 30 605 Q 110 570 160 600 Q 110 615 30 605 Z" fill="#36632f" opacity="0.8" />
+
+  <!-- Right Mossy Boulder Silhouette -->
+  <path d="M 1000 720 Q 1020 620 1110 610 Q 1180 605 1200 640 L 1200 720 Z" fill="#0c2e25" stroke="#051410" stroke-width="2.5" />
+  <path d="M 1040 630 Q 1110 615 1160 635 Q 1100 645 1040 630 Z" fill="#36632f" opacity="0.8" />
+
+  <!-- LAYER 7: BIOLUMINESCENT FAIRY MUSHROOMS & FOREST FERNS -->
+  <!-- Left Glowing Mushroom Cluster -->
+  <g id="ewLeftMushrooms">
+    <ellipse cx="140" cy="650" rx="45" ry="25" fill="url(#ewShroomGlowTeal)" pointer-events="none" />
+
+    <!-- Stem 1 -->
+    <path d="M 130 655 Q 128 630 134 615 L 140 615 Q 134 630 136 655 Z" fill="#d1fae5" stroke="#065f46" stroke-width="1" />
+    <!-- Cap 1 -->
+    <path d="M 115 620 C 115 595 155 595 155 620 C 145 623 125 623 115 620 Z" fill="#2dd4bf" stroke="#0f766e" stroke-width="1.8" />
+    <!-- Bioluminescent Cap Spots -->
+    <circle cx="127" cy="608" r="2.5" fill="#f0fdfa" />
+    <circle cx="138" cy="604" r="3" fill="#f0fdfa" />
+    <circle cx="146" cy="611" r="2" fill="#f0fdfa" />
+
+    <!-- Smaller Shroom 2 -->
+    <path d="M 152 658 Q 155 640 160 632 L 165 632 Q 160 642 157 658 Z" fill="#d1fae5" stroke="#065f46" stroke-width="1" />
+    <path d="M 148 635 C 148 618 175 618 175 635 C 168 637 155 637 148 635 Z" fill="#14b8a6" stroke="#0f766e" stroke-width="1.5" />
+    <circle cx="158" cy="626" r="2" fill="#f0fdfa" />
+    <circle cx="166" cy="628" r="1.5" fill="#f0fdfa" />
+  </g>
+
+  <!-- Right Glowing Mushroom Cluster (Amber/Emerald Spores) -->
+  <g id="ewRightMushrooms">
+    <ellipse cx="1060" cy="670" rx="40" ry="20" fill="url(#ewShroomGlowTeal)" pointer-events="none" />
+
+    <path d="M 1050 670 Q 1046 648 1052 638 L 1058 638 Q 1052 648 1056 670 Z" fill="#ecfdf5" stroke="#047857" stroke-width="1" />
+    <path d="M 1038 642 C 1038 620 1072 620 1072 642 C 1062 645 1048 645 1038 642 Z" fill="#34d399" stroke="#065f46" stroke-width="1.8" />
+    <circle cx="1048" cy="632" r="2.5" fill="#fef08a" />
+    <circle cx="1058" cy="629" r="2.8" fill="#fef08a" />
+
+    <!-- Spore wisps floating up -->
+    <circle cx="1055" cy="610" r="1.5" fill="#a7f3d0" opacity="0.8" />
+    <circle cx="1048" cy="595" r="1.8" fill="#a7f3d0" opacity="0.7" />
+  </g>
+
+  <!-- Foreground Fern Silhouettes (Bottom Left & Right Framing) -->
+  <g fill="#041611" stroke="#020d0a" stroke-width="1">
+    <!-- Left Fern Frond 1 -->
+    <path d="M 10 720 Q 40 650 90 620 Q 80 645 10 720 Z" />
+    <path d="M 50 660 L 65 650 L 52 666" />
+    <path d="M 65 645 L 82 638 L 68 652" />
+    <!-- Left Fern Frond 2 (Curling Fiddlehead) -->
+    <path d="M 0 720 Q 30 610 50 560 Q 58 545 68 550 Q 72 560 62 565 Q 52 565 42 585 Q 25 640 0 720 Z" />
+
+    <!-- Right Fern Frond 1 -->
+    <path d="M 1190 720 Q 1150 640 1100 610 Q 1120 640 1190 720 Z" />
+    <path d="M 1145 650 L 1130 640 L 1142 656" />
+    <path d="M 1130 635 L 1115 628 L 1128 642" />
+  </g>
+
+  <!-- LAYER 8: FLOATING EMERALD FIREFLIES & MAGIC WILL-O'-THE-WISPS -->
+  <!-- Large Focal Fireflies with Emerald Halos -->
+  <!-- Firefly 1 - Hovering near bridge -->
+  <g transform="translate(620, 340)">
+    <circle cx="0" cy="0" r="30" fill="url(#ewFireflyEmerald)" />
+    <circle cx="0" cy="0" r="3.5" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Firefly 2 - Center Sunbeam Float -->
+  <g transform="translate(520, 240)">
+    <circle cx="0" cy="0" r="26" fill="url(#ewFireflyEmerald)" />
+    <circle cx="0" cy="0" r="3" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Firefly 3 - Near Left Giant Redwood -->
+  <g transform="translate(240, 360)">
+    <circle cx="0" cy="0" r="28" fill="url(#ewFireflyAmber)" />
+    <circle cx="0" cy="0" r="3.2" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Firefly 4 - Drifting over Forest Floor -->
+  <g transform="translate(420, 560)">
+    <circle cx="0" cy="0" r="32" fill="url(#ewFireflyEmerald)" />
+    <circle cx="0" cy="0" r="3.8" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Firefly 5 - Near Treehouse Stairs -->
+  <g transform="translate(980, 420)">
+    <circle cx="0" cy="0" r="26" fill="url(#ewFireflyEmerald)" />
+    <circle cx="0" cy="0" r="3" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Firefly 6 - Right Canopy Bough -->
+  <g transform="translate(780, 220)">
+    <circle cx="0" cy="0" r="24" fill="url(#ewFireflyAmber)" />
+    <circle cx="0" cy="0" r="2.8" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Firefly 7 - Low Right Mossy Boulders -->
+  <g transform="translate(880, 610)">
+    <circle cx="0" cy="0" r="30" fill="url(#ewFireflyEmerald)" />
+    <circle cx="0" cy="0" r="3.5" fill="#ffffff" filter="url(#ewGlow)" />
+  </g>
+
+  <!-- Scattered Mid/Distant Magical Fireflies (Sparkle Field) -->
+  <g fill="#a7f3d0" opacity="0.85" filter="url(#ewGlow)">
+    <circle cx="340" cy="210" r="2.2" />
+    <circle cx="380" cy="310" r="1.8" />
+    <circle cx="460" cy="160" r="2.4" />
+    <circle cx="490" cy="480" r="2.0" />
+    <circle cx="560" cy="460" r="2.5" />
+    <circle cx="590" cy="270" r="2.0" />
+    <circle cx="660" cy="230" r="2.3" />
+    <circle cx="710" cy="340" r="1.9" />
+    <circle cx="750" cy="480" r="2.2" />
+    <circle cx="820" cy="440" r="1.8" />
+    <circle cx="870" cy="260" r="2.4" />
+    <circle cx="920" cy="380" r="2.0" />
+    <circle cx="310" cy="480" r="2.1" />
+    <circle cx="680" cy="580" r="2.5" />
+    <circle cx="780" cy="570" r="2.0" />
+  </g>
+
+  <!-- Golden Stardust Motes Drifting in Sunbeams -->
+  <g fill="#fef08a" opacity="0.6">
+    <circle cx="540" cy="120" r="1.5" />
+    <circle cx="600" cy="180" r="1.8" />
+    <circle cx="650" cy="150" r="1.4" />
+    <circle cx="580" cy="310" r="1.6" />
+    <circle cx="630" cy="280" r="1.5" />
+    <circle cx="510" cy="370" r="1.7" />
+    <circle cx="670" cy="420" r="1.5" />
+    <circle cx="610" cy="490" r="1.8" />
+  </g>
+
+  <!-- LAYER 9: TABLETOP SOFT VIGNETTE & FRAMING -->
+  <!-- Forest Tabletop Vignette (Soft dark border for tabletop play area) -->
+  <rect width="1200" height="720" fill="url(#ewWoodsVignette)" pointer-events="none" />
+
+  <!-- Four-Pointed Nature Sparkle Crest (Top Center) -->
+  <path d="M 640 45 Q 640 60 630 60 Q 640 60 640 75 Q 640 60 650 60 Q 640 60 640 45 Z"
+        fill="#a7f3d0" opacity="0.9" filter="url(#ewGlow)" pointer-events="none" />
+</svg>

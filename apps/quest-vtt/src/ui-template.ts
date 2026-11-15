@@ -1,7 +1,14 @@
 import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
+import { HEARTHQUEST_SKILLS } from "@hearthquest/srd-rules";
+import {
+  renderAtmosphereControlsHtml,
+  renderCombatAndAmbientAudioScript,
+  renderCombatInitiativeBarHtml,
+} from "./combat-audio-engine";
 import { renderDice3DEngineScript, renderDice3DOverlayHtml } from "./dice-3d-engine";
 import { renderLighting2DEngineScript, renderLightingControlsHtml } from "./lighting-engine";
 import { renderTabletopToolsControlsHtml, renderToolsAndWeatherEngineScript } from "./tools-weather-engine";
+import { renderTokenForgeClientScript, renderTokenForgeModalHtml } from "./token-forge-engine";
 
 export function renderVttAppHtml(initialState: RoomSessionState): string {
   const serialized = JSON.stringify(initialState).replace(/</g, "\\u003c");
@@ -84,6 +91,15 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     }
     body[data-theme="light"] .text-slate-300 {
       color: #44403c !important;
+    }
+    body[data-theme="light"] .skill-chip-dark-fallback {
+      background-color: #fef3c7 !important;
+      color: #78350f !important;
+      border-color: #fcd34d !important;
+    }
+    .active-turn-ring {
+      box-shadow: 0 0 0 3px #f43f5e, 0 0 18px rgba(244, 63, 94, 0.85);
+      transform: scale(1.1);
     }
 
     /* 10x6 Tactical Grid */
@@ -233,6 +249,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
   <main class="flex-1 p-4 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4">
     <!-- Left / Center Column: Interactive Tabletop Grid Map -->
     <section id="map-column" class="lg:col-span-8 flex flex-col gap-4">
+      ${renderCombatInitiativeBarHtml()}
       <div class="theme-card rounded-2xl p-4 shadow-2xl border">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
@@ -246,9 +263,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           </div>
         </div>
 
-        <!-- 10x6 Interactive Tabletop Grid + 2D Raycast Lighting + Ruler/Templates/Weather Canvas -->
+        <!-- 10x6 Interactive Tabletop Grid + Scenic Backdrop + 2D Raycast Lighting + Ruler/Templates/Weather Canvas -->
         <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-inner">
-          <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative select-none"></div>
+          <img id="vtt-scene-backdrop" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Backdrop" class="hidden absolute inset-0 w-full h-full object-cover opacity-35 pointer-events-none z-0 transition-opacity duration-500" />
+          <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative z-10 select-none"></div>
           <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
           <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
         </div>
@@ -273,6 +291,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           </div>
           ${renderLightingControlsHtml()}
           ${renderTabletopToolsControlsHtml()}
+          ${renderAtmosphereControlsHtml()}
           <!-- Custom Unraid Token Drop Folder Bar -->
           <div id="custom-tokens-bar" class="mt-1 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="flex flex-wrap items-center gap-2">
@@ -281,6 +300,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
                 <option value="">Scanning /app/data/custom-tokens...</option>
               </select>
               <button onclick="spawnSelectedCustomToken()" class="px-2.5 py-1 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">➕ Spawn on Map</button>
+              <button onclick="openTokenForgeModal()" class="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm">⚒️ Foundry Token Forge</button>
               <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
             </div>
             <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
@@ -355,6 +375,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <div class="flex gap-1.5">
             <button onclick="openHeroSheetModal()" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
               📜 View Sheet
+            </button>
+            <button onclick="openTokenForgeModal()" class="text-xs px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold">
+              ⚒️ Forge
             </button>
             <button onclick="toggleHeroCreatorModal()" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
               + New Hero
@@ -466,6 +489,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       </button>
     </div>
   </div>
+
+  ${renderTokenForgeModalHtml()}
 
   <!-- QR JOIN MODAL -->
   <div id="qr-join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -639,6 +664,11 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       btn.className = AudioEngine.muted
         ? "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
         : "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-emerald-300 border border-slate-600";
+      if (AudioEngine.muted) {
+        AmbientAudioEngine.stop();
+      } else if (state.ambientSoundscape && state.ambientSoundscape !== "SILENT") {
+        AmbientAudioEngine.start(state.ambientSoundscape, true);
+      }
     }
 
     /* ==========================================================
@@ -653,17 +683,27 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       if (btn) {
         btn.innerText = theme === "light" ? "☀️ Light" : "🌙 Dark";
       }
+      const modal = document.getElementById("hero-sheet-modal");
+      if (modal && !modal.classList.contains("hidden")) {
+        openHeroSheetModal();
+      }
     }
     function toggleTheme() {
       applyTheme(currentTheme === "light" ? "dark" : "light");
     }
     applyTheme(currentTheme);
 
+    const SKILL_CATALOG = ${JSON.stringify(HEARTHQUEST_SKILLS)};
+
     ${renderDice3DEngineScript()}
 
     ${renderLighting2DEngineScript()}
 
     ${renderToolsAndWeatherEngineScript()}
+
+    ${renderCombatAndAmbientAudioScript()}
+
+    ${renderTokenForgeClientScript()}
 
     /* ==========================================================
        3. API CALLS & HELPERS
@@ -736,6 +776,45 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         roomCode: state.roomCode,
         ambientWeather
       });
+    }
+
+    async function combatAction(action) {
+      AudioEngine.playDiceRoll();
+      await apiPost("/api/room/combat", {
+        roomCode: state.roomCode,
+        action
+      });
+    }
+
+    async function updateAtmosphere(userInitiated) {
+      const backdropSel = document.getElementById("select-scene-backdrop");
+      const soundSel = document.getElementById("select-ambient-soundscape");
+      const sceneBackdrop = backdropSel ? backdropSel.value : undefined;
+      const ambientSoundscape = soundSel ? soundSel.value : undefined;
+      if (userInitiated && ambientSoundscape) {
+        AmbientAudioEngine.start(ambientSoundscape, true);
+      }
+      await apiPost("/api/room/atmosphere", {
+        roomCode: state.roomCode,
+        sceneBackdrop,
+        ambientSoundscape
+      });
+    }
+
+    async function rollHeroSkill(skillId) {
+      const hero = state.heroes.find(h => h.id === selectedHeroId) || state.heroes[0];
+      if (!hero) return;
+      AudioEngine.playDiceRoll();
+      const json = await apiPost("/api/room/skill-roll", {
+        roomCode: state.roomCode,
+        characterId: hero.id,
+        skillId
+      });
+      if (json && json.roll) {
+        animateRollIn3D(json.roll);
+        if (json.roll.succeeded) AudioEngine.playSuccessChime();
+        else AudioEngine.playFailForwardBoing();
+      }
     }
 
     async function refreshCustomTokens() {
@@ -899,24 +978,73 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       document.getElementById("modal-hero-title").innerHTML = \`\${hero.avatarEmoji} \${hero.name} — Character Sheet\`;
       const stars = "⭐".repeat(hero.levelStars || 1);
       const content = document.getElementById("modal-hero-content");
+      const isLight = document.body.getAttribute("data-theme") === "light";
+      const profSet = new Set(hero.proficientSkills || []);
+      const profBonus = state.rulesTier === "STORYBOOK_D6" ? 1 : 2;
+      const calcMod = (score) => Math.floor((score - 10) / 2);
       const modalPortrait = hero.assetPath
         ? \`<img src="\${hero.assetPath}" class="w-12 h-12 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${hero.name}" />\`
         : \`<span class="text-3xl shrink-0">\${hero.avatarEmoji}</span>\`;
+
+      const abilitiesHtml = state.rulesTier === "STORYBOOK_D6"
+        ? \`
+          <div class="grid grid-cols-3 gap-2">
+            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">BRAWN</div><div class="text-base font-extrabold text-amber-500">+\${hero.storybookStats.brawn}</div></div>
+            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">BRAINS</div><div class="text-base font-extrabold text-sky-500">+\${hero.storybookStats.brains}</div></div>
+            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">CHARM</div><div class="text-base font-extrabold text-rose-500">+\${hero.storybookStats.charm}</div></div>
+          </div>
+        \`
+        : \`
+          <div class="grid grid-cols-6 gap-1.5">
+            \${["str", "dex", "con", "int", "wis", "cha"].map(k => {
+              const sc = hero.attributes5e[k];
+              const m = calcMod(sc);
+              return \`<div class="p-1.5 rounded-xl theme-inner-box border text-center"><div class="text-[9px] uppercase font-bold text-slate-400">\${k}</div><div class="text-sm font-extrabold">\${m >= 0 ? "+" + m : m}</div><div class="text-[10px] text-slate-400">\${sc}</div></div>\`;
+            }).join("")}
+          </div>
+        \`;
+
+      const skillsHtml = SKILL_CATALOG.map(sk => {
+        const isProf = profSet.has(sk.id);
+        const base = state.rulesTier === "STORYBOOK_D6"
+          ? hero.storybookStats[sk.storybookStat]
+          : calcMod(hero.attributes5e[sk.ability5e]);
+        const totalMod = base + (isProf ? profBonus : 0);
+        const modLabel = totalMod >= 0 ? "+" + totalMod : "" + totalMod;
+        const themeCls = isLight ? sk.accentLightClass : sk.accentDarkClass;
+        return \`
+          <button onclick="rollHeroSkill('\${sk.id}')" class="p-2 rounded-xl border text-left flex items-center justify-between gap-1 hover:scale-[1.02] transition shadow-sm \${themeCls}">
+            <span class="font-bold flex items-center gap-1 truncate"><span>\${sk.icon}</span><span class="truncate">\${sk.name}</span>\${isProf ? "<span title='Proficient'>★</span>" : ""}</span>
+            <span class="font-mono font-extrabold px-1.5 py-0.5 rounded bg-black/15 text-[11px]">\${modLabel}</span>
+          </button>
+        \`;
+      }).join("");
+
       content.innerHTML = \`
         <div class="flex items-center gap-3 p-3 rounded-xl theme-inner-box border">
           \${modalPortrait}
           <div class="flex-1">
-            <div class="font-extrabold text-sm text-amber-400">\${hero.archetype}</div>
-            <div class="text-slate-400">Played by \${hero.playerName}</div>
+            <div class="font-extrabold text-sm text-amber-500">\${hero.archetype}</div>
+            <div class="text-slate-400">Played by \${hero.playerName} • Mode: \${isLight ? "☀️ Light Parchment" : "🌙 Dark Midnight"}</div>
           </div>
           <div class="text-right shrink-0">
-            <div class="text-xs font-bold text-amber-300">Level: \${stars}</div>
-            <div class="text-xs text-rose-400 font-bold">\${hero.rulesTier === "STORYBOOK_D6" ? "❤️".repeat(hero.storybookStats.hearts) + " Hearts" : "❤️ " + hero.attributes5e.hp + " HP • 🛡️ AC " + hero.attributes5e.armorClass}</div>
+            <div class="text-xs font-bold text-amber-400">Level: \${stars}</div>
+            <div class="text-xs text-rose-500 font-bold">\${hero.rulesTier === "STORYBOOK_D6" ? "❤️".repeat(hero.storybookStats.hearts) + " Hearts" : "❤️ " + hero.attributes5e.hp + " HP • 🛡️ AC " + hero.attributes5e.armorClass}</div>
           </div>
         </div>
 
+        \${abilitiesHtml}
+
+        <div class="p-3 rounded-xl theme-inner-box border space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-400">🎯 Click Any Skill to Roll in 3D:</span>
+            <span class="text-[10px] text-slate-400">★ Proficient (+\${profBonus})</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">\${skillsHtml}</div>
+        </div>
+
         <div class="p-3 rounded-xl theme-inner-box border space-y-1">
-          <div class="font-bold text-amber-400">🐾 Pet Companion: \${hero.companionPet}</div>
+          <div class="font-bold text-amber-500">🐾 Pet Companion: \${hero.companionPet}</div>
           <p class="text-slate-300">\${hero.petTrait || "Always loyal and ready to assist during family adventures!"}</p>
         </div>
 
@@ -924,10 +1052,10 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <div class="font-bold text-slate-300">🎒 Inventory & Magical Items:</div>
           <div class="space-y-1.5">
             \${hero.inventory.map(item => \`
-              <div class="p-2 rounded-lg bg-black/20 border border-slate-700/50 flex items-center gap-2">
+              <div class="p-2 rounded-lg theme-inner-box border flex items-center gap-2">
                 <span class="text-xl">\${item.icon}</span>
                 <div>
-                  <div class="font-bold text-amber-300">\${item.name}</div>
+                  <div class="font-bold text-amber-500">\${item.name}</div>
                   <div class="text-[11px] text-slate-400">\${item.description}</div>
                 </div>
               </div>
@@ -1151,9 +1279,14 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
               t => t.gridX === x && t.gridY === y && (!t.isHiddenFromPlayers || displayMode === "GM_COMMAND")
             );
             for (const tok of cellTokens) {
+              const activeCombatEntry = state.combat && state.combat.isActive
+                ? state.combat.entries[state.combat.activeTurnIndex]
+                : null;
+              const isTurnActive = activeCombatEntry && activeCombatEntry.tokenId === tok.id;
               const badge = document.createElement("div");
               badge.className =
-                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold select-none";
+                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white text-base sm:text-lg font-bold select-none" +
+                (isTurnActive ? " active-turn-ring" : "");
               badge.style.backgroundColor = tok.color || "#f59e0b";
               badge.title = tok.name;
 
@@ -1216,12 +1349,39 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         zBtns.appendChild(b);
       }
 
-      // Dynamic Lighting controls, Tools, Weather & Door buttons
+      // Dynamic Lighting controls, Tools, Weather, Backdrop, Combat Tracker & Door buttons
       Lighting2DEngine.init();
       ToolsWeatherEngine.init();
+      renderCombatTrackerUI(state);
+
       const weatherSel = document.getElementById("select-ambient-weather");
       if (weatherSel && state.ambientWeather) {
         weatherSel.value = state.ambientWeather;
+      }
+
+      const backdropEl = document.getElementById("vtt-scene-backdrop");
+      const backdropSel = document.getElementById("select-scene-backdrop");
+      const curBackdrop = state.sceneBackdrop || "HEARTH_TAVERN";
+      if (backdropSel) backdropSel.value = curBackdrop;
+      const backdropMap = {
+        HEARTH_TAVERN: "/assets/backgrounds/backdrop-hearth-tavern.svg",
+        ENCHANTED_WOODS: "/assets/backgrounds/backdrop-enchanted-woods.svg",
+        STARLIGHT_OBSERVATORY: "/assets/backgrounds/backdrop-starlight-observatory.svg",
+      };
+      if (backdropEl && gridEl) {
+        if (curBackdrop !== "NONE" && backdropMap[curBackdrop]) {
+          backdropEl.src = backdropMap[curBackdrop];
+          backdropEl.classList.remove("hidden");
+          gridEl.style.opacity = "0.84";
+        } else {
+          backdropEl.classList.add("hidden");
+          gridEl.style.opacity = "1";
+        }
+      }
+
+      const soundSel = document.getElementById("select-ambient-soundscape");
+      if (soundSel && state.ambientSoundscape) {
+        soundSel.value = state.ambientSoundscape;
       }
       const lightModes = [
         ["BRIGHT_DAYLIGHT", "btn-light-day"],
