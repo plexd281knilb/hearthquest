@@ -11,6 +11,7 @@ import {
   DiceInputMode,
   DiceRollResult,
   DieType,
+  DifficultyPreset,
   LoreEntryType,
   LoreRegistryEntry,
   RoomSessionState,
@@ -20,8 +21,11 @@ import {
   SpellTemplate,
   WallSegment,
   resolveArchetypeAsset,
+  resolveAreaMapAsset,
+  resolveSceneBackdropAsset,
 } from "@hearthquest/shared-types";
 import {
+  applyRoomDifficulty,
   buildCoreCampaignLoreSeeds,
   computeSiblingSpotlightFairness,
   createBedtimeFreezeSnapshot,
@@ -30,6 +34,7 @@ import {
   createStarterFamilySession,
   evaluateActionCardRoll,
   FAMILY_CAMPAIGNS,
+  findSrdMonsterStatBlock,
   generateLevelScaledOneShot,
   generateProceduralMapLayout,
   rollHeroSkillCheck,
@@ -583,11 +588,15 @@ export function updateRoomSettings(params: {
   rulesTier?: RulesTier;
   contentRating?: ContentRating;
   diceInputMode?: DiceInputMode;
+  difficulty?: DifficultyPreset;
 }): RoomSessionState {
   const room = getOrCreateRoom(params.roomCode);
   if (params.rulesTier) room.rulesTier = params.rulesTier;
   if (params.contentRating) room.contentRating = params.contentRating;
   if (params.diceInputMode) room.diceInputMode = params.diceInputMode;
+  if (params.difficulty) {
+    applyRoomDifficulty(room, params.difficulty);
+  }
   autoPersistRooms();
   return room;
 }
@@ -612,6 +621,7 @@ export function submitPlayerActionRoll(params: {
     rulesTier: room.rulesTier,
     source: params.source,
     physicalRollValue: params.physicalRollValue,
+    difficulty: room.difficulty,
   });
 
   room.rollHistory.unshift(roll);
@@ -924,6 +934,7 @@ export function attemptInteractDoor(params: {
     targetDcOverride: door.lockDc ?? 12,
     actionLabelOverride: `🗝️ Lockpick: ${lockName}`,
     rawRollOverride: params.rawRollOverride,
+    difficulty: room.difficulty,
   });
 
   room.rollHistory = [roll, ...room.rollHistory].slice(0, 25);
@@ -1170,6 +1181,7 @@ export function submitHeroSkillRoll(params: {
     hero,
     skillId: params.skillId,
     rulesTier: room.rulesTier,
+    difficulty: room.difficulty,
   });
   room.rollHistory = [roll, ...room.rollHistory].slice(0, 25);
   const existing = room.spotlightRecords.find((r) => r.characterId === hero.id);
@@ -1196,6 +1208,7 @@ export function updateRoomAtmosphere(params: {
   }
   if (params.sceneBackdrop) {
     room.sceneBackdrop = params.sceneBackdrop;
+    room.stageMoodArtUrl = resolveSceneBackdropAsset(params.sceneBackdrop);
   }
   autoPersistRooms();
   return room;
@@ -1326,6 +1339,9 @@ export function forgeActorAndTokenInRoom(params: {
     gridY,
     hp: maxHp,
     maxHp,
+    baseMaxHp: maxHp,
+    baseArmorClass: ac,
+    statBlock5e: params.actorType === "MONSTER" ? { ...findSrdMonsterStatBlock(safeName), creatureName: safeName, armorClass: ac, maxHp } : undefined,
     isHiddenFromPlayers: false,
     lightRadius,
     lightColor: params.accentColor || "#fbbf24",
@@ -1402,9 +1418,12 @@ export function generateOneShotInRoom(roomCode: string): {
   room.walls = generated.walls;
   room.storyNodes = generated.storyNodes;
   room.sceneBackdrop = generated.blueprint.backdrop;
+  room.stageAreaMapUrl = resolveAreaMapAsset(generated.blueprint.backdrop);
+  room.stageMoodArtUrl = resolveSceneBackdropAsset(generated.blueprint.backdrop);
   room.ambientWeather = generated.blueprint.weather;
   room.ambientSoundscape = generated.blueprint.soundscape;
   room.combat = undefined;
+  applyRoomDifficulty(room, room.difficulty || "BALANCED_NORMAL");
 
   autoPersistRooms();
   return {

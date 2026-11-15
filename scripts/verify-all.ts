@@ -65,6 +65,7 @@ import {
   updateRoomAtmosphere,
   updateRoomCombat,
   updateRoomLighting,
+  updateRoomSettings,
   updateRoomToolsAndWeather,
 } from "../apps/quest-vtt/src/room-store";
 import {
@@ -95,6 +96,7 @@ import {
   getBuildMetadata,
   HEARTHQUEST_ASSETS,
   resolveArchetypeAsset,
+  resolveAreaMapAsset,
   resolveCampaignTileAsset,
   resolveSceneBackdropAsset,
   resolveTokenAsset,
@@ -1287,7 +1289,7 @@ async function runVerification() {
   // ------------------------------------------------------------------
   // Suite 27: Account Game Type + Age Group Tailored Generation & Spoken RP Modals
   // ------------------------------------------------------------------
-  process.stdout.write("[Test 27/27] Account RulesTier + AgeGroup Tailored Session & Spoken Group RP Modals ... ");
+  process.stdout.write("[Test 27/30] Account RulesTier + AgeGroup Tailored Session & Spoken Group RP Modals ... ");
   const cozyReg = registerVttAccount({
     email: "storykeeper@hearthquest.test",
     displayName: "Storykeeper Mom",
@@ -1305,9 +1307,9 @@ async function runVerification() {
   assert.ok(cozyReg.room.sessionOpeningHook && cozyReg.room.sessionOpeningHook.length > 20);
   assert.strictEqual(cozyReg.room.activeRpPrompt?.trigger, "SESSION_START");
   assert.ok(
-    cozyReg.room.tokens.some((t) => t.name.includes("Pip the Flour Sprite")) &&
-      cozyReg.room.tokens.some((t) => t.name.includes("Chef Snickerdoodle")),
-    "Storybook Ages 5-7 account must generate Cozy G bakery NPC & Boss cast"
+    cozyReg.room.tokens.some((t) => t.name.includes("Milo Hearthbaker")) &&
+      cozyReg.room.tokens.some((t) => t.name.includes("Goblin Boss")),
+    "Storybook Ages 5-7 account must generate Cozy G Oakhaven NPC & Base 5e Boss cast"
   );
 
   // Switch preferences to 5e Teens 13+ and verify full world + difficulty + cast regeneration
@@ -1324,8 +1326,9 @@ async function runVerification() {
   assert.strictEqual(teenSwitch.room.ageGroup, "TEENS_13_PLUS");
   assert.strictEqual(teenSwitch.room.contentRating, "CLASSIC_PG13");
   assert.ok(
-    teenSwitch.room.tokens.some((t) => t.name.includes("Arch-Warden Solis")),
-    "Teens 13+ 5e regeneration must spawn Arch-Warden Solis boss"
+    teenSwitch.room.tokens.some((t) => t.name.includes("Specter")) &&
+      teenSwitch.room.tokens.some((t) => t.name.includes("Captain Vespera Thorne")),
+    "Teens 13+ 5e regeneration must spawn Specter boss & Captain Vespera Thorne"
   );
   const teenVaultDoor = teenSwitch.room.walls?.find((w) => w.isDoor && w.isLocked);
   assert.strictEqual(teenVaultDoor?.lockDc, 14, "STANDARD_5E tailored vault door must scale to DC 14");
@@ -1977,8 +1980,114 @@ async function runVerification() {
   });
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // TEST 30: Light/Dark Contrast, Area Maps & Stage Art, 5e Base Monsters & Difficulty Math
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 30/30] Light/Dark Contrast, Area Maps & Stage Art, 5e Stat Blocks & Difficulty Math ... ");
+  const fsSync = await import("node:fs");
+  const pathMod = await import("node:path");
+  for (const mapRel of [
+    HEARTHQUEST_ASSETS.areaMaps.oakhavenVillage.path,
+    HEARTHQUEST_ASSETS.areaMaps.silverleafCanopy.path,
+    HEARTHQUEST_ASSETS.areaMaps.starwatchBastion.path,
+  ]) {
+    const absMap = pathMod.default.join(process.cwd(), mapRel.replace(/^\//, ""));
+    assert.ok(fsSync.default.existsSync(absMap), `Missing area map SVG: ${absMap}`);
+    const svgRaw = fsSync.default.readFileSync(absMap, "utf8");
+    assert.ok(svgRaw.includes("<svg") && svgRaw.includes("</svg>"), `Invalid area map SVG: ${mapRel}`);
+  }
+  assert.strictEqual(resolveAreaMapAsset("camp-goblin-bakery"), HEARTHQUEST_ASSETS.areaMaps.oakhavenVillage.path);
+  assert.strictEqual(resolveAreaMapAsset("camp-clockwork-treehouse"), HEARTHQUEST_ASSETS.areaMaps.silverleafCanopy.path);
+  assert.strictEqual(resolveAreaMapAsset("camp-starlight-otter"), HEARTHQUEST_ASSETS.areaMaps.starwatchBastion.path);
+
+  const stageReg = registerVttAccount({
+    familyName: "Stage Test Party",
+    email: "stagetest@hearthquest.local",
+    password: "stagepassword",
+    confirmPassword: "stagepassword",
+    preferredRulesTier: "STANDARD_5E",
+    preferredAgeGroup: "AGES_5_7",
+  });
+  // Verify upgraded fantasy hero & 5e monster names + full 5e stat block on bosses/minions
+  assert.ok(stageReg.room.heroes.some((h) => h.name === "Sir Roland Oakenshield"));
+  assert.ok(stageReg.room.heroes.some((h) => h.name === "Lyra Dawnstar"));
+  assert.ok(stageReg.room.stageAreaMapUrl && stageReg.room.stageMoodArtUrl);
+  const goblinBossTok = stageReg.room.tokens.find((t) => t.name.includes("Goblin Boss"));
+  assert.ok(goblinBossTok?.statBlock5e, "5e Monster token must carry full SRD statBlock5e");
+  assert.strictEqual(goblinBossTok?.statBlock5e?.creatureName, "Goblin Boss");
+  assert.ok(Array.isArray(goblinBossTok?.statBlock5e?.actions) && goblinBossTok!.statBlock5e!.actions.length > 0);
+
+  // Verify difficulty presets actually change enemy HP, AC, Door Lock DC, and player roll success math
+  const balancedRoom = updateRoomSettings({ roomCode: stageReg.room.roomCode, difficulty: "BALANCED_NORMAL" });
+  const balBoss = balancedRoom.tokens.find((t) => t.name.includes("Goblin Boss"))!;
+  const balDoor = (balancedRoom.walls || []).find((w) => w.isDoor && w.isLocked)!;
+  const balHero = balancedRoom.heroes[0];
+  const balBossHp = balBoss.maxHp;
+  const balBossAc = balBoss.statBlock5e?.armorClass ?? 0;
+  const balDoorDc = balDoor.lockDc ?? 0;
+  const balMaxHp = balHero.attributes5e.maxHp;
+
+  const easyRoom = updateRoomSettings({ roomCode: stageReg.room.roomCode, difficulty: "STORY_EASY" });
+  const easyBoss = easyRoom.tokens.find((t) => t.name.includes("Goblin Boss"))!;
+  const easyDoor = (easyRoom.walls || []).find((w) => w.isDoor && w.isLocked)!;
+  const easyHero = easyRoom.heroes[0];
+  const easyBossHp = easyBoss.maxHp;
+  const easyBossAc = easyBoss.statBlock5e?.armorClass ?? 99;
+  const easyDoorDc = easyDoor.lockDc ?? 99;
+  const easyMaxHp = easyHero.attributes5e.maxHp;
+  assert.ok(easyBossHp < balBossHp, `STORY_EASY enemy HP (${easyBossHp}) must be lower than Balanced (${balBossHp})`);
+  assert.ok(easyBossAc < balBossAc, `STORY_EASY monster AC (${easyBossAc}) must be reduced vs Balanced (${balBossAc})`);
+  assert.ok(easyDoorDc < balDoorDc, `STORY_EASY door lock DC (${easyDoorDc}) must be reduced vs Balanced (${balDoorDc})`);
+  assert.ok(easyMaxHp > balMaxHp, `STORY_EASY hero maxHp (${easyMaxHp}) must increase vs Balanced (${balMaxHp})`);
+
+  const hardRoom = updateRoomSettings({ roomCode: stageReg.room.roomCode, difficulty: "HEROIC_HARD" });
+  const hardBoss = hardRoom.tokens.find((t) => t.name.includes("Goblin Boss"))!;
+  const hardBossHp = hardBoss.maxHp;
+  assert.ok(hardBossHp > balBossHp, `HEROIC_HARD enemy HP (${hardBossHp}) must exceed Balanced (${balBossHp})`);
+
+  // Verify fixed raw roll succeeds on STORY_EASY while failing on HEROIC_HARD
+  updateRoomSettings({ roomCode: stageReg.room.roomCode, difficulty: "STORY_EASY" });
+  const easyRoll = submitPlayerActionRoll({
+    roomCode: stageReg.room.roomCode,
+    characterId: balHero.id,
+    cardId: balHero.actionCards[0].id,
+    source: "PHYSICAL_DICE_TABLE",
+    physicalRollValue: 5,
+  });
+  assert.strictEqual(easyRoll.roll?.succeeded, true, "Raw 5 on Standard 5e action card (+5 +2 easy vs DC 10) must pass on STORY_EASY");
+
+  updateRoomSettings({ roomCode: stageReg.room.roomCode, difficulty: "HEROIC_HARD" });
+  const hardRoll = submitPlayerActionRoll({
+    roomCode: stageReg.room.roomCode,
+    characterId: balHero.id,
+    cardId: balHero.actionCards[0].id,
+    source: "PHYSICAL_DICE_TABLE",
+    physicalRollValue: 5,
+  });
+  assert.strictEqual(hardRoll.roll?.succeeded, false, "Same raw 5 (5 + 5 = 10 vs DC 15) must fail on HEROIC_HARD");
+
+  // Verify HTML UI outputs contain Light/Dark CSS overrides, pre-combat stage pictures, 5e stat block UI, and difficulty control
+  const vttUi = renderVttAppHtml(easyRoom);
+  const gateUi = renderVttLoginGateHtml({ isFirstAccountSetup: false, googleConfigured: false });
+  const adminUi = renderAdminHtml({ online: false, host: "localhost", latencyMs: 1, model: "llama3" });
+  const storeUi = renderStorefrontHtml();
+  assert.ok(
+    vttUi.includes('body[data-theme="light"] .text-amber-300') &&
+      vttUi.includes("stage-art-showcase") &&
+      vttUi.includes("rp-modal-art-strip") &&
+      vttUi.includes("walkthrough-art-strip") &&
+      vttUi.includes("stage-art-lightbox") &&
+      vttUi.includes("select-difficulty") &&
+      vttUi.includes("monster-statblock-card"),
+    "VTT HTML must render Light/Dark contrast CSS, stage art, difficulty selector & 5e statblock card"
+  );
+  assert.ok(gateUi.includes('body[data-theme="light"]'), "Login gate must include Light mode styling");
+  assert.ok(adminUi.includes('body[data-theme="light"] .text-amber-300'), "Admin HTML must include Light contrast CSS");
+  assert.ok(storeUi.includes('body[data-theme="dark"] .store-card .text-stone-900'), "Storefront HTML must include Dark contrast CSS");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 29/29 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 30/30 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();

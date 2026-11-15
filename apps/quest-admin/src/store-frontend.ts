@@ -57,6 +57,45 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
       color: #f8fafc !important;
       border-color: #334155 !important;
     }
+    body[data-theme="dark"] .store-card .text-stone-900,
+    body[data-theme="dark"] .store-card .text-stone-800,
+    body[data-theme="dark"] .store-drawer .text-stone-900,
+    body[data-theme="dark"] .store-drawer .text-stone-800 {
+      color: #f8fafc !important;
+    }
+    body[data-theme="dark"] .store-card .text-stone-700,
+    body[data-theme="dark"] .store-card .text-stone-600,
+    body[data-theme="dark"] .store-drawer .text-stone-600 {
+      color: #cbd5e1 !important;
+    }
+    body[data-theme="dark"] .store-card .text-stone-500,
+    body[data-theme="dark"] .store-header .text-stone-500 {
+      color: #94a3b8 !important;
+    }
+    body[data-theme="dark"] .store-header .text-amber-800,
+    body[data-theme="dark"] .store-card .text-amber-900,
+    body[data-theme="dark"] .store-card .text-amber-800,
+    body[data-theme="dark"] .store-card .text-amber-700 {
+      color: #fcd34d !important;
+    }
+    body[data-theme="dark"] .store-card .text-emerald-900,
+    body[data-theme="dark"] .store-card .text-emerald-800 {
+      color: #6ee7b7 !important;
+    }
+    body[data-theme="dark"] .store-card .bg-stone-50,
+    body[data-theme="dark"] .store-card .bg-stone-100,
+    body[data-theme="dark"] .store-drawer .bg-stone-50 {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+    }
+    body[data-theme="dark"] .store-card .bg-amber-50,
+    body[data-theme="dark"] .store-card .bg-amber-100 {
+      background-color: rgba(180, 83, 9, 0.25) !important;
+    }
+    body[data-theme="dark"] .store-card .bg-emerald-50,
+    body[data-theme="dark"] .store-card .bg-emerald-100 {
+      background-color: rgba(6, 95, 70, 0.35) !important;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans" data-theme="light">

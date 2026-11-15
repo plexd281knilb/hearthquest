@@ -17,6 +17,7 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
   - **Unlocked doors** open/close freely (`POST /api/room/door-interact` -> `attemptInteractDoor`) and reveal attached room lighting.
   - **Locked doors** prompt `#lockpick-modal` and require a **Sleight of Hand Lockpick Check** (digital 3D roll or real physical table die) via `rollHeroSkillCheck(..., skillId: "sleight_of_hand")` before unlocking and swinging open (`/api/room/lighting` also exposes `toggleLockDoorId` for GM override).
   - **Movement Wall/Door Collision & Static Cross D-Pad**: `attemptMoveRoomToken` (`room-store.ts`) enforces 2D segment-vs-segment collision against partition walls and closed/locked doors so players cannot phase through barriers; bumping a locked door displays `#move-blocked-banner` and pops open `#lockpick-modal`. `#vtt-dpad-controller` renders a non-rebuilt tactile cross D-Pad with `WASD`/Arrow-Key support bound cleanly to the active selected hero token (`getControllableHeroToken`).
+- **Pre-Combat Stage Artwork & Base 5e Stat Block Inspector (`#stage-art-showcase`, `#stage-art-lightbox`, `#monster-statblock-card`)**: Before combat starts (`!state.combat?.isActive`), the GM story panel, `#rp-readout-modal`, and Walkthrough Step 4 display clickable Town/Area Maps (`stageAreaMapUrl`) and Mood Art (`stageMoodArtUrl`) with click-to-zoom TV lightbox. Clicking any monster token opens `#monster-statblock-card` showing its full SRD 5.1 5e stat block (`armorClass`, `maxHp`, `hitDice`, `speed`, 6 abilities, `challengeRating`, traits, and actions), scaled dynamically by `#select-difficulty` (`STORY_EASY` | `BALANCED_NORMAL` | `HEROIC_HARD`).
 - **Tactical Grid Scale & Backdrop Compositing (`ui-template.ts`)**: Battlemap tile SVGs (`assets/tiles/*.svg`) use semi-translucent mortar/base fills (`background-size: 20% 33.3333%` aligned cleanly to 2×2 tactical squares) so scenic backdrops (`opacity-65` + inner board vignette) illuminate the tabletop without ever reducing `#vtt-grid` opacity (`1.0`), keeping tokens, HP bars, and GM traps 100% vibrant.
 - **Tactical Tools & Combat (`tools-weather-engine.ts`, `combat-audio-engine.ts`)**: `5ft/sq` distance ruler, Spell AoE templates (`CIRCLE`, `CONE`, `LINE`), weather emitters, initiative tracker, and scenic SVG backdrops (`assets/backgrounds/`).
 
@@ -32,6 +33,6 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.21` (Build `#22`)
-- **Updated At**: `2026-11-15T18:30:38.825Z`
+- **Last Verified Build**: `v0.1.22` (Build `#23`)
+- **Updated At**: `2026-11-15T18:46:51.708Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

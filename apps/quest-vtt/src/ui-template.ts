@@ -39,8 +39,35 @@ export function renderVttLoginGateHtml(options?: {
   <title>HearthQuest VTT — ${isFirstSetup ? "Admin First-Time Setup" : "Sign In"}</title>
   <link rel="icon" type="image/png" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body[data-theme="light"] {
+      background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%) !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] #vtt-login-gate {
+      background-color: #ffffff !important;
+      border-color: #d97706 !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] input,
+    body[data-theme="light"] select {
+      background-color: #fbf9f5 !important;
+      border-color: #d6cbba !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] .text-slate-100,
+    body[data-theme="light"] .text-slate-200,
+    body[data-theme="light"] .text-slate-300 { color: #292524 !important; }
+    body[data-theme="light"] .text-slate-400 { color: #57534e !important; }
+    body[data-theme="light"] .text-amber-200 { color: #78350f !important; }
+    body[data-theme="light"] .text-emerald-300 { color: #065f46 !important; }
+    body[data-theme="light"] .bg-amber-950\/70,
+    body[data-theme="light"] .bg-amber-950\/50 { background-color: #fef3c7 !important; }
+    body[data-theme="light"] .bg-emerald-950 { background-color: #d1fae5 !important; }
+    body[data-theme="light"] .bg-slate-800 { background-color: #e7e5e4 !important; color: #1c1917 !important; }
+  </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+<body data-theme="dark" class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
   <div id="vtt-login-gate" class="w-full max-w-md bg-slate-900 border-2 ${isFirstSetup ? "border-amber-400" : "border-amber-500/60"} rounded-3xl p-6 shadow-2xl space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
@@ -50,7 +77,10 @@ export function renderVttLoginGateHtml(options?: {
           <p class="text-[11px] text-slate-400">${isFirstSetup ? "First-Run Server Admin Setup" : "Private Family Tabletop Instances"}</p>
         </div>
       </div>
-      <span class="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">${buildMeta.badgeText}</span>
+      <div class="flex items-center gap-1.5">
+        <button type="button" id="gate-theme-btn" onclick="toggleGateTheme()" class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-800 text-slate-200 border border-slate-600">🌙</button>
+        <span class="px-2.5 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">${buildMeta.badgeText}</span>
+      </div>
     </div>
 
     ${
@@ -123,6 +153,20 @@ export function renderVttLoginGateHtml(options?: {
   </div>
 
   <script>
+    (function initGateTheme() {
+      const t = localStorage.getItem("hearthquest-theme") || "dark";
+      document.body.setAttribute("data-theme", t);
+      const b = document.getElementById("gate-theme-btn");
+      if (b) b.innerText = t === "light" ? "☀️" : "🌙";
+    })();
+    function toggleGateTheme() {
+      const cur = document.body.getAttribute("data-theme") || "dark";
+      const nxt = cur === "dark" ? "light" : "dark";
+      document.body.setAttribute("data-theme", nxt);
+      localStorage.setItem("hearthquest-theme", nxt);
+      const b = document.getElementById("gate-theme-btn");
+      if (b) b.innerText = nxt === "light" ? "☀️" : "🌙";
+    }
     function startGoogleOAuth() {
       const tier = document.getElementById("gate-reg-tier")?.value || "STORYBOOK_D6";
       const age = document.getElementById("gate-reg-age")?.value || "AGES_8_10";
@@ -312,14 +356,82 @@ export function renderVttAppHtml(
     }
     body[data-theme="light"] h1,
     body[data-theme="light"] h2,
-    body[data-theme="light"] h3 {
+    body[data-theme="light"] h3,
+    body[data-theme="light"] h4 {
       color: #92400e !important;
     }
-    body[data-theme="light"] .text-slate-400 {
-      color: #78716c !important;
+    body[data-theme="light"] .text-slate-100,
+    body[data-theme="light"] .text-slate-200 {
+      color: #1c1917 !important;
     }
     body[data-theme="light"] .text-slate-300 {
       color: #44403c !important;
+    }
+    body[data-theme="light"] .text-slate-400 {
+      color: #6b635b !important;
+    }
+    body[data-theme="light"] .text-amber-100,
+    body[data-theme="light"] .text-amber-200,
+    body[data-theme="light"] .text-amber-300,
+    body[data-theme="light"] .text-amber-400 {
+      color: #92400e !important;
+    }
+    body[data-theme="light"] .text-emerald-200,
+    body[data-theme="light"] .text-emerald-300,
+    body[data-theme="light"] .text-emerald-400 {
+      color: #065f46 !important;
+    }
+    body[data-theme="light"] .text-purple-200,
+    body[data-theme="light"] .text-purple-300,
+    body[data-theme="light"] .text-purple-400 {
+      color: #6b21a8 !important;
+    }
+    body[data-theme="light"] .text-indigo-200,
+    body[data-theme="light"] .text-indigo-300,
+    body[data-theme="light"] .text-indigo-400 {
+      color: #3730a3 !important;
+    }
+    body[data-theme="light"] .text-sky-200,
+    body[data-theme="light"] .text-sky-300,
+    body[data-theme="light"] .text-sky-400 {
+      color: #075985 !important;
+    }
+    body[data-theme="light"] .theme-card .bg-slate-800,
+    body[data-theme="light"] .theme-header .bg-slate-800,
+    body[data-theme="light"] .theme-card .bg-slate-900\/80,
+    body[data-theme="light"] .theme-header .bg-slate-900\/80 {
+      background-color: #f3ece1 !important;
+      color: #292524 !important;
+      border-color: #d6cbba !important;
+    }
+    body[data-theme="light"] .bg-amber-950\/40,
+    body[data-theme="light"] .bg-amber-950\/50,
+    body[data-theme="light"] .bg-amber-950\/70 {
+      background-color: #fef3c7 !important;
+      color: #78350f !important;
+    }
+    body[data-theme="light"] .bg-purple-950,
+    body[data-theme="light"] .bg-purple-950\/40,
+    body[data-theme="light"] .bg-purple-950\/60,
+    body[data-theme="light"] .bg-purple-950\/70,
+    body[data-theme="light"] .bg-purple-950\/80 {
+      background-color: #f3e8ff !important;
+      color: #581c87 !important;
+    }
+    body[data-theme="light"] .bg-indigo-950,
+    body[data-theme="light"] .bg-indigo-950\/40,
+    body[data-theme="light"] .bg-indigo-950\/50 {
+      background-color: #e0e7ff !important;
+      color: #312e81 !important;
+    }
+    body[data-theme="light"] .bg-emerald-950,
+    body[data-theme="light"] .bg-emerald-950\/80 {
+      background-color: #d1fae5 !important;
+      color: #065f46 !important;
+    }
+    body[data-theme="light"] code {
+      background-color: #efe7da !important;
+      color: #7c2d12 !important;
     }
     body[data-theme="light"] .skill-chip-dark-fallback {
       background-color: #fef3c7 !important;
@@ -470,6 +582,12 @@ export function renderVttAppHtml(
         <option value="STANDARD_5E">🐉 Standard 5e</option>
       </select>
 
+      <select id="select-difficulty" onchange="changeRoomSettings()" class="theme-input border rounded-lg px-2 py-1.5 text-xs text-sky-300" title="Adjust enemy HP, AC, attack bonuses, trap/lock DCs, and hero buffs">
+        <option value="STORY_EASY">🌟 Easy (Softer Foes &amp; -3 DC)</option>
+        <option value="BALANCED_NORMAL">⚖️ Balanced (Standard SRD)</option>
+        <option value="HEROIC_HARD">🔥 Heroic (+35% Foe HP &amp; +2 DC)</option>
+      </select>
+
       <select id="select-content-rating" onchange="changeRoomSettings()" class="theme-input border rounded-lg px-2 py-1.5 text-xs text-emerald-300">
         <option value="COZY_G">🌈 Cozy G-Rated</option>
         <option value="ADVENTURE_PG">🏰 Adventure PG</option>
@@ -583,7 +701,50 @@ export function renderVttAppHtml(
           </div>
         </div>
         <blockquote id="read-aloud-box" class="p-3.5 rounded-xl theme-inner-box border-l-4 border-amber-400 text-sm text-amber-200 italic leading-relaxed"></blockquote>
+
+        <!-- Static Stage-Setting Illustrations (Area Map + Scene Mood Art) shown before combat begins -->
+        <div id="stage-art-showcase" class="mt-3 p-3 rounded-2xl theme-inner-box border space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-extrabold text-sky-300">🗺️ Stage-Setting Pictures (Pre-Combat Regional Map &amp; Scene Mood)</span>
+            <span id="difficulty-effect-pill" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-200 border border-sky-400/40">⚖️ Balanced</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button type="button" onclick="openStageArtLightbox('map')" class="group text-left rounded-xl overflow-hidden border border-amber-500/40 hover:border-amber-400 transition bg-slate-950/60">
+              <img id="stage-area-map-img" src="/assets/maps/map-oakhaven-bakery-quarter.svg" alt="Regional Town Map" class="w-full h-36 object-cover group-hover:scale-[1.02] transition" />
+              <div class="px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-amber-300">
+                <span>🗺️ Town &amp; Area Map</span>
+                <span class="text-[10px] text-slate-400">🔍 Zoom</span>
+              </div>
+            </button>
+            <button type="button" onclick="openStageArtLightbox('mood')" class="group text-left rounded-xl overflow-hidden border border-purple-500/40 hover:border-purple-400 transition bg-slate-950/60">
+              <img id="stage-mood-art-img" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Mood Art" class="w-full h-36 object-cover group-hover:scale-[1.02] transition" />
+              <div class="px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-purple-300">
+                <span>🎨 Scene Atmosphere Art</span>
+                <span class="text-[10px] text-slate-400">🔍 Zoom</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div id="story-rp-cue-buttons" class="flex flex-wrap gap-1.5 mt-2"></div>
+
+        <!-- Base 5e Monster Stat Block Inspector Card (shows when a monster token is selected) -->
+        <div id="monster-statblock-card" class="hidden mt-3 p-3.5 rounded-2xl theme-inner-box border-2 border-rose-500/50 space-y-2 text-xs">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h4 id="msb-name" class="text-sm font-black text-amber-300">Goblin Boss</h4>
+              <p id="msb-meta" class="text-[11px] italic text-slate-400">Small humanoid (goblinoid), neutral evil</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="msb-rp-btn" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold">🗣️ Speak Line</button>
+              <button type="button" onclick="document.getElementById('monster-statblock-card').classList.add('hidden')" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[11px]">✕</button>
+            </div>
+          </div>
+          <div id="msb-vitals" class="grid grid-cols-3 gap-2 p-2 rounded-xl bg-rose-950/30 border border-rose-500/30 font-bold text-slate-200"></div>
+          <div id="msb-abilities" class="grid grid-cols-6 gap-1 text-center font-mono text-[11px]"></div>
+          <div id="msb-traits" class="space-y-1 text-[11px] text-slate-300"></div>
+          <div id="msb-actions" class="space-y-1 text-[11px] text-slate-200"></div>
+        </div>
 
         <div class="mt-3">
           <p class="text-xs font-semibold text-slate-400 mb-2">🔀 Branching Story Choices (Tap what the kids decide to do):</p>
@@ -984,6 +1145,17 @@ export function renderVttAppHtml(
         <button onclick="dismissRpPrompt()" class="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
 
+      <div id="rp-modal-art-strip" class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="openStageArtLightbox('map')" class="rounded-xl overflow-hidden border border-amber-500/40 bg-slate-950/60 text-left">
+          <img id="rp-modal-map-img" src="/assets/maps/map-oakhaven-bakery-quarter.svg" alt="Area Map" class="w-full h-24 object-cover" />
+          <div class="px-2 py-0.5 text-[10px] font-bold text-amber-300">🗺️ Area Map</div>
+        </button>
+        <button type="button" onclick="openStageArtLightbox('mood')" class="rounded-xl overflow-hidden border border-purple-500/40 bg-slate-950/60 text-left">
+          <img id="rp-modal-mood-img" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Mood" class="w-full h-24 object-cover" />
+          <div class="px-2 py-0.5 text-[10px] font-bold text-purple-300">🎨 Scene Mood</div>
+        </button>
+      </div>
+
       <blockquote id="rp-modal-spoken-text" class="p-4 rounded-2xl theme-inner-box border-l-4 border-purple-400 text-sm text-slate-100 leading-relaxed font-medium"></blockquote>
 
       <div id="rp-modal-question-box" class="p-3 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-xs text-indigo-200 font-semibold"></div>
@@ -1101,7 +1273,17 @@ export function renderVttAppHtml(
       <div id="walkthrough-step-3" class="hidden space-y-3 text-xs leading-relaxed">
         <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2.5">
           <div class="font-extrabold text-amber-400">Step 4 — What to Read Out Loud to Your Group</div>
-          <p class="text-[11px] text-slate-400">Start your session by reading these generated lines aloud (or press the green Speak button to have the browser narrate them!):</p>
+          <p class="text-[11px] text-slate-400">Show the Town Map &amp; Mood Picture to set the stage before combat, then read these generated lines aloud:</p>
+          <div id="walkthrough-art-strip" class="grid grid-cols-2 gap-2">
+            <div class="rounded-xl overflow-hidden border border-amber-500/40">
+              <img id="walkthrough-map-img" src="/assets/maps/map-oakhaven-bakery-quarter.svg" alt="Area Map" class="w-full h-24 object-cover" />
+              <div class="px-2 py-0.5 text-[10px] font-bold text-amber-300">🗺️ Town / Area Map</div>
+            </div>
+            <div class="rounded-xl overflow-hidden border border-purple-500/40">
+              <img id="walkthrough-mood-img" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Mood" class="w-full h-24 object-cover" />
+              <div class="px-2 py-0.5 text-[10px] font-bold text-purple-300">🎨 Scene Mood Picture</div>
+            </div>
+          </div>
           <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 space-y-1">
             <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">1. Opening Hook</div>
             <p id="walkthrough-read-hook" class="text-slate-100 font-medium"></p>
@@ -1139,6 +1321,17 @@ export function renderVttAppHtml(
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: STAGE ART LIGHTBOX (FULLSCREEN TV VIEW FOR AREA MAPS & MOOD ART) -->
+  <div id="stage-art-lightbox" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeStageArtLightbox()">
+    <div class="theme-card border-2 border-amber-400/70 rounded-3xl max-w-4xl w-full p-4 shadow-2xl space-y-3" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between">
+        <h3 id="lightbox-title" class="text-sm font-extrabold text-amber-400">🗺️ Area Map</h3>
+        <button type="button" onclick="closeStageArtLightbox()" class="px-3 py-1 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">✕ Close</button>
+      </div>
+      <img id="lightbox-img" src="/assets/maps/map-oakhaven-bakery-quarter.svg" alt="Stage Artwork" class="w-full max-h-[75vh] object-contain rounded-2xl border border-slate-700" />
     </div>
   </div>
 
@@ -1514,6 +1707,12 @@ export function renderVttAppHtml(
       if (sceneEl) {
         sceneEl.innerText = readScript || "Gather around the table—your heroes step into the first chamber!";
       }
+
+      const stageUrls = resolveRoomStageUrls();
+      const wtMapImg = document.getElementById("walkthrough-map-img");
+      const wtMoodImg = document.getElementById("walkthrough-mood-img");
+      if (wtMapImg) wtMapImg.src = stageUrls.areaMapUrl;
+      if (wtMoodImg) wtMoodImg.src = stageUrls.moodArtUrl;
 
       const npcBox = document.getElementById("walkthrough-npc-box");
       const npcTitle = document.getElementById("walkthrough-npc-title");
@@ -2085,9 +2284,93 @@ export function renderVttAppHtml(
       speakTextOutLoud(textToSpeak);
     }
 
+    function resolveRoomStageUrls() {
+      const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
+      const cid = (state.campaignId || "").toLowerCase();
+      const fallbackMap = (cid.includes("treehouse") || cid.includes("forest") || cid.includes("silverleaf"))
+        ? "/assets/maps/map-silverleaf-canopy.svg"
+        : (cid.includes("starlight") || cid.includes("otter") || cid.includes("starwatch"))
+        ? "/assets/maps/map-starwatch-bastion.svg"
+        : "/assets/maps/map-oakhaven-bakery-quarter.svg";
+      const bg = (state.sceneBackdrop || "").toLowerCase();
+      const fallbackMood = (bg.includes("wood") || cid.includes("treehouse") || cid.includes("forest"))
+        ? "/assets/backgrounds/backdrop-enchanted-woods.svg"
+        : (bg.includes("starlight") || cid.includes("starlight") || cid.includes("otter"))
+        ? "/assets/backgrounds/backdrop-starlight-observatory.svg"
+        : "/assets/backgrounds/backdrop-hearth-tavern.svg";
+      return {
+        areaMapUrl: activeNode.stageAreaMapUrl || state.stageAreaMapUrl || fallbackMap,
+        moodArtUrl: activeNode.stageMoodArtUrl || state.stageMoodArtUrl || fallbackMood,
+      };
+    }
+
+    function openStageArtLightbox(kind) {
+      const urls = resolveRoomStageUrls();
+      const img = document.getElementById("lightbox-img");
+      const title = document.getElementById("lightbox-title");
+      if (kind === "mood") {
+        if (img) img.src = urls.moodArtUrl;
+        if (title) title.innerText = "🎨 Scene Mood Illustration — Set the Stage";
+      } else {
+        if (img) img.src = urls.areaMapUrl;
+        if (title) title.innerText = "🗺️ Town & Regional Area Map — Overview";
+      }
+      document.getElementById("stage-art-lightbox")?.classList.remove("hidden");
+    }
+
+    function closeStageArtLightbox() {
+      document.getElementById("stage-art-lightbox")?.classList.add("hidden");
+    }
+
+    function showMonsterStatBlockCard(tok) {
+      const card = document.getElementById("monster-statblock-card");
+      if (!card || !tok) return;
+      const sb = tok.statBlock5e;
+      if (!sb) {
+        card.classList.add("hidden");
+        return;
+      }
+      const modStr = (score) => {
+        const m = Math.floor((Number(score || 10) - 10) / 2);
+        return (m >= 0 ? "+" : "") + m;
+      };
+      document.getElementById("msb-name").innerText = (tok.avatarEmoji || "👹") + " " + (sb.creatureName || tok.name);
+      document.getElementById("msb-meta").innerText = sb.sizeTypeAlignment || "Creature";
+      document.getElementById("msb-vitals").innerHTML =
+        '<div>🛡️ AC <span class="text-amber-300">' + sb.armorClass + '</span></div>' +
+        '<div>❤️ HP <span class="text-emerald-300">' + tok.hp + '/' + tok.maxHp + '</span> (' + sb.hitDice + ')</div>' +
+        '<div>⚔️ CR <span class="text-sky-300">' + sb.challengeRating + '</span> (' + sb.xp + ' XP)</div>';
+      const ab = sb.abilities || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
+      document.getElementById("msb-abilities").innerHTML =
+        [["STR", ab.str], ["DEX", ab.dex], ["CON", ab.con], ["INT", ab.int], ["WIS", ab.wis], ["CHA", ab.cha]]
+          .map(([k, v]) => '<div class="p-1 rounded-lg bg-slate-900/70 border border-slate-700/60"><div class="text-[9px] text-slate-400">' + k + '</div><div class="font-bold text-slate-100">' + v + ' (' + modStr(v) + ')</div></div>')
+          .join("");
+      document.getElementById("msb-traits").innerHTML = (sb.traits || [])
+        .map(t => '<div>• ' + t + '</div>')
+        .join("");
+      document.getElementById("msb-actions").innerHTML = '<div class="font-extrabold text-amber-300 uppercase text-[10px]">Actions • Speed ' + (sb.speed || "30 ft.") + '</div>' +
+        (sb.actions || [])
+          .map(a => '<div class="mt-0.5"><strong>' + a.name + '</strong> (' + (a.attackBonus >= 0 ? "+" : "") + a.attackBonus + ' to hit, ' + a.damageDice + ' ' + a.damageType + '): ' + a.description + '</div>')
+          .join("");
+      const rpBtn = document.getElementById("msb-rp-btn");
+      if (rpBtn) {
+        rpBtn.onclick = () => {
+          const allPrompts = (state.storyNodes || []).flatMap(n => n.rpPrompts || []);
+          const matched = allPrompts.find(p => tok.name.toLowerCase().includes((p.speakerName || "").toLowerCase().split(" ")[0])) || allPrompts[0];
+          if (matched) triggerSceneRpCue(matched.id);
+        };
+      }
+      card.classList.remove("hidden");
+    }
+
     function openRpReadoutModal(prompt) {
       if (!prompt) return;
       lastSeenRpPromptId = prompt.id;
+      const stageUrls = resolveRoomStageUrls();
+      const rpMapImg = document.getElementById("rp-modal-map-img");
+      const rpMoodImg = document.getElementById("rp-modal-mood-img");
+      if (rpMapImg) rpMapImg.src = stageUrls.areaMapUrl;
+      if (rpMoodImg) rpMoodImg.src = stageUrls.moodArtUrl;
       document.getElementById("rp-modal-emoji").innerText = prompt.speakerEmoji || "📖";
       document.getElementById("rp-modal-badge").innerText = (prompt.speakerRole || "NARRATOR") + " • " + (prompt.trigger || "SCENE");
       document.getElementById("rp-modal-title").innerText = prompt.title || "Story Moment";
@@ -2348,10 +2631,12 @@ export function renderVttAppHtml(
     async function changeRoomSettings() {
       const rulesTier = document.getElementById("select-rules-tier").value;
       const contentRating = document.getElementById("select-content-rating").value;
+      const difficulty = document.getElementById("select-difficulty")?.value || "BALANCED_NORMAL";
       await apiPost("/api/room/settings", {
         roomCode: state.roomCode,
         rulesTier,
-        contentRating
+        contentRating,
+        difficulty
       });
     }
 
@@ -2635,6 +2920,29 @@ export function renderVttAppHtml(
       syncQrJoinModalUi();
       document.getElementById("select-rules-tier").value = state.rulesTier;
       document.getElementById("select-content-rating").value = state.contentRating;
+      const diffSel = document.getElementById("select-difficulty");
+      if (diffSel) diffSel.value = state.difficulty || "BALANCED_NORMAL";
+
+      // Update pre-combat stage-setting pictures & difficulty badge
+      const stageShowcase = document.getElementById("stage-art-showcase");
+      const stageUrls = resolveRoomStageUrls();
+      const stageMapImg = document.getElementById("stage-area-map-img");
+      const stageMoodImg = document.getElementById("stage-mood-art-img");
+      if (stageMapImg) stageMapImg.src = stageUrls.areaMapUrl;
+      if (stageMoodImg) stageMoodImg.src = stageUrls.moodArtUrl;
+      if (stageShowcase) {
+        const hideForCombat = Boolean(state.combat && state.combat.isActive);
+        stageShowcase.classList.toggle("hidden", hideForCombat);
+      }
+      const diffPill = document.getElementById("difficulty-effect-pill");
+      if (diffPill) {
+        const dMode = state.difficulty || "BALANCED_NORMAL";
+        diffPill.innerText = dMode === "STORY_EASY"
+          ? "🌟 Easy: Foes -45% HP / -3 AC / -3 DC • +2 Hero Rolls"
+          : dMode === "HEROIC_HARD"
+          ? "🔥 Heroic: Foes +35% HP / +2 AC / +2 DC"
+          : "⚖️ Balanced: Standard 5e SRD Stats";
+      }
 
       // Bedtime status
       const bedBanner = document.getElementById("bedtime-banner");
@@ -2803,6 +3111,8 @@ export function renderVttAppHtml(
                   if (tok.characterId) selectedHeroId = tok.characterId;
                   selectedTokenId = tok.id;
                   renderAll();
+                } else if (tok.type === "MONSTER" && tok.statBlock5e) {
+                  showMonsterStatBlockCard(tok);
                 } else if (tok.type === "NPC" || tok.type === "MONSTER") {
                   const allPrompts = (state.storyNodes || []).flatMap(n => n.rpPrompts || []);
                   const matched = allPrompts.find(p => tok.name.toLowerCase().includes((p.speakerName || "").toLowerCase().split(" ")[0])) || allPrompts[0];

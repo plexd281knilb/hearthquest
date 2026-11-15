@@ -881,6 +881,7 @@ const server = http.createServer(async (req, res) => {
       rulesTier: body.rulesTier,
       contentRating: body.contentRating,
       diceInputMode: body.diceInputMode,
+      difficulty: body.difficulty,
     });
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });

@@ -12,6 +12,8 @@ export type RulesTier = "STORYBOOK_D6" | "APPRENTICE_5E_LITE" | "STANDARD_5E";
 
 export type AgeGroupPreset = "AGES_5_7" | "AGES_8_10" | "AGES_11_13" | "TEENS_13_PLUS";
 
+export type DifficultyPreset = "STORY_EASY" | "BALANCED_NORMAL" | "HEROIC_HARD";
+
 export type ContentRating = "COZY_G" | "ADVENTURE_PG" | "CLASSIC_PG13";
 
 export type DisplayMode = "GM_COMMAND" | "TABLE_TV_DISPLAY" | "PLAYER_CONTROLLER";
@@ -101,6 +103,7 @@ export interface WallSegment {
   isOpen?: boolean;
   isLocked?: boolean;
   lockDc?: number;
+  baseLockDc?: number;
   lockLabel?: string;
   blocksVision: boolean;
   zoneId?: string;
@@ -170,7 +173,9 @@ export interface CharacterSheet {
     hp: number;
     maxHp: number;
     armorClass: number;
+    baseMaxHp?: number;
   };
+  baseMaxHearts?: number;
   actionCards: ActionCard[];
   inventory: Array<{
     id: string;
@@ -185,6 +190,33 @@ export interface CharacterSheet {
   proficientSkills?: SkillId[];
 }
 
+export interface MonsterStatBlock5e {
+  creatureName: string;
+  sizeTypeAlignment: string;
+  armorClass: number;
+  maxHp: number;
+  hitDice: string;
+  speed: string;
+  abilities: {
+    str: number;
+    dex: number;
+    con: number;
+    int: number;
+    wis: number;
+    cha: number;
+  };
+  challengeRating: string;
+  xp: number;
+  traits?: string[];
+  actions: Array<{
+    name: string;
+    attackBonus: number;
+    damageDice: string;
+    damageType: string;
+    description: string;
+  }>;
+}
+
 export interface MapToken {
   id: string;
   characterId?: string;
@@ -197,6 +229,9 @@ export interface MapToken {
   gridY: number;
   hp: number;
   maxHp: number;
+  baseMaxHp?: number;
+  baseArmorClass?: number;
+  statBlock5e?: MonsterStatBlock5e;
   isHiddenFromPlayers: boolean;
   statusCondition?: string;
   statusBadge?: "INSPIRATION_STAR" | "BONKED_DIZZY" | "SHIELD_GUARD" | "HEROIC_RALLY" | "NONE";
@@ -256,6 +291,8 @@ export interface StoryBranchNode {
   };
   openingHook?: string;
   rpPrompts?: StoryRpPrompt[];
+  stageAreaMapUrl?: string;
+  stageMoodArtUrl?: string;
   gmWhisperTips: string[];
   choices: StoryBranchChoice[];
 }
@@ -373,6 +410,9 @@ export interface RoomSessionState {
   partyLevel?: number;
   isOneShot?: boolean;
   ageGroup?: AgeGroupPreset;
+  difficulty?: DifficultyPreset;
+  stageAreaMapUrl?: string;
+  stageMoodArtUrl?: string;
   sessionOpeningHook?: string;
   activeRpPrompt?: StoryRpPrompt | null;
 }

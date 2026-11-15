@@ -154,6 +154,23 @@ export const HEARTHQUEST_ASSETS = {
       path: "/assets/traps/trap-arcane-rune.svg",
     },
   },
+  areaMaps: {
+    oakhavenVillage: {
+      id: "map-oakhaven-bakery-quarter",
+      name: "Map of Oakhaven Village & Hearth Quarter",
+      path: "/assets/maps/map-oakhaven-bakery-quarter.svg",
+    },
+    silverleafCanopy: {
+      id: "map-silverleaf-canopy",
+      name: "Chart of Silverleaf Canopy",
+      path: "/assets/maps/map-silverleaf-canopy.svg",
+    },
+    starwatchBastion: {
+      id: "map-starwatch-bastion",
+      name: "Astral Chart of Starwatch Citadel",
+      path: "/assets/maps/map-starwatch-bastion.svg",
+    },
+  },
 } as const;
 
 /**
@@ -188,14 +205,15 @@ export function resolveTokenAsset(token: {
       : HEARTHQUEST_ASSETS.props.chestClosed.path;
   }
   const name = (token.name || "").toLowerCase();
-  if (name.includes("sprinkles")) return HEARTHQUEST_ASSETS.monsters.goblinSprinkles.path;
-  if (name.includes("snickerdoodle") || name.includes("chef"))
+  if (name.includes("snickerdoodle") || name.includes("chef") || name.includes("goblin boss") || name.includes("bugbear"))
     return HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path;
-  if (name.includes("squirrel") || name.includes("cogsworth") || name.includes("brass"))
+  if (name.includes("sprinkles") || name.includes("goblin") || name.includes("bandit"))
+    return HEARTHQUEST_ASSETS.monsters.goblinSprinkles.path;
+  if (name.includes("squirrel") || name.includes("cogsworth") || name.includes("brass") || name.includes("animated armor") || name.includes("skeleton") || name.includes("construct"))
     return HEARTHQUEST_ASSETS.monsters.brassSquirrel.path;
-  if (name.includes("dragon") || name.includes("marshmallow") || name.includes("puppy"))
+  if (name.includes("dragon") || name.includes("marshmallow") || name.includes("puppy") || name.includes("wolf"))
     return HEARTHQUEST_ASSETS.monsters.dragonPuppy.path;
-  if (name.includes("jelly") || name.includes("lumina") || name.includes("nebula"))
+  if (name.includes("jelly") || name.includes("lumina") || name.includes("nebula") || name.includes("gelatinous") || name.includes("specter") || name.includes("ooze"))
     return HEARTHQUEST_ASSETS.monsters.nebulaJelly.path;
   if (name.includes("torch")) return HEARTHQUEST_ASSETS.props.torchWall.path;
   if (name.includes("campfire") || name.includes("hearth"))
@@ -230,16 +248,30 @@ export function resolveCampaignTileAsset(campaignIdOrTheme: string): string {
  */
 export function resolveSceneBackdropAsset(backdropOrTheme: string): string {
   const norm = backdropOrTheme.toLowerCase();
-  if (norm.includes("wood") || norm.includes("forest") || norm.includes("treehouse")) {
+  if (norm.includes("wood") || norm.includes("forest") || norm.includes("treehouse") || norm.includes("silverleaf")) {
     return HEARTHQUEST_ASSETS.backgrounds.enchantedWoods.path;
   }
-  if (norm.includes("starlight") || norm.includes("observatory") || norm.includes("ship")) {
+  if (norm.includes("starlight") || norm.includes("observatory") || norm.includes("ship") || norm.includes("starwatch")) {
     return HEARTHQUEST_ASSETS.backgrounds.starlightObservatory.path;
   }
-  if (norm.includes("hearth") || norm.includes("tavern") || norm.includes("bakery")) {
+  if (norm.includes("hearth") || norm.includes("tavern") || norm.includes("bakery") || norm.includes("oakhaven")) {
     return HEARTHQUEST_ASSETS.backgrounds.hearthTavern.path;
   }
   return "";
+}
+
+/**
+ * Resolves an illustrated static overhead town or regional area map SVG for stage setting before combat.
+ */
+export function resolveAreaMapAsset(campaignOrTheme: string): string {
+  const norm = (campaignOrTheme || "").toLowerCase();
+  if (norm.includes("treehouse") || norm.includes("forest") || norm.includes("wood") || norm.includes("silverleaf") || norm.includes("clockwork")) {
+    return HEARTHQUEST_ASSETS.areaMaps.silverleafCanopy.path;
+  }
+  if (norm.includes("starlight") || norm.includes("observatory") || norm.includes("ship") || norm.includes("starwatch") || norm.includes("otter")) {
+    return HEARTHQUEST_ASSETS.areaMaps.starwatchBastion.path;
+  }
+  return HEARTHQUEST_ASSETS.areaMaps.oakhavenVillage.path;
 }
 
 /**

@@ -10,11 +10,13 @@ import {
   ContentRating,
   DiceRollResult,
   DieType,
+  DifficultyPreset,
   FamilyCampaignTemplate,
   InitiativeEntry,
   LoreRegistryEntry,
   MapRoomZone,
   MapToken,
+  MonsterStatBlock5e,
   PlayerSpotlightRecord,
   RoomSessionState,
   RulesTier,
@@ -26,6 +28,8 @@ import {
   StoryRpPrompt,
   WallSegment,
   HEARTHQUEST_ASSETS,
+  resolveAreaMapAsset,
+  resolveSceneBackdropAsset,
   resolveTokenAsset,
 } from "@hearthquest/shared-types";
 
@@ -44,8 +48,349 @@ const DIE_MAX: Record<DieType, number> = {
 };
 
 /**
+ * SRD 5.1 Base Monster Stat Block Catalog (CC-BY-4.0).
+ */
+export const SRD_5E_MONSTERS: Record<string, MonsterStatBlock5e> = {
+  goblin: {
+    creatureName: "Goblin",
+    sizeTypeAlignment: "Small humanoid (goblinoid), neutral evil",
+    armorClass: 15,
+    maxHp: 7,
+    hitDice: "2d6",
+    speed: "30 ft.",
+    abilities: { str: 8, dex: 14, con: 10, int: 10, wis: 8, cha: 8 },
+    challengeRating: "1/4",
+    xp: 50,
+    traits: ["Nimble Escape: Can take Disengage or Hide as a bonus action on each turn."],
+    actions: [
+      { name: "Scimitar", attackBonus: 4, damageDice: "1d6 + 2", damageType: "slashing", description: "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage." },
+      { name: "Shortbow", attackBonus: 4, damageDice: "1d6 + 2", damageType: "piercing", description: "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage." },
+    ],
+  },
+  goblin_boss: {
+    creatureName: "Goblin Boss",
+    sizeTypeAlignment: "Small humanoid (goblinoid), neutral evil",
+    armorClass: 17,
+    maxHp: 21,
+    hitDice: "6d6",
+    speed: "30 ft.",
+    abilities: { str: 10, dex: 14, con: 10, int: 10, wis: 8, cha: 10 },
+    challengeRating: "1",
+    xp: 200,
+    traits: ["Nimble Escape: Bonus action Disengage or Hide.", "Redirect Attack: When targeted, swaps places with an ally within 5 ft."],
+    actions: [
+      { name: "Multiattack", attackBonus: 4, damageDice: "2x (1d6 + 2)", damageType: "slashing", description: "Makes two attacks with its scimitar (second attack at disadvantage)." },
+      { name: "Javelin", attackBonus: 2, damageDice: "1d6", damageType: "piercing", description: "Melee or Ranged Weapon Attack: +2 to hit, reach 5 ft. or range 30/120 ft." },
+    ],
+  },
+  wolf: {
+    creatureName: "Wolf",
+    sizeTypeAlignment: "Medium beast, unaligned",
+    armorClass: 13,
+    maxHp: 11,
+    hitDice: "2d8 + 2",
+    speed: "40 ft.",
+    abilities: { str: 12, dex: 15, con: 12, int: 3, wis: 12, cha: 6 },
+    challengeRating: "1/4",
+    xp: 50,
+    traits: ["Keen Hearing and Smell: Advantage on Wisdom (Perception) checks relying on hearing or smell.", "Pack Tactics: Advantage on attack rolls if an ally is within 5 ft. of target."],
+    actions: [
+      { name: "Bite", attackBonus: 4, damageDice: "2d4 + 2", damageType: "piercing", description: "Melee Weapon Attack: +4 to hit, reach 5 ft. Hit: 7 (2d4 + 2) piercing damage; target must succeed on DC 11 Strength save or be knocked prone." },
+    ],
+  },
+  bugbear: {
+    creatureName: "Bugbear",
+    sizeTypeAlignment: "Medium humanoid (goblinoid), chaotic evil",
+    armorClass: 16,
+    maxHp: 27,
+    hitDice: "5d8 + 5",
+    speed: "30 ft.",
+    abilities: { str: 15, dex: 14, con: 13, int: 8, wis: 11, cha: 9 },
+    challengeRating: "1",
+    xp: 200,
+    traits: ["Brute: Melee weapon deals one extra die of damage on a hit.", "Surprise Attack: +2d6 damage on the first turn against a surprised target."],
+    actions: [
+      { name: "Morningstar", attackBonus: 4, damageDice: "2d8 + 2", damageType: "piercing", description: "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 11 (2d8 + 2) piercing damage." },
+      { name: "Javelin", attackBonus: 4, damageDice: "1d6 + 2", damageType: "piercing", description: "Ranged Weapon Attack: +4 to hit, range 30/120 ft. Hit: 5 (1d6 + 2) piercing damage." },
+    ],
+  },
+  bandit: {
+    creatureName: "Bandit",
+    sizeTypeAlignment: "Medium humanoid (any race), any non-lawful alignment",
+    armorClass: 12,
+    maxHp: 11,
+    hitDice: "2d8 + 2",
+    speed: "30 ft.",
+    abilities: { str: 11, dex: 12, con: 12, int: 10, wis: 10, cha: 10 },
+    challengeRating: "1/8",
+    xp: 25,
+    actions: [
+      { name: "Scimitar", attackBonus: 3, damageDice: "1d6 + 1", damageType: "slashing", description: "Melee Weapon Attack: +3 to hit, reach 5 ft. Hit: 4 (1d6 + 1) slashing damage." },
+      { name: "Light Crossbow", attackBonus: 3, damageDice: "1d8 + 1", damageType: "piercing", description: "Ranged Weapon Attack: +3 to hit, range 80/320 ft. Hit: 5 (1d8 + 1) piercing damage." },
+    ],
+  },
+  bandit_captain: {
+    creatureName: "Bandit Captain",
+    sizeTypeAlignment: "Medium humanoid (any race), any non-lawful alignment",
+    armorClass: 15,
+    maxHp: 65,
+    hitDice: "10d8 + 20",
+    speed: "30 ft.",
+    abilities: { str: 15, dex: 16, con: 14, int: 14, wis: 11, cha: 14 },
+    challengeRating: "2",
+    xp: 450,
+    traits: ["Parry (Reaction): Adds +2 to AC against one melee attack that would hit it."],
+    actions: [
+      { name: "Multiattack", attackBonus: 5, damageDice: "2x Scimitar + Dagger", damageType: "slashing", description: "Makes three melee attacks: two with its scimitar and one with its dagger." },
+      { name: "Scimitar", attackBonus: 5, damageDice: "1d6 + 3", damageType: "slashing", description: "Melee Weapon Attack: +5 to hit, reach 5 ft. Hit: 6 (1d6 + 3) slashing damage." },
+    ],
+  },
+  animated_armor: {
+    creatureName: "Animated Armor",
+    sizeTypeAlignment: "Medium construct, unaligned",
+    armorClass: 18,
+    maxHp: 33,
+    hitDice: "6d8 + 6",
+    speed: "25 ft.",
+    abilities: { str: 14, dex: 11, con: 13, int: 1, wis: 3, cha: 1 },
+    challengeRating: "1",
+    xp: 200,
+    traits: ["Antimagic Susceptibility: Incapacitated in an antimagic field.", "False Appearance: Indistinguishable from a normal suit of armor while motionless."],
+    actions: [
+      { name: "Multiattack", attackBonus: 4, damageDice: "2x (1d6 + 2)", damageType: "bludgeoning", description: "Makes two melee slam attacks." },
+    ],
+  },
+  skeleton: {
+    creatureName: "Skeleton",
+    sizeTypeAlignment: "Medium undead, lawful evil",
+    armorClass: 13,
+    maxHp: 13,
+    hitDice: "2d8 + 4",
+    speed: "30 ft.",
+    abilities: { str: 10, dex: 14, con: 15, int: 6, wis: 8, cha: 5 },
+    challengeRating: "1/4",
+    xp: 50,
+    traits: ["Damage Vulnerabilities: bludgeoning", "Damage Immunities: poison"],
+    actions: [
+      { name: "Shortsword", attackBonus: 4, damageDice: "1d6 + 2", damageType: "piercing", description: "Melee Weapon Attack: +4 to hit, reach 5 ft. Hit: 5 (1d6 + 2) piercing damage." },
+      { name: "Shortbow", attackBonus: 4, damageDice: "1d6 + 2", damageType: "piercing", description: "Ranged Weapon Attack: +4 to hit, range 80/320 ft. Hit: 5 (1d6 + 2) piercing damage." },
+    ],
+  },
+  specter: {
+    creatureName: "Specter",
+    sizeTypeAlignment: "Medium undead, chaotic evil",
+    armorClass: 12,
+    maxHp: 22,
+    hitDice: "5d8",
+    speed: "0 ft., fly 50 ft. (hover)",
+    abilities: { str: 1, dex: 14, con: 11, int: 10, wis: 10, cha: 11 },
+    challengeRating: "1",
+    xp: 200,
+    traits: ["Incorporeal Movement: Can move through creatures and objects as difficult terrain.", "Sunlight Sensitivity: Disadvantage on attack rolls and sight Perception in sunlight."],
+    actions: [
+      { name: "Life Drain", attackBonus: 4, damageDice: "3d6", damageType: "necrotic", description: "Melee Spell Attack: +4 to hit, reach 5 ft. Hit: 10 (3d6) necrotic damage." },
+    ],
+  },
+  gelatinous_cube: {
+    creatureName: "Gelatinous Cube",
+    sizeTypeAlignment: "Large ooze, unaligned",
+    armorClass: 6,
+    maxHp: 84,
+    hitDice: "8d10 + 40",
+    speed: "15 ft.",
+    abilities: { str: 14, dex: 3, con: 20, int: 1, wis: 6, cha: 1 },
+    challengeRating: "2",
+    xp: 450,
+    traits: ["Transparent: Requires DC 15 Wisdom (Perception) check to spot while motionless.", "Engulf: Creatures inside take acid damage and are restrained."],
+    actions: [
+      { name: "Pseudopod", attackBonus: 4, damageDice: "3d6", damageType: "acid", description: "Melee Weapon Attack: +4 to hit, reach 5 ft. Hit: 10 (3d6) acid damage." },
+    ],
+  },
+};
+
+export function findSrdMonsterStatBlock(name: string): MonsterStatBlock5e {
+  const norm = (name || "").toLowerCase();
+  if (norm.includes("goblin boss") || norm.includes("snickerdoodle") || norm.includes("chef")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.goblin_boss));
+  }
+  if (norm.includes("goblin") || norm.includes("sprinkles")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.goblin));
+  }
+  if (norm.includes("bandit captain")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.bandit_captain));
+  }
+  if (norm.includes("bandit")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.bandit));
+  }
+  if (norm.includes("bugbear")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.bugbear));
+  }
+  if (norm.includes("wolf")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.wolf));
+  }
+  if (norm.includes("animated armor") || norm.includes("vanguard") || norm.includes("squirrel") || norm.includes("owl")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.animated_armor));
+  }
+  if (norm.includes("skeleton")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.skeleton));
+  }
+  if (norm.includes("specter") || norm.includes("solis") || norm.includes("warden")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.specter));
+  }
+  if (norm.includes("gelatinous") || norm.includes("jelly") || norm.includes("lumina")) {
+    return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.gelatinous_cube));
+  }
+  return JSON.parse(JSON.stringify(SRD_5E_MONSTERS.goblin));
+}
+
+export interface DifficultyTuning {
+  difficulty: DifficultyPreset;
+  label: string;
+  enemyHpMultiplier: number;
+  enemyAcDelta: number;
+  enemyAttackDelta: number;
+  dcDelta: number;
+  playerRollBonus: number;
+  heroHpBonus: number;
+  heroHeartBonus: number;
+  summary: string;
+}
+
+export function getDifficultyTuning(difficulty?: DifficultyPreset): DifficultyTuning {
+  const mode: DifficultyPreset =
+    difficulty === "STORY_EASY" || difficulty === "HEROIC_HARD" ? difficulty : "BALANCED_NORMAL";
+  if (mode === "STORY_EASY") {
+    return {
+      difficulty: "STORY_EASY",
+      label: "Easy / Story Mode",
+      enemyHpMultiplier: 0.55,
+      enemyAcDelta: -3,
+      enemyAttackDelta: -2,
+      dcDelta: -3,
+      playerRollBonus: 2,
+      heroHpBonus: 4,
+      heroHeartBonus: 1,
+      summary: "Enemies 45% softer (-3 AC, -2 atk), DCs -3, Heroes +2 rolls & +4 HP",
+    };
+  }
+  if (mode === "HEROIC_HARD") {
+    return {
+      difficulty: "HEROIC_HARD",
+      label: "Heroic / Hard Mode",
+      enemyHpMultiplier: 1.35,
+      enemyAcDelta: 2,
+      enemyAttackDelta: 2,
+      dcDelta: 2,
+      playerRollBonus: 0,
+      heroHpBonus: -2,
+      heroHeartBonus: 0,
+      summary: "Enemies +35% HP (+2 AC, +2 atk), DCs +2, Hero Max HP -2",
+    };
+  }
+  return {
+    difficulty: "BALANCED_NORMAL",
+    label: "Balanced / Normal Mode",
+    enemyHpMultiplier: 1,
+    enemyAcDelta: 0,
+    enemyAttackDelta: 0,
+    dcDelta: 0,
+    playerRollBonus: 0,
+    heroHpBonus: 0,
+    heroHeartBonus: 0,
+    summary: "Standard SRD 5e creature HP, AC, attacks & check DCs",
+  };
+}
+
+/**
+ * Applies concrete difficulty math to a room's heroes, enemies, stat blocks, combat entries, and door lock DCs.
+ */
+export function applyRoomDifficulty(
+  room: RoomSessionState,
+  nextDifficulty?: DifficultyPreset
+): RoomSessionState {
+  const tuning = getDifficultyTuning(nextDifficulty ?? room.difficulty);
+  room.difficulty = tuning.difficulty;
+
+  for (const h of room.heroes || []) {
+    const baseHp = h.attributes5e.baseMaxHp ?? h.attributes5e.maxHp;
+    h.attributes5e.baseMaxHp = baseHp;
+    const prevMaxHp = h.attributes5e.maxHp;
+    const scaledMaxHp = Math.max(4, baseHp + tuning.heroHpBonus);
+    h.attributes5e.maxHp = scaledMaxHp;
+    if (h.attributes5e.hp >= prevMaxHp) {
+      h.attributes5e.hp = scaledMaxHp;
+    } else {
+      h.attributes5e.hp = Math.min(scaledMaxHp, Math.max(1, h.attributes5e.hp));
+    }
+
+    const baseHearts = h.baseMaxHearts ?? h.storybookStats.maxHearts;
+    h.baseMaxHearts = baseHearts;
+    const prevHearts = h.storybookStats.maxHearts;
+    const scaledHearts = Math.max(2, baseHearts + tuning.heroHeartBonus);
+    h.storybookStats.maxHearts = scaledHearts;
+    if (h.storybookStats.hearts >= prevHearts) {
+      h.storybookStats.hearts = scaledHearts;
+    } else {
+      h.storybookStats.hearts = Math.min(scaledHearts, Math.max(1, h.storybookStats.hearts));
+    }
+  }
+
+  for (const tok of room.tokens || []) {
+    if (tok.type === "HERO" && tok.characterId) {
+      const hero = room.heroes.find((h) => h.id === tok.characterId);
+      if (hero) {
+        tok.maxHp = room.rulesTier === "STORYBOOK_D6" ? hero.storybookStats.maxHearts : hero.attributes5e.maxHp;
+        tok.hp = Math.min(tok.maxHp, room.rulesTier === "STORYBOOK_D6" ? hero.storybookStats.hearts : hero.attributes5e.hp);
+      }
+      continue;
+    }
+    if (tok.type === "MONSTER") {
+      if (!tok.statBlock5e) {
+        tok.statBlock5e = findSrdMonsterStatBlock(tok.name);
+      }
+      const baselineHp = tok.baseMaxHp ?? tok.maxHp;
+      tok.baseMaxHp = baselineHp;
+      const baseAc = tok.baseArmorClass ?? tok.statBlock5e.armorClass;
+      tok.baseArmorClass = baseAc;
+
+      const ratio = tok.maxHp > 0 ? tok.hp / tok.maxHp : 1;
+      const scaledHp = Math.max(2, Math.round(baselineHp * tuning.enemyHpMultiplier));
+      tok.maxHp = scaledHp;
+      tok.hp = Math.max(ratio > 0 ? 1 : 0, Math.min(scaledHp, Math.round(scaledHp * ratio)));
+
+      const sb = findSrdMonsterStatBlock(tok.statBlock5e.creatureName || tok.name);
+      sb.armorClass = Math.max(8, baseAc + tuning.enemyAcDelta);
+      sb.maxHp = scaledHp;
+      sb.actions = sb.actions.map((act) => ({
+        ...act,
+        attackBonus: act.attackBonus + tuning.enemyAttackDelta,
+      }));
+      tok.statBlock5e = sb;
+    }
+  }
+
+  for (const wall of room.walls || []) {
+    if (wall.isDoor && typeof wall.lockDc === "number") {
+      const baseLock = wall.baseLockDc ?? wall.lockDc;
+      wall.baseLockDc = baseLock;
+      const minDc = room.rulesTier === "STORYBOOK_D6" ? 2 : 5;
+      wall.lockDc = Math.max(minDc, baseLock + tuning.dcDelta);
+    }
+  }
+
+  if (room.combat?.isActive) {
+    room.combat.entries = room.combat.entries.map((entry) => {
+      const tok = room.tokens.find((t) => t.id === entry.tokenId);
+      return tok ? { ...entry, hp: tok.hp, maxHp: tok.maxHp } : entry;
+    });
+  }
+
+  return room;
+}
+
+/**
  * Evaluates either a physical die roll entered by a kid on their tablet
- * OR generates a cryptographic/random digital roll, applying the active RulesTier math.
+ * OR generates a cryptographic/random digital roll, applying the active RulesTier math and DifficultyPreset tuning.
  */
 export function evaluateActionCardRoll(params: {
   character: CharacterSheet;
@@ -53,8 +398,10 @@ export function evaluateActionCardRoll(params: {
   rulesTier: RulesTier;
   source: "PHYSICAL_DICE_TABLE" | "DIGITAL_3D_ROLLER";
   physicalRollValue?: number;
+  difficulty?: DifficultyPreset;
 }): DiceRollResult {
-  const { character, card, rulesTier, source, physicalRollValue } = params;
+  const { character, card, rulesTier, source, physicalRollValue, difficulty } = params;
+  const tuning = getDifficultyTuning(difficulty);
 
   // In Storybook mode (Ages 5-8), all checks use a simple d6 (4+ succeeds)
   const effectiveDie: DieType = rulesTier === "STORYBOOK_D6" ? "d6" : card.dieToRoll;
@@ -71,8 +418,12 @@ export function evaluateActionCardRoll(params: {
     rawRoll = Math.floor(Math.random() * maxFace) + 1;
   }
 
-  const modifier = card.bonusByTier[rulesTier] ?? 0;
-  const targetDC = card.targetDifficultyByTier[rulesTier] ?? (rulesTier === "STORYBOOK_D6" ? 4 : 10);
+  const baseModifier = card.bonusByTier[rulesTier] ?? 0;
+  const modifier = baseModifier + tuning.playerRollBonus;
+  const baseTargetDC = card.targetDifficultyByTier[rulesTier] ?? (rulesTier === "STORYBOOK_D6" ? 4 : 10);
+  const dcShift = rulesTier === "STORYBOOK_D6" ? Math.sign(tuning.dcDelta) : tuning.dcDelta;
+  const minDc = rulesTier === "STORYBOOK_D6" ? 2 : 5;
+  const targetDC = Math.max(minDc, baseTargetDC + dcShift);
   const total = rawRoll + modifier;
   const isCriticalSuccess = rawRoll === maxFace;
   const succeeded = isCriticalSuccess || total >= targetDC;
@@ -243,16 +594,16 @@ export function createBedtimeFreezeSnapshot(state: RoomSessionState): BedtimeFre
 }
 
 /**
- * Default starter hero sheets: Sir Barnaby Paws & Lyra Starwhisper
+ * Default starter hero sheets: Sir Roland Oakenshield & Lyra Dawnstar
  */
 export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
   {
     id: "hero-barnaby",
-    name: "Sir Barnaby Paws",
+    name: "Sir Roland Oakenshield",
     playerName: "Leo (Age 7)",
     playerAge: 7,
     archetype: "Shield Knight",
-    companionPet: "Pip the Golden Puppy",
+    companionPet: "Pippin the Watch-Hound",
     avatarEmoji: "🛡️",
     tokenColor: "#f59e0b",
     rulesTier: "STORYBOOK_D6",
@@ -271,60 +622,60 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
     actionCards: [
       {
         id: "card-shield-bonk",
-        title: " Mighty Shield Boop",
+        title: "Oakenshield Bash",
         subtitle: "Brawn / Melee Attack",
         icon: "🛡️",
         colorTheme: "amber",
         dieToRoll: "d20",
         bonusByTier: { STORYBOOK_D6: 1, APPRENTICE_5E_LITE: 4, STANDARD_5E: 5 },
         targetDifficultyByTier: { STORYBOOK_D6: 4, APPRENTICE_5E_LITE: 11, STANDARD_5E: 13 },
-        description: "Bounce your shiny shield off a sneaky rascal or heavy door!",
+        description: "Drive your oak-rimmed buckler forward to knock foes back or force heavy doors!",
         cozySuccessFlavor:
-          "CLANG! Your shield rings like a dinner bell and sends the obstacle spinning!",
+          "CLANG! Your oak shield rings like a watchtower bell and sends the obstacle reeling!",
         cozyFailForwardFlavor:
-          "Your shield slips on a dollop of blueberry frosting, making a loud slide-whistle sound!",
+          "Your shield scrapes past the target, knocking loose a loose flagstone that reveals their footing!",
       },
       {
         id: "card-puppy-sniff",
-        title: "Pip's Super Sniff",
+        title: "Scout's Keen Track",
         subtitle: "Brains / Clues & Secrets",
-        icon: "🐶",
+        icon: "🐾",
         colorTheme: "emerald",
         dieToRoll: "d20",
         bonusByTier: { STORYBOOK_D6: 1, APPRENTICE_5E_LITE: 3, STANDARD_5E: 4 },
         targetDifficultyByTier: { STORYBOOK_D6: 4, APPRENTICE_5E_LITE: 10, STANDARD_5E: 12 },
-        description: "Have Pip the puppy sniff out secret passages or hidden treats!",
-        cozySuccessFlavor: "Pip wags his tail furiously and points his nose right at the secret!",
+        description: "Have Pippin the watch-hound track hidden doors, traps, or goblin boot-prints!",
+        cozySuccessFlavor: "Pippin gives a sharp alert bark and points straight toward the hidden latch!",
         cozyFailForwardFlavor:
-          "Pip gets distracted chasing a glowing butterfly straight toward the next clue!",
+          "Pippin chases an echo down the hall—leading the party straight to a fresh footprint!",
       },
     ],
     inventory: [
       {
         id: "item-sun-shield",
-        name: "Sunbeam Buckler",
+        name: "Sunbeam Heater Shield",
         icon: "☀️",
-        description: "Glows like a warm nightlight in dark caves.",
+        description: "Steel-bossed buckler etched with the Oakhaven watch-crest.",
       },
       {
         id: "item-honey-biscuit",
-        name: "Emergency Honey Biscuit",
-        icon: "🍪",
-        description: "Restores 1 Heart or calms down one grumpy creature.",
+        name: "Potion of Healing (Minor)",
+        icon: "🧪",
+        description: "Restores 1 Heart (or 1d4+2 HP) to a companion in need.",
       },
     ],
     levelStars: 2,
-    bioStory: "A brave little terrier knight in shining armor who protects his family with gentle shield boops.",
-    petTrait: "Wags tail to give an ally +1 on their next heroic roll!",
+    bioStory: "A steadfast young paladin of the Oakhaven Watch who stands between danger and every villager.",
+    petTrait: "Keen Hearing & Smell: Alerts allies to hidden ambushes!",
     assetPath: HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
   },
   {
     id: "hero-lyra",
-    name: "Lyra Starwhisper",
+    name: "Lyra Dawnstar",
     playerName: "Maya (Age 10)",
     playerAge: 10,
     archetype: "Starlight Wizard",
-    companionPet: "Hootie the Clockwork Owl",
+    companionPet: "Archimedes the Familiar Owl",
     avatarEmoji: "🪄",
     tokenColor: "#8b5cf6",
     rulesTier: "APPRENTICE_5E_LITE",
@@ -343,32 +694,32 @@ export const DEFAULT_STARTER_HEROES: CharacterSheet[] = [
     actionCards: [
       {
         id: "card-rainbow-bolt",
-        title: "Starlight Sparkle Bolt",
-        subtitle: "Brains / Arcane Spell",
+        title: "Magic Missile",
+        subtitle: "Brains / Evocation Spell",
         icon: "✨",
         colorTheme: "purple",
         dieToRoll: "d20",
         bonusByTier: { STORYBOOK_D6: 1, APPRENTICE_5E_LITE: 5, STANDARD_5E: 6 },
         targetDifficultyByTier: { STORYBOOK_D6: 4, APPRENTICE_5E_LITE: 11, STANDARD_5E: 13 },
-        description: "Launch a dazzling beam of comet-fizz that zaps foes or lights crystals!",
+        description: "Loosen three glowing darts of arcane force that illuminate runes or strike enemies!",
         cozySuccessFlavor:
-          "FWOOSH! A swirl of violet starlight dazzles the room and zaps the target!",
+          "FWOOSH! Three silver star-bolts streak across the room and strike true!",
         cozyFailForwardFlavor:
-          "Sparks pop out of your wand like harmless fireworks, turning the target's hair bright purple!",
+          "Arcane sparks burst harmlessly overhead, illuminating hidden carvings along the stone ceiling!",
       },
       {
         id: "card-owl-scout",
-        title: "Clockwork Owl Scout",
-        subtitle: "Charm / Talk & Trick",
+        title: "Familiar Recon",
+        subtitle: "Charm / Arcane & Trick",
         icon: "🦉",
         colorTheme: "sky",
         dieToRoll: "d20",
         bonusByTier: { STORYBOOK_D6: 1, APPRENTICE_5E_LITE: 4, STANDARD_5E: 4 },
         targetDifficultyByTier: { STORYBOOK_D6: 4, APPRENTICE_5E_LITE: 10, STANDARD_5E: 12 },
-        description: "Send Hootie ahead or mimic a funny voice to distract guards!",
-        cozySuccessFlavor: "Hootie hoots a royal fanfare that completely fools everyone nearby!",
+        description: "Send Archimedes aloft to scout guards, trigger distant levers, or cast Mage Hand!",
+        cozySuccessFlavor: "Archimedes glides silent as shadow, spotting patrol routes and lifting the latch!",
         cozyFailForwardFlavor:
-          "Hootie's gears hiccup with a loud CUCKOO sound, making the guards giggle!",
+          "A sharp owl hoot echoes through the rafters, drawing the guards out of formation!",
       },
     ],
     inventory: [
@@ -1327,29 +1678,54 @@ export function createCampaignSession(
       ? "STARLIGHT_OBSERVATORY"
       : "HEARTH_TAVERN";
 
-  return {
+  const tokens = enrichTokensWithLighting(clonedTokens).map((tok) =>
+    tok.type === "MONSTER"
+      ? {
+          ...tok,
+          statBlock5e: tok.statBlock5e || findSrdMonsterStatBlock(tok.name),
+          baseMaxHp: tok.baseMaxHp ?? tok.maxHp,
+          baseArmorClass: tok.baseArmorClass ?? (tok.statBlock5e || findSrdMonsterStatBlock(tok.name)).armorClass,
+        }
+      : tok
+  );
+  const walls = (campaign.walls ? JSON.parse(JSON.stringify(campaign.walls)) : createDefaultZoneWalls(clonedZones)).map(
+    (w: WallSegment) =>
+      w.isDoor && typeof w.lockDc === "number" ? { ...w, baseLockDc: w.baseLockDc ?? w.lockDc } : w
+  );
+  const stageAreaMapUrl = resolveAreaMapAsset(campaign.id);
+  const stageMoodArtUrl = resolveSceneBackdropAsset(defaultBackdrop);
+  const storyNodes: StoryBranchNode[] = (JSON.parse(JSON.stringify(campaign.storyNodes)) as StoryBranchNode[]).map(
+    (node) => ({
+      ...node,
+      stageAreaMapUrl: node.stageAreaMapUrl || stageAreaMapUrl,
+      stageMoodArtUrl: node.stageMoodArtUrl || stageMoodArtUrl,
+    })
+  );
+
+  const session: RoomSessionState = {
     roomCode,
     householdId: "household-demo-family",
     campaignId: campaign.id,
     campaignTitle: campaign.title,
     rulesTier: campaign.defaultRulesTier,
     contentRating: campaign.defaultContentRating,
+    difficulty: "BALANCED_NORMAL",
+    stageAreaMapUrl,
+    stageMoodArtUrl,
     diceInputMode: "HYBRID_PHYSICAL_PROMPT",
     isPausedForBedtime: false,
     activeNodeId: campaign.initialActiveNodeId,
     gridCols: 10,
     gridRows: 6,
     zones: clonedZones,
-    tokens: clonedTokens,
+    tokens,
     heroes,
-    storyNodes: JSON.parse(JSON.stringify(campaign.storyNodes)),
+    storyNodes,
     storyFlags: [],
     rollHistory: [],
     spotlightRecords: computeSiblingSpotlightFairness(heroes, []),
     ambientLightMode: campaign.ambientLightMode ?? "COZY_TWILIGHT",
-    walls: campaign.walls
-      ? JSON.parse(JSON.stringify(campaign.walls))
-      : createDefaultZoneWalls(clonedZones),
+    walls,
     ambientWeather: defaultWeather,
     spellTemplates: [],
     ambientSoundscape: defaultSoundscape,
@@ -1361,6 +1737,7 @@ export function createCampaignSession(
       entries: [],
     },
   };
+  return applyRoomDifficulty(session, "BALANCED_NORMAL");
 }
 
 /**
@@ -1809,7 +2186,9 @@ export function rollHeroSkillCheck(params: {
   targetDcOverride?: number;
   actionLabelOverride?: string;
   rawRollOverride?: number;
+  difficulty?: DifficultyPreset;
 }): DiceRollResult {
+  const tuning = getDifficultyTuning(params.difficulty);
   const skills = getHeroSkillModifiers(params.hero, params.rulesTier);
   const skill = skills.find((s) => s.id === params.skillId) ?? skills[0];
   const dieType: DieType = params.rulesTier === "STORYBOOK_D6" ? "d6" : "d20";
@@ -1818,8 +2197,9 @@ export function rollHeroSkillCheck(params: {
     typeof params.rawRollOverride === "number" && Number.isFinite(params.rawRollOverride)
       ? Math.max(1, Math.min(maxFace, Math.round(params.rawRollOverride)))
       : Math.floor(Math.random() * maxFace) + 1;
-  const total = rawRoll + skill.modifier;
-  const baseTargetDc =
+  const modifier = skill.modifier + tuning.playerRollBonus;
+  const total = rawRoll + modifier;
+  const rawBaseDc =
     typeof params.targetDcOverride === "number" && Number.isFinite(params.targetDcOverride)
       ? params.rulesTier === "STORYBOOK_D6" && params.targetDcOverride > 6
         ? Math.max(3, Math.min(6, Math.round(params.targetDcOverride / 3)))
@@ -1827,7 +2207,14 @@ export function rollHeroSkillCheck(params: {
       : params.rulesTier === "STORYBOOK_D6"
       ? 4
       : 12;
-  const targetDC = baseTargetDc;
+  const dcShift = params.rulesTier === "STORYBOOK_D6" ? Math.sign(tuning.dcDelta) : tuning.dcDelta;
+  const minDc = params.rulesTier === "STORYBOOK_D6" ? 2 : 5;
+  // Note: when caller already passes a room's difficulty-scaled door.lockDc, room-store should avoid double-subtracting,
+  // or pass difficulty tuning cleanly. Here we apply dcDelta only when targetDcOverride isn't pre-scaled.
+  const targetDC =
+    typeof params.targetDcOverride === "number"
+      ? Math.max(minDc, rawBaseDc)
+      : Math.max(minDc, rawBaseDc + dcShift);
   const succeeded = total >= targetDC;
   const isCrit = rawRoll === maxFace;
   const checkTitle = params.actionLabelOverride || `${skill.icon} ${skill.name} Check`;
@@ -1841,7 +2228,7 @@ export function rollHeroSkillCheck(params: {
     dieType,
     source: typeof params.rawRollOverride === "number" ? "PHYSICAL_DICE_TABLE" : "DIGITAL_3D_ROLLER",
     rawRoll,
-    modifier: skill.modifier,
+    modifier,
     total,
     targetDC,
     succeeded,
@@ -2329,118 +2716,118 @@ const TAILORED_SCENARIO_BY_AGE: Record<AgeGroupPreset, TailoredScenarioSeed> = {
     contentRating: "COZY_G",
     ageLabel: "Ages 5–7 (Cozy Early Readers)",
     campaignId: "camp-goblin-bakery",
-    titlePrefix: "Buttercream Caper",
+    titlePrefix: "Oakhaven Hearth Vault",
     biome: "BAKERY",
     backdrop: "HEARTH_TAVERN",
     weather: "HEARTH_EMBERS",
     soundscape: "COZY_TAVERN",
-    npcName: "Pip the Flour Sprite",
-    npcEmoji: "🧁",
+    npcName: "Milo Hearthbaker",
+    npcEmoji: "🍞",
     npcAsset: HEARTHQUEST_ASSETS.heroes.melodyBard.path,
     npcLineByTier: {
       STORYBOOK_D6:
-        "Oh thank goodness you're here! The giggling goblins took the Golden Whisk into the frosting room—will you help me get it back nicely?",
+        "Oh thank goodness you're here, heroes! A sneaky Goblin Scout carried the Golden Hearth-Key into the Mill Cellar—will you help me get it back?",
       APPRENTICE_5E_LITE:
-        "Brave heroes! Goblins snuck past the counter toward the Pastry Hall. Check the middle door—it's unlocked, though the vault ahead is padlocked!",
+        "Brave adventurers! A Goblin snuck past Oakhaven Square into the Mill Hall. Check the middle door—it's unlocked, though the cellar vault ahead is padlocked!",
       STANDARD_5E:
-        "Keep low by the hearth ovens. Goblin scouts patrol the kneading hall, and Chef Snickerdoodle locked the spice vault door behind an iron tumbler.",
+        "Keep low by the hearth ovens. A Goblin patrols the cellar corridor, and a Goblin Boss locked Oakhaven's vault behind an iron tumbler.",
     },
-    enemyName: "Giggling Pastry Imp",
+    enemyName: "Goblin",
     enemyEmoji: "👺",
     enemyAsset: HEARTHQUEST_ASSETS.monsters.goblinSprinkles.path,
-    bossName: "Chef Snickerdoodle",
-    bossEmoji: "👨‍🍳",
+    bossName: "Goblin Boss",
+    bossEmoji: "⚔️",
     bossAsset: HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path,
     bossLineByTier: {
       STORYBOOK_D6:
-        "Halt, cookie-chasers! Nobody touches my mega-croissant unless they tell me a silly joke or beat my best roll!",
+        "Halt, heroes! Nobody enters the Oakhaven Vault unless you can roll high or make a fair trade with me!",
       APPRENTICE_5E_LITE:
-        "So you picked my vault lock! Let's see if your party can outsmart my frosting cannons or persuade me to share!",
+        "So you picked my cellar lock! Let's see if your party can outsmart my Goblin ambush or talk me into standing down!",
       STANDARD_5E:
-        "Impressive lockwork, intruders. Draw your steel or talk fast—none leave my vault with the Hearthlight Crown unchallenged!",
+        "Clever thieves to pick my tumbler! Steel up or parley fast—no villager takes back Oakhaven's treasure while I command this hall!",
     },
-    zoneNames: ["1. Warm Hearth Parlor", "2. Kneading & Frosting Hall", "3. Locked Croissant Vault"],
-    trapName: "Sticky Flour-Poof Snare",
-    lockName: "Sugarglass Padlock",
-    lootName: "Golden Whisk of Sharing",
+    zoneNames: ["1. Oakhaven Village Square", "2. Hearthside Mill Cellar", "3. Locked Oakhaven Vault"],
+    trapName: "Concealed Tripwire Snare",
+    lockName: "Iron Tumbler Padlock",
+    lootName: "Sunlight Charm of Oakhaven",
   },
   AGES_8_10: {
     contentRating: "ADVENTURE_PG",
     ageLabel: "Ages 8–10 (Adventure Explorers)",
     campaignId: "camp-clockwork-treehouse",
-    titlePrefix: "Clockwork Canopy",
+    titlePrefix: "Silverleaf Canopy",
     biome: "FOREST_TREEHOUSE",
     backdrop: "ENCHANTED_WOODS",
     weather: "FOREST_FIREFLIES",
     soundscape: "WHISPERING_WOODS",
-    npcName: "Bramble the Acorn Tinker",
-    npcEmoji: "🐿️",
+    npcName: "Rowan Swiftbow",
+    npcEmoji: "🏹",
     npcAsset: HEARTHQUEST_ASSETS.heroes.forestRanger.path,
     npcLineByTier: {
       STORYBOOK_D6:
-        "Whoa, heroes! My giant treehouse windmill stopped spinning! My brass squirrel friends went bouncy-haywire inside—can you help fix the gear?",
+        "Whoa, heroes! A stray Wolf followed scent trails onto the canopy bridge, and a Bugbear locked the Elder Watchpost!",
       APPRENTICE_5E_LITE:
-        "Welcome to the Canopy Outpost! A haywire Brass Squirrel guards the Rope Bridge ahead, and the Clockwork Owl locked the Windmill Vault!",
+        "Welcome to Silverleaf Canopy! A prowling Wolf guards the Rope Bridge ahead, and a Bugbear raider locked the Canopy Spire Vault!",
       STANDARD_5E:
-        "Watch the pressure plates along the timber deck. Mechanical sentries sweep Zone 2, and the Windmill Core is sealed behind a reinforced tumbler lock.",
+        "Watch the snare plates along the timber deck. A Wolf stalks the bridge crossing, and the Canopy Spire is sealed by a Bugbear chieftain.",
     },
-    enemyName: "Haywire Brass Squirrel",
-    enemyEmoji: "⚙️",
-    enemyAsset: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
-    bossName: "Tinkertock the Clockwork Owl",
-    bossEmoji: "🦉",
-    bossAsset: HEARTHQUEST_ASSETS.monsters.dragonPuppy.path,
+    enemyName: "Wolf",
+    enemyEmoji: "🐺",
+    enemyAsset: HEARTHQUEST_ASSETS.monsters.dragonPuppy.path,
+    bossName: "Bugbear",
+    bossEmoji: "🪓",
+    bossAsset: HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path,
     bossLineByTier: {
       STORYBOOK_D6:
-        "Hoot-clank! I only borrowed all the shiny acorns to build a giant music box! Trade me a cool story or roll to calm my gears!",
+        "Grrr! Who climbs into my treehouse hideout? Best my roll or offer a clever bargain!",
       APPRENTICE_5E_LITE:
-        "Click-whir! You solved the bridge puzzle and cracked my door! Now test your wits against my spinning brass feathers!",
+        "You crossed the rope bridge and picked my lock! Now face the might of a Bugbear ambush!",
       STANDARD_5E:
-        "Intruders in the Sanctum Core! My mainspring coils are wound tight—roll initiative unless you can disarm the regulator!",
+        "Intruders in the Canopy Spire! Prepare for Surprise Attack—roll initiative!",
     },
-    zoneNames: ["1. Firefly Landing Deck", "2. Suspension Gear Bridge", "3. Locked Windmill Spire"],
-    trapName: "Acorn Coil Spring-Plate",
-    lockName: "Clockwork Brass Lock",
-    lootName: "Emerald Cog of Flight",
+    zoneNames: ["1. Silverleaf Watchpost", "2. Suspension Rope Bridge", "3. Locked Canopy Spire"],
+    trapName: "Camouflaged Snare Plate",
+    lockName: "Forged Brass Bridge Lock",
+    lootName: "Emerald Compass of Silverleaf",
   },
   AGES_11_13: {
     contentRating: "ADVENTURE_PG",
     ageLabel: "Ages 11–13 (Quest Champions)",
     campaignId: "camp-starlight-otter",
-    titlePrefix: "Starlight Rift",
+    titlePrefix: "Starwatch Citadel",
     biome: "STARLIGHT_SHIP",
     backdrop: "STARLIGHT_OBSERVATORY",
     weather: "STARLIGHT_DUST",
     soundscape: "CRYSTAL_CAVERN",
-    npcName: "Navigator Lyra",
+    npcName: "Magister Corwin Hale",
     npcEmoji: "🔭",
     npcAsset: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
     npcLineByTier: {
       STORYBOOK_D6:
-        "All paws on deck! Cosmic bubbles floated into the engine room and locked our star-compass behind the big vault door!",
+        "Steady now, crew! Animated Armor awoke in the observatory corridor, and a Bandit Captain locked our star-compass behind the vault door!",
       APPRENTICE_5E_LITE:
-        "Our astral compass drifted off-course! Clear the Gravity Engine in Zone 2, then unlock the Bridge Door to reason with Queen Lumina!",
+        "Our astral compass was seized! Bypass the Animated Armor in Zone 2, then pick the Astrolabe Lock to face the Bandit Captain!",
       STANDARD_5E:
-        "Stay sharp—runic wards defend the Engine Deck, and a DC 14 Astral Tumbler seals Queen Lumina inside the Astrolabe Sanctum.",
+        "Stay sharp—an Animated Armor construct guards the Engine Deck, and a DC 14 tumbler seals a Bandit Captain inside the Astrolabe Sanctum.",
     },
-    enemyName: "Orbiting Star-Spark Drake",
-    enemyEmoji: "🐉",
-    enemyAsset: HEARTHQUEST_ASSETS.monsters.dragonPuppy.path,
-    bossName: "Queen Lumina the Nebula Sovereign",
-    bossEmoji: "🪼",
-    bossAsset: HEARTHQUEST_ASSETS.monsters.nebulaJelly.path,
+    enemyName: "Animated Armor",
+    enemyEmoji: "🛡️",
+    enemyAsset: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
+    bossName: "Bandit Captain",
+    bossEmoji: "🏴‍☠️",
+    bossAsset: HEARTHQUEST_ASSETS.monsters.chefSnickerdoodle.path,
     bossLineByTier: {
       STORYBOOK_D6:
-        "Blub-sparkle! Why did you burst into my starry dance hall? Can your crew match my cosmic rhythm?",
+        "Ha! You slipped past my sentinel! Let's see your best roll for the Prism Key!",
       APPRENTICE_5E_LITE:
-        "So you bypassed the locks of the Observatory! Show me whether you bring wisdom, stealth, or courage to re-align the stars!",
+        "So you picked the Starwatch lock! Show me whether your party can match blades and wits with a Bandit Captain!",
       STANDARD_5E:
-        "Mortal navigators dare breach my Celestial Bridge? Defend your course—my nebula shockwave charges now!",
+        "Intruders on my quarterdeck? Steel yourselves—Multiattack three strikes, ready!",
     },
-    zoneNames: ["1. Quarterdeck Telescope", "2. Gravity Engine Hall", "3. Locked Astrolabe Sanctum"],
-    trapName: "Glowing Astral Frost Rune",
+    zoneNames: ["1. Starwatch Landing", "2. Observatory Corridor", "3. Locked Astrolabe Sanctum"],
+    trapName: "Glowing Arcane Glyph Trap",
     lockName: "Starforged Astrolabe Lock",
-    lootName: "Prism Key of Comets",
+    lootName: "Prism Astrolabe of Starwatch",
   },
   TEENS_13_PLUS: {
     contentRating: "CLASSIC_PG13",
@@ -2451,30 +2838,30 @@ const TAILORED_SCENARIO_BY_AGE: Record<AgeGroupPreset, TailoredScenarioSeed> = {
     backdrop: "STARLIGHT_OBSERVATORY",
     weather: "STARLIGHT_DUST",
     soundscape: "CRYSTAL_CAVERN",
-    npcName: "Archivist Vaelen",
-    npcEmoji: "🧙",
-    npcAsset: HEARTHQUEST_ASSETS.heroes.starlightWizard.path,
+    npcName: "Captain Vespera Thorne",
+    npcEmoji: "⚔️",
+    npcAsset: HEARTHQUEST_ASSETS.heroes.shieldKnight.path,
     npcLineByTier: {
       STORYBOOK_D6:
-        "Quickly now—the shadow eclipse sealed the inner spire, and our team must unlock the chamber before midnight!",
+        "Quickly now—ancient Skeletons guard the gallery, and a Specter sealed the inner spire before midnight!",
       APPRENTICE_5E_LITE:
-        "Sentinels patrol the outer breach. Disable the rune ward or sneak past, pick the Archon's Lock, and confront the Warden!",
+        "Skeleton sentries patrol the outer breach. Bypass the arcane glyph, pick the Sanctum Lock, and banish the Specter!",
       STANDARD_5E:
-        "Check every shadow corner. An Astral Sentinel guards the mid-gallery, an Arcane Sigil arms the threshold, and the Arch-Warden's sanctum is deadbolted at DC 14.",
+        "Check every shadow corner. A Skeleton sentry holds the gallery, a rune ward arms the floor, and a Specter haunts the DC 14 vault.",
     },
-    enemyName: "Void-Forged Vanguard",
-    enemyEmoji: "🛡️",
+    enemyName: "Skeleton",
+    enemyEmoji: "💀",
     enemyAsset: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
-    bossName: "Arch-Warden Solis",
-    bossEmoji: "👑",
+    bossName: "Specter",
+    bossEmoji: "👻",
     bossAsset: HEARTHQUEST_ASSETS.monsters.nebulaJelly.path,
     bossLineByTier: {
       STORYBOOK_D6:
-        "You broke the eclipse seal! State your quest cleanly and roll for fate!",
+        "You broke the eclipse seal! State your vow and roll against the chill of the spire!",
       APPRENTICE_5E_LITE:
-        "Few travelers pick my Sanctum Seal intact. Lower your weapons or prove your resolve!",
+        "Few mortals pick my Sanctum Seal intact. Brace against Life Drain and prove your resolve!",
       STANDARD_5E:
-        "Steel and cunning brought you across my threshold, adventurers. Roll Initiative—the Eclipse Core belongs to the bold!",
+        "Lightbearers cross my threshold? Roll Initiative—let us test your spirit against Life Drain!",
     },
     zoneNames: ["1. Outer Bastion", "2. Runic Gallery", "3. Locked Eclipse Vault"],
     trapName: "Chrono-Lock Arcane Rune",
@@ -2495,6 +2882,7 @@ export function generateTailoredAccountSession(params: {
   ageGroup: AgeGroupPreset;
   familyName?: string;
   householdId?: string;
+  difficulty?: DifficultyPreset;
 }): RoomSessionState {
   const seed = TAILORED_SCENARIO_BY_AGE[params.ageGroup] || TAILORED_SCENARIO_BY_AGE.AGES_8_10;
   const partyName = (params.familyName || "Adventuring Party").trim();
@@ -2505,9 +2893,15 @@ export function generateTailoredAccountSession(params: {
 
   const isStorybook = params.rulesTier === "STORYBOOK_D6";
   const isStandard5e = params.rulesTier === "STANDARD_5E";
-  const minionHp = isStorybook ? 4 : isStandard5e ? 14 : 8;
-  const bossHp = isStorybook ? 6 : isStandard5e ? 26 : 16;
+  const minionStat = findSrdMonsterStatBlock(seed.enemyName);
+  const bossStat = findSrdMonsterStatBlock(seed.bossName);
+  const minionHp = isStorybook ? 4 : isStandard5e ? minionStat.maxHp : Math.max(6, Math.round(minionStat.maxHp * 0.75));
+  const bossHp = isStorybook ? 6 : isStandard5e ? bossStat.maxHp : Math.max(12, Math.round(bossStat.maxHp * 0.75));
   const lockDc = isStorybook ? 9 : isStandard5e ? 14 : 12;
+  const initialDifficulty: DifficultyPreset =
+    params.difficulty || (isStorybook || params.ageGroup === "AGES_5_7" ? "STORY_EASY" : "BALANCED_NORMAL");
+  const stageAreaMapUrl = resolveAreaMapAsset(seed.campaignId);
+  const stageMoodArtUrl = resolveSceneBackdropAsset(seed.backdrop);
   const rulesLabel = isStorybook
     ? "Storybook D6 (Easy Hearts & d6)"
     : isStandard5e
@@ -2555,6 +2949,7 @@ export function generateTailoredAccountSession(params: {
           ...w,
           isLocked: true,
           lockDc,
+          baseLockDc: lockDc,
           lockLabel: seed.lockName,
         }
       : w
@@ -2603,6 +2998,9 @@ export function generateTailoredAccountSession(params: {
       gridY: 3,
       hp: minionHp,
       maxHp: minionHp,
+      baseMaxHp: minionHp,
+      baseArmorClass: minionStat.armorClass,
+      statBlock5e: minionStat,
       isHiddenFromPlayers: false,
     },
     {
@@ -2616,6 +3014,9 @@ export function generateTailoredAccountSession(params: {
       gridY: 3,
       hp: bossHp,
       maxHp: bossHp,
+      baseMaxHp: bossHp,
+      baseArmorClass: bossStat.armorClass,
+      statBlock5e: bossStat,
       isHiddenFromPlayers: true,
       lightRadius: 2.6,
       lightColor: "#f97316",
@@ -2708,6 +3109,8 @@ export function generateTailoredAccountSession(params: {
       title: `Session 1 Start: ${seed.zoneNames[0]}`,
       sceneZoneId: zones[0].id,
       openingHook,
+      stageAreaMapUrl,
+      stageMoodArtUrl,
       readAloudByTone: {
         COZY_SILLY: `${openingHook} Everyone takes a deep cozy breath as ${seed.npcName} hands out warm snacks!`,
         ACTION_HEROIC: `Torches flare across ${seed.zoneNames[0]}! ${seed.bossName} has seized the ${seed.lootName}—step up and rally with ${seed.npcName}!`,
@@ -2737,6 +3140,8 @@ export function generateTailoredAccountSession(params: {
       id: `node-tailored-2-${params.rulesTier}`,
       title: `Chapter 2: ${seed.zoneNames[1]}`,
       sceneZoneId: zones[1].id,
+      stageAreaMapUrl,
+      stageMoodArtUrl,
       readAloudByTone: {
         COZY_SILLY: `${seed.enemyName} (${minionHp} HP) is doing silly cartwheels near the ${seed.trapName}! Beyond them glows the ${seed.lockName}!`,
         ACTION_HEROIC: `You cross the threshold into ${seed.zoneNames[1]}! ${seed.enemyName} guards the corridor leading to the locked vault!`,
@@ -2760,6 +3165,8 @@ export function generateTailoredAccountSession(params: {
       id: `node-tailored-3-${params.rulesTier}`,
       title: `Finale: ${seed.zoneNames[2]}`,
       sceneZoneId: zones[2].id,
+      stageAreaMapUrl,
+      stageMoodArtUrl,
       readAloudByTone: {
         COZY_SILLY: `Hooray! Inside ${seed.zoneNames[2]}, ${seed.bossName} (${bossHp} HP) drops a jaw in surprise next to the glowing ${seed.lootName} Chest!`,
         ACTION_HEROIC: `The vault swings wide! ${seed.bossName} (${bossHp} HP) stands before the ${seed.lootName}—roll for the final showdown!`,
@@ -2773,7 +3180,7 @@ export function generateTailoredAccountSession(params: {
     },
   ];
 
-  return {
+  const session: RoomSessionState = {
     roomCode: params.roomCode,
     householdId: params.householdId || "household-demo-family",
     campaignId: seed.campaignId,
@@ -2781,6 +3188,9 @@ export function generateTailoredAccountSession(params: {
     rulesTier: params.rulesTier,
     contentRating: seed.contentRating,
     ageGroup: params.ageGroup,
+    difficulty: initialDifficulty,
+    stageAreaMapUrl,
+    stageMoodArtUrl,
     diceInputMode: "HYBRID_PHYSICAL_PROMPT",
     isPausedForBedtime: false,
     sessionOpeningHook: openingHook,
@@ -2808,4 +3218,5 @@ export function generateTailoredAccountSession(params: {
       entries: [],
     },
   };
+  return applyRoomDifficulty(session, initialDifficulty);
 }

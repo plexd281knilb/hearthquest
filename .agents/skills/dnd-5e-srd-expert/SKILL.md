@@ -12,7 +12,8 @@ description: Expert reference guide and rules engine for D&D 5th Edition SRD 5.1
 ## 2. Tiered Family Rules Engine (`packages/srd-rules/src/index.ts`)
 - **Tier 1 (`STORYBOOK_D6`, Ages 5–8):** Brawn/Brains/Charm stats, `1d6` checks (succeed on 4+), 3 Hearts (`❤️❤️❤️`), and color-coded Action Cards.
 - **Tier 2 (`APPRENTICE_5E`, Ages 8–12):** 6 standard abilities (`STR`..`CHA`), `d20` + polyhedral dice, simplified modifiers, non-lethal knockouts.
-- **Tier 3 (`STANDARD_5E`, Teens & Adults):** Full SRD 5.1 proficiencies (`HEARTHQUEST_SKILLS`), Armor Class, Hit Points, and spell templates.
+- **Tier 3 (`STANDARD_5E`, Teens & Adults):** Full SRD 5.1 proficiencies (`HEARTHQUEST_SKILLS`), Armor Class, Hit Points, spell templates, and complete `SRD_5E_MONSTERS` stat blocks (`Goblin`, `Goblin Boss`, `Wolf`, `Bugbear`, `Bandit`, `Bandit Captain`, `Animated Armor`, `Skeleton`, `Specter`, `Gelatinous Cube`) attached via `MonsterStatBlock5e`.
+- **Difficulty Presets (`DifficultyPreset` & `applyRoomDifficulty`)**: Supports `"STORY_EASY"` (enemies 0.55x HP / -3 AC / -2 atk, check & lock DCs -3, heroes +2 rolls & +4 HP/+1 Heart), `"BALANCED_NORMAL"`, and `"HEROIC_HARD"` (+35% enemy HP, +2 AC/atk/DC, -2 hero HP). Rescales cleanly in `evaluateActionCardRoll`, `rollHeroSkillCheck`, and `POST /api/room/settings`.
 
 ## 3. Anti-TPK & Level-Scaled Procedural One-Shots
 - **Heroic Rally (`HEROIC_RALLY_ACTIVE`)**: Triggers when party HP drops below critical thresholds—shifts enemies tactical, grants Inspiration, and ensures kids celebrate "Failing Forward".
@@ -22,6 +23,6 @@ description: Expert reference guide and rules engine for D&D 5th Edition SRD 5.1
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.21` (Build `#22`)
-- **Updated At**: `2026-11-15T18:30:38.825Z`
+- **Last Verified Build**: `v0.1.22` (Build `#23`)
+- **Updated At**: `2026-11-15T18:46:51.708Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

@@ -112,16 +112,45 @@ export function renderAdminHtml(
       color: #292524 !important;
     }
     body[data-theme="light"] h1,
+    body[data-theme="light"] h1,
     body[data-theme="light"] h2,
     body[data-theme="light"] h3 {
       color: #92400e !important;
     }
+    body[data-theme="light"] .text-slate-100,
+    body[data-theme="light"] .text-slate-200 {
+      color: #1c1917 !important;
+    }
     body[data-theme="light"] .text-slate-400 {
-      color: #78716c !important;
+      color: #6b635b !important;
     }
     body[data-theme="light"] .text-slate-300 {
       color: #44403c !important;
     }
+    body[data-theme="light"] .text-amber-200,
+    body[data-theme="light"] .text-amber-300,
+    body[data-theme="light"] .text-amber-400 {
+      color: #92400e !important;
+    }
+    body[data-theme="light"] .text-emerald-200,
+    body[data-theme="light"] .text-emerald-300,
+    body[data-theme="light"] .text-emerald-400 {
+      color: #065f46 !important;
+    }
+    body[data-theme="light"] .text-indigo-200,
+    body[data-theme="light"] .text-indigo-300,
+    body[data-theme="light"] .text-sky-300,
+    body[data-theme="light"] .text-purple-300 {
+      color: #3730a3 !important;
+    }
+    body[data-theme="light"] .bg-emerald-950\/90,
+    body[data-theme="light"] .bg-emerald-950 { background-color: #d1fae5 !important; }
+    body[data-theme="light"] .bg-amber-950\/90,
+    body[data-theme="light"] .bg-amber-950 { background-color: #fef3c7 !important; }
+    body[data-theme="light"] .bg-indigo-950,
+    body[data-theme="light"] .bg-sky-950\/90 { background-color: #e0e7ff !important; }
+    body[data-theme="light"] .bg-slate-800,
+    body[data-theme="light"] .bg-slate-950 { background-color: #f3ece1 !important; color: #1c1917 !important; }
     body[data-theme="light"] input,
     body[data-theme="light"] select {
       background-color: #ffffff !important;

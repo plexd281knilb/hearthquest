@@ -332,9 +332,39 @@ export function renderGoogleSetupGuideHtml(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HearthQuest — Google Auth Setup</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body[data-theme="light"] {
+      background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%) !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] .gs-card {
+      background-color: #ffffff !important;
+      border-color: #d97706 !important;
+      color: #1c1917 !important;
+    }
+    body[data-theme="light"] .gs-inner {
+      background-color: #fbf9f5 !important;
+      border-color: #e5ded2 !important;
+      color: #292524 !important;
+    }
+    body[data-theme="light"] .text-amber-400,
+    body[data-theme="light"] .text-amber-200 { color: #92400e !important; }
+    body[data-theme="light"] .text-indigo-300 { color: #3730a3 !important; }
+    body[data-theme="light"] .text-emerald-300 { color: #065f46 !important; }
+    body[data-theme="light"] .text-slate-100,
+    body[data-theme="light"] .text-slate-200,
+    body[data-theme="light"] .text-slate-300 { color: #292524 !important; }
+    body[data-theme="light"] .text-slate-400 { color: #57534e !important; }
+    body[data-theme="light"] input,
+    body[data-theme="light"] select {
+      background-color: #ffffff !important;
+      border-color: #d6cbba !important;
+      color: #1c1917 !important;
+    }
+  </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-  <div class="w-full max-w-lg bg-slate-900 border-2 border-indigo-500/60 rounded-3xl p-6 shadow-2xl space-y-4">
+  <div class="gs-card w-full max-w-lg bg-slate-900 border-2 border-indigo-500/60 rounded-3xl p-6 shadow-2xl space-y-4">
     <div class="flex items-center justify-between gap-2">
       <h1 class="text-lg font-extrabold text-amber-400">🔑 Google OAuth 2.0 Setup</h1>
       <a href="/" class="text-xs px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">← Back to Sign In</a>
@@ -346,7 +376,7 @@ export function renderGoogleSetupGuideHtml(params: {
           </div>`
         : ""
     }
-    <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-2 text-slate-300 leading-relaxed">
+    <div class="gs-inner p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-2 text-slate-300 leading-relaxed">
       <div class="font-bold text-slate-100">To enable live Google Sign-In in production / Unraid:</div>
       <ol class="list-decimal list-inside space-y-1.5">
         <li>Open <strong>Google Cloud Console → APIs &amp; Services → Credentials → Create OAuth client ID (Web application)</strong>.</li>
@@ -359,7 +389,7 @@ export function renderGoogleSetupGuideHtml(params: {
 
     ${
       params.config.sandboxAvailable
-        ? `<form onsubmit="submitSandboxGoogle(event)" class="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 space-y-3 text-xs">
+        ? `<form onsubmit="submitSandboxGoogle(event)" class="gs-inner p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 space-y-3 text-xs">
             <div class="font-extrabold text-indigo-300">🧪 Local Dev Google Sign-In Preview (OAuth Env Vars Not Set Yet)</div>
             <p class="text-slate-400">Test the Google SSO flow and First-Account Admin promotion locally right now before adding Cloud Console keys:</p>
             <input id="gsb-name" type="text" required value="GM Admin" placeholder="Google Display Name" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
@@ -407,6 +437,7 @@ export function renderGoogleSetupGuideHtml(params: {
         : ""
     }
   </div>
+  <script>document.body.setAttribute("data-theme", localStorage.getItem("hearthquest-theme") || "dark");</script>
 </body>
 </html>`;
 }
