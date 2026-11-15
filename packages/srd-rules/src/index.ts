@@ -2242,15 +2242,39 @@ export function rollHeroSkillCheck(params: {
   };
 }
 
+export function parseTokenSpeedFt(speedText?: string): number {
+  if (!speedText) return 30;
+  const match = String(speedText).match(/(\d+)\s*ft/i);
+  if (!match) return 30;
+  const parsed = parseInt(match[1], 10);
+  return Number.isFinite(parsed) && parsed >= 5 ? parsed : 30;
+}
+
 export function rollRoomCombatInitiative(
   tokens: MapToken[],
-  heroes: CharacterSheet[]
+  heroes: CharacterSheet[],
+  options?: { enforceTurnMovement?: boolean; rulesTier?: RulesTier }
 ): CombatState {
-  const combatants = tokens.filter((t) => t.type !== "PROP");
+  const combatants = tokens.filter((t) => t.type !== "PROP" && t.hp > 0);
   const entries: InitiativeEntry[] = combatants.map((t) => {
     const hero = heroes.find((h) => h.id === t.characterId);
-    const dexMod = hero ? computeAbilityModifier(hero.attributes5e.dex) : 1;
-    const roll = Math.floor(Math.random() * 20) + 1 + dexMod;
+    const dexScore =
+      hero?.attributes5e?.dex ?? t.statBlock5e?.abilities?.dex ?? 12;
+    const dexMod = computeAbilityModifier(dexScore);
+    const archLower = (hero?.archetype || t.name || "").toLowerCase();
+    const defaultHeroSpeed =
+      archLower.includes("rogue") || archLower.includes("ranger") || archLower.includes("scout")
+        ? 35
+        : archLower.includes("knight") || archLower.includes("paladin") || archLower.includes("dwarf")
+        ? 25
+        : 30;
+    const speedFt =
+      hero?.attributes5e?.speedFt ||
+      t.speedFt ||
+      (t.statBlock5e?.speed ? parseTokenSpeedFt(t.statBlock5e.speed) : undefined) ||
+      defaultHeroSpeed;
+    const dieMax = options?.rulesTier === "STORYBOOK_D6" ? 6 : 20;
+    const roll = Math.floor(Math.random() * dieMax) + 1 + dexMod;
     return {
       id: `init_${t.id}`,
       tokenId: t.id,
@@ -2258,6 +2282,10 @@ export function rollRoomCombatInitiative(
       name: t.name,
       type: t.type,
       initiative: roll,
+      dexModifier: dexMod,
+      speedFt,
+      movementRemainingFt: speedFt,
+      hasActedThisRound: false,
       hp: t.hp,
       maxHp: t.maxHp,
       avatarEmoji: t.avatarEmoji,
@@ -2265,11 +2293,21 @@ export function rollRoomCombatInitiative(
     };
   });
 
-  entries.sort((a, b) => b.initiative - a.initiative);
+  entries.sort((a, b) => {
+    if (b.initiative !== a.initiative) return b.initiative - a.initiative;
+    const dexDiff = (b.dexModifier ?? 0) - (a.dexModifier ?? 0);
+    if (dexDiff !== 0) return dexDiff;
+    if (a.type === "HERO" && b.type !== "HERO") return -1;
+    if (b.type === "HERO" && a.type !== "HERO") return 1;
+    return 0;
+  });
+
   return {
     isActive: entries.length > 0,
+    phase: "ACTIVE",
     round: 1,
     activeTurnIndex: 0,
+    enforceTurnMovement: options?.enforceTurnMovement ?? true,
     entries,
   };
 }

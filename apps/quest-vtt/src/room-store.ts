@@ -14,6 +14,7 @@ import {
   DifficultyPreset,
   LoreEntryType,
   LoreRegistryEntry,
+  MapToken,
   RoomSessionState,
   RulesTier,
   SceneBackdropType,
@@ -27,6 +28,7 @@ import {
 import {
   applyRoomDifficulty,
   buildCoreCampaignLoreSeeds,
+  computeAbilityModifier,
   computeSiblingSpotlightFairness,
   createBedtimeFreezeSnapshot,
   createCampaignSession,
@@ -37,6 +39,7 @@ import {
   findSrdMonsterStatBlock,
   generateLevelScaledOneShot,
   generateProceduralMapLayout,
+  parseTokenSpeedFt,
   rollHeroSkillCheck,
   rollRoomCombatInitiative,
 } from "@hearthquest/srd-rules";
@@ -388,6 +391,23 @@ function findBlockingWallAlongMove(
   return null;
 }
 
+export function getTokenSpeedFt(room: RoomSessionState, token: MapToken): number {
+  const hero = token.characterId
+    ? room.heroes.find((h) => h.id === token.characterId)
+    : undefined;
+  if (hero?.attributes5e?.speedFt) return hero.attributes5e.speedFt;
+  if (token.speedFt) return token.speedFt;
+  if (token.statBlock5e?.speed) return parseTokenSpeedFt(token.statBlock5e.speed);
+  const archLower = (hero?.archetype || token.name || "").toLowerCase();
+  if (archLower.includes("rogue") || archLower.includes("ranger") || archLower.includes("scout")) {
+    return 35;
+  }
+  if (archLower.includes("knight") || archLower.includes("paladin") || archLower.includes("dwarf")) {
+    return 25;
+  }
+  return 30;
+}
+
 export function attemptMoveRoomToken(params: {
   roomCode: string;
   tokenId: string;
@@ -434,8 +454,52 @@ export function attemptMoveRoomToken(params: {
 
   const nextX = Math.max(0, Math.min(room.gridCols - 1, rawNextX));
   const nextY = Math.max(0, Math.min(room.gridRows - 1, rawNextY));
+  const distSq = Math.max(Math.abs(nextX - token.gridX), Math.abs(nextY - token.gridY));
+  const speedFt = getTokenSpeedFt(room, token);
+  const moveCostFt = distSq * 5;
 
-  if (!params.ignoreWalls) {
+  if (!params.ignoreWalls && distSq > 0) {
+    // 1. Check Turn Order & Character Move Speed BEFORE wall lookup (never waste movement on blocked moves)
+    const combat = room.combat;
+    let deductActiveEntry: NonNullable<typeof combat>["entries"][number] | null = null;
+    let remainingAfterMove = 0;
+
+    if (combat && combat.isActive && combat.enforceTurnMovement !== false && combat.entries.length > 0) {
+      const activeEntry = combat.entries[combat.activeTurnIndex];
+      const isActiveActor =
+        Boolean(activeEntry) &&
+        (activeEntry.tokenId === token.id ||
+          (Boolean(token.characterId) && activeEntry.characterId === token.characterId));
+      if (!isActiveActor) {
+        return {
+          room,
+          moved: false,
+          blockedMessage: `⏳ Not ${token.name}'s turn! Wait for ${activeEntry?.name || "the active hero"}'s turn (or ask DM to toggle Free Move).`,
+        };
+      }
+      const entrySpeed = activeEntry.speedFt || speedFt;
+      const remainingFt =
+        typeof activeEntry.movementRemainingFt === "number"
+          ? activeEntry.movementRemainingFt
+          : entrySpeed;
+      if (moveCostFt > remainingFt) {
+        return {
+          room,
+          moved: false,
+          blockedMessage: `🦶 Out of movement this turn! (${remainingFt} ft left of ${entrySpeed} ft — needs ${moveCostFt} ft). Click Next Turn or ask DM to unlock.`,
+        };
+      }
+      deductActiveEntry = activeEntry;
+      remainingAfterMove = Math.max(0, remainingFt - moveCostFt);
+    } else if (!combat?.isActive && moveCostFt > speedFt) {
+      return {
+        room,
+        moved: false,
+        blockedMessage: `🦶 Move exceeds ${token.name}'s ${speedFt} ft speed (${Math.floor(speedFt / 5)} squares per move)! Move closer step-by-step.`,
+      };
+    }
+
+    // 2. Check Solid Masonry Walls & Closed/Locked Doors
     const blocker = findBlockingWallAlongMove(
       room.walls,
       token.gridX,
@@ -462,6 +526,11 @@ export function attemptMoveRoomToken(params: {
         blockedByWallId: blocker.id,
         blockedMessage: "🧱 Solid wall! Find an open doorway to reach the other side.",
       };
+    }
+
+    // 3. Apply deducted movement only once move succeeds cleanly past all walls/doors
+    if (deductActiveEntry) {
+      deductActiveEntry.movementRemainingFt = remainingAfterMove;
     }
   }
 
@@ -1133,26 +1202,114 @@ export function spawnCustomTokenInRoom(params: {
 }
 
 /**
- * Foundry-style Combat Tracker actions: Roll Initiative, Advance Turn, or End Combat.
+ * Foundry-style Combat Tracker actions: Roll Initiative, Advance/Prev Turn, Toggle Turn Lock, Set Manual Initiative, or End Combat.
  */
 export function updateRoomCombat(params: {
   roomCode: string;
-  action: "ROLL_INITIATIVE" | "NEXT_TURN" | "END_COMBAT";
+  action:
+    | "ROLL_INITIATIVE"
+    | "NEXT_TURN"
+    | "PREV_TURN"
+    | "END_COMBAT"
+    | "TOGGLE_TURN_MOVEMENT"
+    | "SET_INITIATIVE"
+    | "RESET_MOVEMENT";
+  enforceTurnMovement?: boolean;
+  entryId?: string;
+  initiative?: number;
 }): RoomSessionState {
   const room = getOrCreateRoom(params.roomCode);
+  const sortCombatEntries = (entries: typeof room.tokens extends never ? never : NonNullable<typeof room.combat>["entries"]) => {
+    entries.sort((a, b) => {
+      if (b.initiative !== a.initiative) return b.initiative - a.initiative;
+      const dexDiff = (b.dexModifier ?? 0) - (a.dexModifier ?? 0);
+      if (dexDiff !== 0) return dexDiff;
+      if (a.type === "HERO" && b.type !== "HERO") return -1;
+      if (b.type === "HERO" && a.type !== "HERO") return 1;
+      return 0;
+    });
+  };
+
   if (params.action === "ROLL_INITIATIVE") {
-    room.combat = rollRoomCombatInitiative(room.tokens, room.heroes);
+    room.combat = rollRoomCombatInitiative(room.tokens, room.heroes, {
+      enforceTurnMovement:
+        typeof params.enforceTurnMovement === "boolean"
+          ? params.enforceTurnMovement
+          : (room.combat?.enforceTurnMovement ?? true),
+      rulesTier: room.rulesTier,
+    });
   } else if (params.action === "NEXT_TURN") {
     if (!room.combat || room.combat.entries.length === 0) {
-      room.combat = rollRoomCombatInitiative(room.tokens, room.heroes);
+      room.combat = rollRoomCombatInitiative(room.tokens, room.heroes, {
+        enforceTurnMovement: room.combat?.enforceTurnMovement ?? true,
+        rulesTier: room.rulesTier,
+      });
     } else {
       room.combat.isActive = true;
-      const nextIdx = room.combat.activeTurnIndex + 1;
+      const curEntry = room.combat.entries[room.combat.activeTurnIndex];
+      if (curEntry) curEntry.hasActedThisRound = true;
+      let nextIdx = room.combat.activeTurnIndex + 1;
       if (nextIdx >= room.combat.entries.length) {
-        room.combat.activeTurnIndex = 0;
+        nextIdx = 0;
         room.combat.round += 1;
-      } else {
-        room.combat.activeTurnIndex = nextIdx;
+        room.combat.entries.forEach((e) => {
+          e.hasActedThisRound = false;
+        });
+      }
+      room.combat.activeTurnIndex = nextIdx;
+      const nextEntry = room.combat.entries[nextIdx];
+      if (nextEntry) {
+        const tok = room.tokens.find((t) => t.id === nextEntry.tokenId);
+        const speed = tok ? getTokenSpeedFt(room, tok) : (nextEntry.speedFt || 30);
+        nextEntry.speedFt = speed;
+        nextEntry.movementRemainingFt = speed;
+      }
+    }
+  } else if (params.action === "PREV_TURN") {
+    if (room.combat && room.combat.entries.length > 0) {
+      let prevIdx = room.combat.activeTurnIndex - 1;
+      if (prevIdx < 0) {
+        prevIdx = room.combat.entries.length - 1;
+        room.combat.round = Math.max(1, room.combat.round - 1);
+      }
+      room.combat.activeTurnIndex = prevIdx;
+      const prevEntry = room.combat.entries[prevIdx];
+      if (prevEntry) {
+        prevEntry.movementRemainingFt = prevEntry.speedFt || 30;
+      }
+    }
+  } else if (params.action === "TOGGLE_TURN_MOVEMENT") {
+    if (!room.combat) {
+      room.combat = {
+        isActive: false,
+        round: 1,
+        activeTurnIndex: 0,
+        enforceTurnMovement:
+          typeof params.enforceTurnMovement === "boolean" ? params.enforceTurnMovement : true,
+        entries: [],
+      };
+    } else {
+      room.combat.enforceTurnMovement =
+        typeof params.enforceTurnMovement === "boolean"
+          ? params.enforceTurnMovement
+          : !(room.combat.enforceTurnMovement ?? true);
+    }
+  } else if (params.action === "RESET_MOVEMENT") {
+    const activeEntry = room.combat?.entries?.[room.combat.activeTurnIndex];
+    if (activeEntry) {
+      activeEntry.movementRemainingFt = activeEntry.speedFt || 30;
+    }
+  } else if (params.action === "SET_INITIATIVE") {
+    if (room.combat && params.entryId && typeof params.initiative === "number" && Number.isFinite(params.initiative)) {
+      const currentActiveId = room.combat.entries[room.combat.activeTurnIndex]?.id;
+      const target = room.combat.entries.find((e) => e.id === params.entryId);
+      if (target) {
+        target.initiative = Math.round(params.initiative);
+        sortCombatEntries(room.combat.entries);
+        if (currentActiveId) {
+          const newIdx = room.combat.entries.findIndex((e) => e.id === currentActiveId);
+          if (newIdx >= 0) room.combat.activeTurnIndex = newIdx;
+        }
       }
     }
   } else if (params.action === "END_COMBAT") {
@@ -1160,6 +1317,7 @@ export function updateRoomCombat(params: {
       isActive: false,
       round: 1,
       activeTurnIndex: 0,
+      enforceTurnMovement: room.combat?.enforceTurnMovement ?? true,
       entries: [],
     };
   }
@@ -1222,6 +1380,8 @@ export function updateRoomAtmosphere(params: {
 export function forgeActorAndTokenInRoom(params: {
   roomCode: string;
   actorType: "HERO" | "MONSTER";
+  targetHeroId?: string;
+  customImageDataUrl?: string;
   name: string;
   archetype?: string;
   bezelStyle?: TokenBezelStyle;
@@ -1264,7 +1424,42 @@ export function forgeActorAndTokenInRoom(params: {
   });
   fs.writeFileSync(tokenFilePath, svgContent, "utf-8");
 
-  const tokenAssetUrl = `/custom-tokens/${encodeURIComponent(filename)}`;
+  const validDataImg =
+    typeof params.customImageDataUrl === "string" &&
+    /^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/i.test(
+      params.customImageDataUrl.trim()
+    ) &&
+    params.customImageDataUrl.length <= 750_000
+      ? params.customImageDataUrl.trim()
+      : "";
+
+  const tokenAssetUrl = validDataImg || `/custom-tokens/${encodeURIComponent(filename)}`;
+
+  // Assigning custom token portrait directly onto an existing Hero character
+  if (params.actorType === "HERO" && params.targetHeroId) {
+    const existingHero = room.heroes.find((h) => h.id === params.targetHeroId);
+    if (existingHero) {
+      existingHero.assetPath = tokenAssetUrl;
+      if (params.primaryColor) existingHero.tokenColor = params.primaryColor;
+      const existingTok = room.tokens.find(
+        (t) => t.characterId === existingHero.id || t.id === `tok-${existingHero.id}`
+      );
+      if (existingTok) {
+        existingTok.assetPath = tokenAssetUrl;
+        if (params.primaryColor) existingTok.color = params.primaryColor;
+        if (typeof params.lightRadius === "number") existingTok.lightRadius = params.lightRadius;
+      }
+      if (room.combat?.entries) {
+        for (const e of room.combat.entries) {
+          if (e.characterId === existingHero.id) {
+            e.assetPath = tokenAssetUrl;
+          }
+        }
+      }
+      autoPersistRooms();
+      return { room, tokenAssetUrl, tokenFilePath };
+    }
+  }
   const maxHp = Math.max(1, Number(params.hp || (params.actorType === "MONSTER" ? 24 : 20)));
   const ac = Math.max(8, Number(params.armorClass || 14));
   const gridX = Math.max(0, Math.min(9, Number(params.gridX ?? 2)));

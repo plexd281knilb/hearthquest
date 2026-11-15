@@ -1952,6 +1952,141 @@ async function runVerification() {
         });
         assert.strictEqual(restoreRes.role, "USER");
 
+        // Regular USER must be blocked 403 from mutating/switching static maps, campaigns, or one-shots
+        for (const restrictedRoute of [
+          "/api/room/procedural-map",
+          "/api/room/generate-oneshot",
+          "/api/room/switch-campaign",
+        ]) {
+          const blockedMapRes = await reqJson(`${base}${restrictedRoute}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${regNormal.token}`,
+            },
+            body: JSON.stringify({
+              roomCode: regNormal.account.trialRoomCode,
+              campaignId: "camp-starlight-otter",
+            }),
+          });
+          assert.strictEqual(
+            blockedMapRes.status,
+            403,
+            `Non-admin user must be blocked 403 from ${restrictedRoute}`
+          );
+          assert.ok(String(blockedMapRes.body.error || "").includes("Creator/Admin"));
+        }
+
+        // Non-admin user blocked 403 from Admin Send Adventure API
+        const blockedDispatch = await reqJson(`${base}/api/vtt-admin/send-adventure`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${regNormal.token}`,
+          },
+          body: JSON.stringify({
+            targetRoomCode: regNormal.account.trialRoomCode,
+            mode: "ONE_SHOT",
+          }),
+        });
+        assert.strictEqual(blockedDispatch.status, 403, "Non-admin user must be blocked from sending adventures");
+
+        // Admin CAN dispatch a Level-Scaled One-Shot & Campaign cleanly into a regular user's static room
+        const adminSendOneShot = await reqJson(`${base}/api/vtt-admin/send-adventure`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminLoginHttp.token}`,
+          },
+          body: JSON.stringify({
+            targetRoomCode: regNormal.account.trialRoomCode,
+            mode: "ONE_SHOT",
+          }),
+        });
+        assert.strictEqual(adminSendOneShot.status, 200);
+        assert.strictEqual(adminSendOneShot.body.ok, true);
+        assert.strictEqual(adminSendOneShot.body.room.roomCode, regNormal.account.trialRoomCode);
+        assert.ok(adminSendOneShot.body.loreEntry && adminSendOneShot.body.loreEntry.title);
+
+        const adminSendCampaign = await reqJson(`${base}/api/vtt-admin/send-adventure`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminLoginHttp.token}`,
+          },
+          body: JSON.stringify({
+            targetRoomCode: regNormal.account.trialRoomCode,
+            mode: "CAMPAIGN",
+            campaignId: "camp-clockwork-treehouse",
+          }),
+        });
+        assert.strictEqual(adminSendCampaign.status, 200);
+        assert.strictEqual(adminSendCampaign.body.ok, true);
+        assert.strictEqual(adminSendCampaign.body.room.campaignId, "camp-clockwork-treehouse");
+
+        // Regular USER cannot forge or spawn Monster/NPC tokens, ONLY Hero Character tokens
+        const blockedMonsterForge = await reqJson(`${base}/api/room/forge-actor`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${regNormal.token}`,
+          },
+          body: JSON.stringify({
+            roomCode: regNormal.account.trialRoomCode,
+            actorType: "MONSTER",
+            name: "Rogue Dragon",
+          }),
+        });
+        assert.strictEqual(blockedMonsterForge.status, 403, "Non-admin user must be blocked from forging Monsters");
+
+        const blockedNpcSpawn = await reqJson(`${base}/api/room/spawn-custom-token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${regNormal.token}`,
+          },
+          body: JSON.stringify({
+            roomCode: regNormal.account.trialRoomCode,
+            type: "NPC",
+            name: "Unauthorized NPC",
+          }),
+        });
+        assert.strictEqual(blockedNpcSpawn.status, 403, "Non-admin user must be blocked from spawning non-Hero custom tokens");
+
+        // Regular USER CAN customize a character token for their existing hero + switch music track
+        const targetHero = adminSendCampaign.body.room.heroes[0];
+        const allowedHeroForge = await reqJson(`${base}/api/room/forge-actor`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${regNormal.token}`,
+          },
+          body: JSON.stringify({
+            roomCode: regNormal.account.trialRoomCode,
+            actorType: "HERO",
+            targetHeroId: targetHero.id,
+            name: targetHero.name,
+            bezelStyle: "EMERALD_RUNE",
+            emblem: "RANGER_HOOD",
+          }),
+        });
+        assert.strictEqual(allowedHeroForge.status, 200);
+        assert.ok(allowedHeroForge.body.tokenAssetUrl);
+
+        const userMusicRes = await reqJson(`${base}/api/room/atmosphere`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${regNormal.token}`,
+          },
+          body: JSON.stringify({
+            roomCode: regNormal.account.trialRoomCode,
+            ambientSoundscape: "HEROIC_BATTLE",
+          }),
+        });
+        assert.strictEqual(userMusicRes.status, 200);
+        assert.strictEqual(userMusicRes.body.room.ambientSoundscape, "HEROIC_BATTLE");
+
         if (closeAfter) {
           vttServer.closeAllConnections?.();
           vttServer.close(() => resolve());
@@ -2081,7 +2216,10 @@ async function runVerification() {
       vttUi.includes("monster-statblock-card") &&
       vttUi.includes("start-here-guide-bar") &&
       vttUi.includes("quickStartStep1ReadIntro") &&
-      vttUi.includes("gm-advanced-tools-drawer"),
+      vttUi.includes("gm-advanced-tools-drawer") &&
+      vttUi.includes('id="creator-map-authoring-box" class="hidden') &&
+      vttUi.includes("admin-send-target-room") &&
+      vttUi.includes("sendAdventureFromAdminModal"),
     "VTT HTML must render Light/Dark contrast CSS, stage art, difficulty selector, 5e statblock card & Start Here guide bar"
   );
   assert.ok(gateUi.includes('body[data-theme="light"]'), "Login gate must include Light mode styling");
@@ -2089,8 +2227,118 @@ async function runVerification() {
   assert.ok(storeUi.includes('body[data-theme="dark"] .store-card .text-stone-900'), "Storefront HTML must include Dark contrast CSS");
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // TEST 31: Turn Order, DM Lock Switch, Speed Limits, Music Toggle, Zoom & Tile Clarity
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 31/31] Turn Order & Speed Limits, DM Switch, Character Tokens, Music & Map Zoom ... ");
+  const turnReg = registerVttAccount({
+    familyName: "Turn Speed Family",
+    email: "turnspeed@hearthquest.local",
+    password: "turnpassword",
+    confirmPassword: "turnpassword",
+    preferredRulesTier: "STANDARD_5E",
+    preferredAgeGroup: "AGES_11_13",
+  });
+  const trCode = turnReg.room.roomCode;
+  // Move hero token back to (1,1) cleanly for open movement test
+  const tHeroes = turnReg.room.tokens.filter((t) => t.type === "HERO");
+  assert.ok(tHeroes.length >= 2, "Starter room needs 2 heroes to test turn switching");
+  moveRoomToken({ roomCode: trCode, tokenId: tHeroes[0].id, targetX: 1, targetY: 1, ignoreWalls: true });
+  moveRoomToken({ roomCode: trCode, tokenId: tHeroes[1].id, targetX: 1, targetY: 3, ignoreWalls: true });
+
+  // Outside combat, jumping > hero speed (e.g., +8 squares = 40ft > 35ft max) must be blocked cleanly
+  const jumpTooFar = attemptMoveRoomToken({
+    roomCode: trCode,
+    tokenId: tHeroes[0].id,
+    targetX: 9,
+    targetY: 4,
+  });
+  assert.strictEqual(jumpTooFar.moved, false, "Move exceeding character speed must be rejected");
+  assert.ok(String(jumpTooFar.blockedMessage || "").includes("speed"));
+
+  // Roll Initiative -> verify Turn Lock ON, movementRemainingFt initialized, and inactive token blocked
+  const combatStart = updateRoomCombat({ roomCode: trCode, action: "ROLL_INITIATIVE" });
+  assert.strictEqual(combatStart.combat?.isActive, true);
+  assert.strictEqual(combatStart.combat?.enforceTurnMovement, true);
+  const activeEntry = combatStart.combat!.entries[0];
+  const inactiveEntry = combatStart.combat!.entries.find((e) => e.tokenId !== activeEntry.tokenId)!;
+  assert.ok((activeEntry.speedFt || 0) >= 25 && activeEntry.movementRemainingFt === activeEntry.speedFt);
+
+  // Set deterministic position cleanly in Zone 1 for active token
+  moveRoomToken({ roomCode: trCode, tokenId: activeEntry.tokenId, targetX: 1, targetY: 2, ignoreWalls: true });
+  const wrongTurnMove = attemptMoveRoomToken({
+    roomCode: trCode,
+    tokenId: inactiveEntry.tokenId,
+    deltaX: 0,
+    deltaY: 1,
+  });
+  assert.strictEqual(wrongTurnMove.moved, false, "Moving out of turn when DM Turn Lock is ON must fail");
+
+  // Advance turn until a HERO is active in Zone 1 (0..3, 0..5) and verify movement consumption + exhaustion
+  for (let hop = 0; hop < combatStart.combat!.entries.length; hop++) {
+    const cur = getOrCreateRoom(trCode).combat!;
+    if (cur.entries[cur.activeTurnIndex].type === "HERO") break;
+    updateRoomCombat({ roomCode: trCode, action: "NEXT_TURN" });
+  }
+  const activeHeroCombat = getOrCreateRoom(trCode).combat!;
+  const curHeroEntry = activeHeroCombat.entries[activeHeroCombat.activeTurnIndex];
+  moveRoomToken({ roomCode: trCode, tokenId: curHeroEntry.tokenId, targetX: 1, targetY: 2, ignoreWalls: true });
+  const stepOne = attemptMoveRoomToken({
+    roomCode: trCode,
+    tokenId: curHeroEntry.tokenId,
+    targetX: 2,
+    targetY: 2,
+  });
+  assert.strictEqual(stepOne.moved, true);
+  const remAfterOne = stepOne.room.combat!.entries[stepOne.room.combat!.activeTurnIndex].movementRemainingFt!;
+  assert.strictEqual(remAfterOne, (curHeroEntry.speedFt || 30) - 5, "Step of 1 square must deduct 5 ft of movement");
+
+  // Spend remaining movement in 1-square steps, then assert next step fails due to speed cap
+  let safety = 12;
+  let lastMoveOk = true;
+  while (safety-- > 0) {
+    const cNow = getOrCreateRoom(trCode);
+    const tokNow = cNow.tokens.find((t) => t.id === curHeroEntry.tokenId)!;
+    const ny = tokNow.gridY === 2 ? 3 : 2;
+    const stepRes = attemptMoveRoomToken({ roomCode: trCode, tokenId: curHeroEntry.tokenId, targetX: tokNow.gridX, targetY: ny });
+    if (!stepRes.moved) {
+      lastMoveOk = false;
+      assert.ok(String(stepRes.blockedMessage || "").includes("Out of movement"));
+      break;
+    }
+  }
+  assert.strictEqual(lastMoveOk, false, "Hero must hit turn speed budget ceiling cleanly");
+
+  // DM Turn Lock OFF unlocks movement across turns
+  const unlocked = updateRoomCombat({ roomCode: trCode, action: "TOGGLE_TURN_MOVEMENT", enforceTurnMovement: false });
+  assert.strictEqual(unlocked.combat?.enforceTurnMovement, false);
+  const freeMoveRes = attemptMoveRoomToken({
+    roomCode: trCode,
+    tokenId: inactiveEntry.tokenId,
+    targetX: 2,
+    targetY: 3,
+  });
+  // As long as it isn't bumping a wall/door, free move allows moving out of turn!
+  assert.ok(freeMoveRes.moved || freeMoveRes.blockedByWallId, "With DM Free Move ON, turn order must not block movement");
+
+  // Re-lock turn movement cleanly & verify VTT UI renders Zoom, Tile Borders, Music & Combat Controls
+  updateRoomCombat({ roomCode: trCode, action: "TOGGLE_TURN_MOVEMENT", enforceTurnMovement: true });
+  const finalUi = renderVttAppHtml(getOrCreateRoom(trCode));
+  assert.ok(
+    finalUi.includes("vtt-board-viewport") &&
+      finalUi.includes("vtt-map-zoom-controls") &&
+      finalUi.includes("zoomMapBy") &&
+      finalUi.includes("vtt-cell-reachable") &&
+      finalUi.includes("btn-toggle-turn-lock") &&
+      finalUi.includes("btn-music-toggle") &&
+      finalUi.includes("header-music-select") &&
+      finalUi.includes("forge-target-hero"),
+    "VTT HTML must expose map zoom, reachable tile borders, DM turn lock switch, music player, and hero-only token customization"
+  );
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 30/30 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 31/31 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();

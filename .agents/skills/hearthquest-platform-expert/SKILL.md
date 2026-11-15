@@ -22,7 +22,7 @@ description: Full-stack platform architecture guide for HearthQuest. Covers Node
 - **Stripe Webhooks & POD Queue (`admin-store.ts`)**: HMAC-SHA256 signature verification (`verifyStripeWebhookSignature`), idempotency table (`processed_webhooks`), signed license keys (`HQ-<TIER>-<ID>-<HMAC>`), and Operator PIN-gated fulfillment workflow (`/printable-kit`).
 
 ## 3. VTT Authentication, First-Login Admin & Google OAuth (`apps/quest-vtt`)
-- **First Login = Server Admin**: `auth-store.ts` (`registerVttAccount` and `loginOrRegisterGoogleAccount`) atomically checks `SELECT COUNT(*) FROM vtt_accounts` and assigns `role = 'ADMIN'` to the very first account created (email or Google SSO), defaulting subsequent accounts to `'USER'`. Admins can manage roles via `/api/vtt-admin/accounts` and `/api/vtt-admin/accounts/role` (`#vtt-admin-modal`).
+- **First Login = Server Admin & Creator Adventure Dispatch**: `auth-store.ts` (`registerVttAccount` and `loginOrRegisterGoogleAccount`) atomically checks `SELECT COUNT(*) FROM vtt_accounts` and assigns `role = 'ADMIN'` to the very first account created (email or Google SSO), defaulting subsequent accounts to `'USER'`. Admins can manage roles via `/api/vtt-admin/accounts` & `/api/vtt-admin/accounts/role`, and push static Campaigns, Procedural Maps, or Level-Scaled One-Shots to any user room via `POST /api/vtt-admin/send-adventure` (`#vtt-admin-modal`). Non-admin `USER` accounts receive `403` on `/api/room/switch-campaign`, `/api/room/procedural-map`, and `/api/room/generate-oneshot` so session maps remain static.
 - **Google OAuth 2.0 + OIDC (`google-auth.ts`)**: Uses zero-dependency PKCE (`S256`), HMAC-signed `hq_google_oauth` state/nonce cookie, and native `node:crypto` `RS256` JWKS signature verification (`/api/auth/google/start`, `/api/auth/google/callback`, `/api/auth/google/token`, `/api/auth/google/status`, with guided local dev preview when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are unset).
 
 ## 4. RTX 3080 Local AI Bridge (`apps/quest-ai-bridge`)
@@ -30,6 +30,6 @@ description: Full-stack platform architecture guide for HearthQuest. Covers Node
 
 ## 5. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.23` (Build `#24`)
-- **Updated At**: `2026-11-15T18:53:50.253Z`
+- **Last Verified Build**: `v0.1.25` (Build `#26`)
+- **Updated At**: `2026-11-15T19:06:12.172Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

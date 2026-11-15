@@ -29,7 +29,8 @@ export type AmbientSoundscapeType =
   | "COZY_TAVERN"
   | "WHISPERING_WOODS"
   | "GOBLIN_KITCHEN"
-  | "CRYSTAL_CAVERN";
+  | "CRYSTAL_CAVERN"
+  | "HEROIC_BATTLE";
 
 export type SceneBackdropType =
   | "NONE"
@@ -67,6 +68,10 @@ export interface InitiativeEntry {
   name: string;
   type: "HERO" | "NPC" | "MONSTER" | "PROP";
   initiative: number;
+  dexModifier?: number;
+  speedFt?: number;
+  movementRemainingFt?: number;
+  hasActedThisRound?: boolean;
   hp: number;
   maxHp: number;
   avatarEmoji: string;
@@ -75,8 +80,10 @@ export interface InitiativeEntry {
 
 export interface CombatState {
   isActive: boolean;
+  phase?: "SETUP" | "ACTIVE";
   round: number;
   activeTurnIndex: number;
+  enforceTurnMovement?: boolean;
   entries: InitiativeEntry[];
 }
 
@@ -174,6 +181,7 @@ export interface CharacterSheet {
     maxHp: number;
     armorClass: number;
     baseMaxHp?: number;
+    speedFt?: number;
   };
   baseMaxHearts?: number;
   actionCards: ActionCard[];
@@ -231,6 +239,7 @@ export interface MapToken {
   maxHp: number;
   baseMaxHp?: number;
   baseArmorClass?: number;
+  speedFt?: number;
   statBlock5e?: MonsterStatBlock5e;
   isHiddenFromPlayers: boolean;
   statusCondition?: string;

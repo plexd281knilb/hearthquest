@@ -456,40 +456,60 @@ export function renderVttAppHtml(
       background-position: center;
     }
 
-    /* Themed Battlemap Backgrounds (2x2 tactical square alignment) */
+    /* Themed Battlemap Backgrounds (2x2 tactical square alignment — boosted tile contrast) */
     .bg-bakery {
       background-image: url('/assets/tiles/tile-bakery-floor.svg');
       background-size: 20% 33.3333%;
       background-repeat: repeat;
+      filter: brightness(1.12) contrast(1.06);
     }
     .bg-treehouse {
       background-image: url('/assets/tiles/tile-treehouse-wood.svg');
       background-size: 20% 33.3333%;
       background-repeat: repeat;
+      filter: brightness(1.14) contrast(1.06);
     }
     .bg-starlight {
       background-image: url('/assets/tiles/tile-starlight-deck.svg');
       background-size: 20% 33.3333%;
       background-repeat: repeat;
+      filter: brightness(1.18) contrast(1.08);
     }
 
     body[data-theme="light"] .bg-bakery {
       background-image: url('/assets/tiles/tile-bakery-floor.svg');
       background-size: 20% 33.3333%;
       background-repeat: repeat;
-      filter: brightness(1.18) contrast(0.95);
+      filter: brightness(1.24) contrast(1.04);
     }
     body[data-theme="light"] .bg-treehouse {
       background-image: url('/assets/tiles/tile-treehouse-wood.svg');
       background-size: 20% 33.3333%;
       background-repeat: repeat;
-      filter: brightness(1.18) contrast(0.95);
+      filter: brightness(1.24) contrast(1.04);
     }
     body[data-theme="light"] .bg-starlight {
       background-image: url('/assets/tiles/tile-starlight-deck.svg');
       background-size: 20% 33.3333%;
       background-repeat: repeat;
-      filter: brightness(1.22) contrast(0.94);
+      filter: brightness(1.28) contrast(1.05);
+    }
+
+    /* High-visibility individual tile borders & reachable move range */
+    .vtt-cell {
+      border: 1px solid rgba(251, 191, 36, 0.34);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.18);
+    }
+    body[data-theme="light"] .vtt-cell {
+      border: 1px solid rgba(120, 53, 15, 0.38);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+    .vtt-cell-reachable {
+      background-color: rgba(16, 185, 129, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.42);
+    }
+    .vtt-cell-reachable:hover {
+      background-color: rgba(52, 211, 153, 0.28) !important;
     }
 
     @keyframes trapPulseRing {
@@ -574,10 +594,25 @@ export function renderVttAppHtml(
         🌙 Dark
       </button>
 
-      <!-- Audio Mute / Unmute Toggle -->
-      <button onclick="toggleAudioMute()" id="btn-audio-toggle" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-600 transition flex items-center gap-1.5" title="Toggle Sound Effects">
-        🔊 Sound: ON
+      <!-- Audio SFX Mute / Unmute Toggle -->
+      <button onclick="toggleAudioMute()" id="btn-audio-toggle" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-600 transition flex items-center gap-1.5" title="Toggle Dice & Sound Effects">
+        🔊 SFX: ON
       </button>
+
+      <!-- Always-Accessible Music Player (On/Off + Track Picker) -->
+      <div class="inline-flex items-center gap-1 rounded-lg bg-slate-800/90 border border-slate-600 p-0.5">
+        <button onclick="toggleMusicPlayback()" id="btn-music-toggle" class="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Turn Background Music On or Off">
+          🔇 Music: OFF
+        </button>
+        <select id="header-music-select" onchange="selectMusicTrack(this.value)" class="theme-input border-0 rounded-md px-1.5 py-1 text-xs font-bold text-indigo-300 cursor-pointer" title="Choose Background Music Track">
+          <option value="COZY_TAVERN">🎻 Tavern</option>
+          <option value="WHISPERING_WOODS">🍃 Woods</option>
+          <option value="GOBLIN_KITCHEN">🥁 March</option>
+          <option value="CRYSTAL_CAVERN">💎 Starlight</option>
+          <option value="HEROIC_BATTLE">⚔️ Battle</option>
+          <option value="SILENT">🔇 Off</option>
+        </select>
+      </div>
 
       <select id="select-rules-tier" onchange="changeRoomSettings()" class="theme-input border rounded-lg px-2 py-1.5 text-xs text-amber-300">
         <option value="STORYBOOK_D6">🧸 Storybook (d6)</option>
@@ -675,38 +710,49 @@ export function renderVttAppHtml(
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <h2 id="active-scene-title" class="text-base font-bold text-amber-400"></h2>
-            <p class="text-xs text-slate-400">Tap any square or use the Touch D-Pad to move your hero token across the grid.</p>
+            <p class="text-xs text-slate-400">Tap a highlighted square or use the Touch D-Pad to move within your speed.</p>
           </div>
-          <!-- Jackbox-Style Room Join Pill for TV Mode -->
-          <div class="flex items-center gap-2 theme-inner-box px-3 py-1.5 rounded-xl border">
-            <span class="text-xs text-slate-400">📱 Kids Join:</span>
-            <span id="kids-join-room-code" class="font-mono font-extrabold text-sm text-amber-400">${initialState.roomCode}</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Map Zoom Controls -->
+            <div id="vtt-map-zoom-controls" class="inline-flex items-center gap-1 theme-inner-box px-2 py-1 rounded-xl border text-xs">
+              <button type="button" id="btn-zoom-out" onclick="zoomMapBy(-0.2)" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-black" title="Zoom Out Map">➖</button>
+              <span id="map-zoom-label" class="font-mono font-bold px-1.5 min-w-[44px] text-center">100%</span>
+              <button type="button" id="btn-zoom-in" onclick="zoomMapBy(0.2)" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-black" title="Zoom In Map">➕</button>
+              <button type="button" id="btn-zoom-reset" onclick="resetMapZoom()" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold" title="Reset Map Fit">Fit</button>
+            </div>
+            <!-- Jackbox-Style Room Join Pill for TV Mode -->
+            <div class="flex items-center gap-2 theme-inner-box px-3 py-1.5 rounded-xl border">
+              <span class="text-xs text-slate-400">📱 Kids Join:</span>
+              <span id="kids-join-room-code" class="font-mono font-extrabold text-sm text-amber-400">${initialState.roomCode}</span>
+            </div>
           </div>
         </div>
 
-        <!-- 10x6 Interactive Tabletop Grid + Scenic Backdrop + 2D Raycast Lighting + Ruler/Templates/Weather Canvas -->
-        <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-950">
-          <img id="vtt-scene-backdrop" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Backdrop" class="hidden absolute inset-0 w-full h-full object-cover opacity-65 pointer-events-none z-0 transition-opacity duration-500" />
-          <div class="pointer-events-none absolute inset-0 z-[5] rounded-xl" style="box-shadow: inset 0 0 36px rgba(2, 6, 23, 0.55);"></div>
-          <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative z-10 select-none"></div>
-          <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
-          <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
-          <div id="vtt-door-hitboxes" class="absolute inset-0 pointer-events-none z-40"></div>
+        <!-- Scrollable Zoom Viewport wrapping 10x6 Interactive Tabletop Grid + Overlays -->
+        <div id="vtt-board-viewport" class="w-full overflow-auto rounded-xl border border-slate-700/70 bg-slate-950/90 max-h-[70vh]">
+          <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-950 transition-[width] duration-150" style="width: 100%; margin: 0 auto;">
+            <img id="vtt-scene-backdrop" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Backdrop" class="hidden absolute inset-0 w-full h-full object-cover opacity-65 pointer-events-none z-0 transition-opacity duration-500" />
+            <div class="pointer-events-none absolute inset-0 z-[5] rounded-xl" style="box-shadow: inset 0 0 22px rgba(2, 6, 23, 0.28);"></div>
+            <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative z-10 select-none"></div>
+            <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
+            <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
+            <div id="vtt-door-hitboxes" class="absolute inset-0 pointer-events-none z-40"></div>
+          </div>
         </div>
         <div id="move-blocked-banner" class="hidden mt-2.5 px-3 py-2 rounded-xl bg-rose-950/85 border border-rose-500/60 text-rose-100 text-xs font-bold flex items-center justify-between gap-2 shadow-lg">
           <span id="move-blocked-text">🧱 Blocked by wall!</span>
           <button id="move-blocked-action-btn" class="hidden px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px]">🚪 Open Door</button>
         </div>
 
-        <!-- Zone Fog-of-War, Interactive Doors & Collapsible Advanced GM Tools (GM Only) -->
+        <!-- Zone Fog-of-War, Interactive Doors & Static Ambiance (Creator Tools Hidden Unless Admin) -->
         <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
               <span class="text-xs font-semibold text-slate-400">🗺️ Reveal Rooms:</span>
               <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
             </div>
-            <button type="button" onclick="document.getElementById('gm-advanced-tools-drawer').open = !document.getElementById('gm-advanced-tools-drawer').open" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
-              🛠️ Toggle Pro GM Tools
+            <button id="btn-toggle-pro-gm-tools" type="button" onclick="document.getElementById('gm-advanced-tools-drawer').open = !document.getElementById('gm-advanced-tools-drawer').open" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
+              🕯️ Table Ambiance
             </button>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -715,38 +761,41 @@ export function renderVttAppHtml(
           </div>
           <details id="gm-advanced-tools-drawer" class="rounded-xl theme-inner-box border p-2.5 space-y-2">
             <summary class="cursor-pointer text-xs font-bold text-slate-300 select-none">
-              ⚙️ Advanced Tabletop Tools (Switch Campaign, Lighting, Ruler/AoE, Weather, Music &amp; Custom Tokens)
+              🕯️ Optional Table Ambiance (Lighting, Backdrop &amp; Sound)
             </summary>
             <div class="pt-2 space-y-2">
-              <div class="flex flex-wrap items-center gap-2">
-                <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
-                  <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
-                  <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
-                  <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
-                </select>
-                <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
-                  🎲 New Procedural Map
-                </button>
-                <button id="btn-generate-oneshot" onclick="generateScaledOneShot()" title="Generate a fresh, non-overlapping One-Shot scaled to your party's average hero level" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm">
-                  ⚡ Level-Scaled One-Shot
-                </button>
+              <div id="creator-map-authoring-box" class="hidden space-y-2 border-b border-amber-500/30 pb-2 mb-2">
+                <div class="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider">👑 Creator / Admin Map &amp; One-Shot Studio</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
+                    <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
+                    <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
+                    <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
+                  </select>
+                  <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
+                    🎲 New Procedural Map
+                  </button>
+                  <button id="btn-generate-oneshot" onclick="generateScaledOneShot()" title="Generate a fresh, non-overlapping One-Shot scaled to your party's average hero level" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm">
+                    ⚡ Level-Scaled One-Shot
+                  </button>
+                </div>
+                ${renderTabletopToolsControlsHtml()}
+                <!-- Custom Unraid Token Drop Folder Bar -->
+                <div id="custom-tokens-bar" class="mt-1 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-bold text-purple-400">📂 Unraid Custom Tokens:</span>
+                    <select id="select-custom-token" class="theme-input border rounded-lg px-2 py-1 text-xs">
+                      <option value="">Scanning /app/data/custom-tokens...</option>
+                    </select>
+                    <button onclick="spawnSelectedCustomToken()" class="px-2.5 py-1 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">➕ Spawn on Map</button>
+                    <button onclick="openTokenForgeModal()" class="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm">⚒️ Foundry Token Forge</button>
+                    <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
+                  </div>
+                  <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
+                </div>
               </div>
               ${renderLightingControlsHtml()}
-              ${renderTabletopToolsControlsHtml()}
               ${renderAtmosphereControlsHtml()}
-              <!-- Custom Unraid Token Drop Folder Bar -->
-              <div id="custom-tokens-bar" class="mt-1 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-bold text-purple-400">📂 Unraid Custom Tokens:</span>
-                  <select id="select-custom-token" class="theme-input border rounded-lg px-2 py-1 text-xs">
-                    <option value="">Scanning /app/data/custom-tokens...</option>
-                  </select>
-                  <button onclick="spawnSelectedCustomToken()" class="px-2.5 py-1 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">➕ Spawn on Map</button>
-                  <button onclick="openTokenForgeModal()" class="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm">⚒️ Foundry Token Forge</button>
-                  <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
-                </div>
-                <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
-              </div>
             </div>
           </details>
         </div>
@@ -1131,6 +1180,45 @@ export function renderVttAppHtml(
         <button onclick="document.getElementById('vtt-admin-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
       <div id="vtt-admin-google-status" class="p-3 rounded-xl theme-inner-box border text-xs space-y-1"></div>
+      <div id="admin-send-adventure-box" class="p-3.5 rounded-2xl theme-inner-box border border-amber-500/40 space-y-2.5 text-xs">
+        <div class="font-extrabold text-amber-400 uppercase tracking-wider">📤 Create &amp; Send Campaign / Map / One-Shot to User</div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Maps stay static and locked for regular user sessions. Dispatch a new Campaign, Static Map, or Level-Scaled One-Shot directly into a user's private room:
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Target User Room</label>
+            <select id="admin-send-target-room" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs"></select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Adventure Payload</label>
+            <select id="admin-send-mode" onchange="toggleAdminSendModeFields()" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs">
+              <option value="CAMPAIGN">📖 Core Campaign (Static Map)</option>
+              <option value="PROCEDURAL_MAP">🎲 New Static Procedural Map</option>
+              <option value="ONE_SHOT">⚡ Level-Scaled One-Shot</option>
+            </select>
+          </div>
+        </div>
+        <div id="admin-send-campaign-row">
+          <label class="block text-[10px] font-bold text-slate-400 mb-1">Campaign Selection</label>
+          <select id="admin-send-campaign-id" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs">
+            <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
+            <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
+            <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
+          </select>
+        </div>
+        <div id="admin-send-theme-row" class="hidden">
+          <label class="block text-[10px] font-bold text-slate-400 mb-1">Map Theme</label>
+          <select id="admin-send-theme" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs">
+            <option value="BAKERY">🧁 Bakery / Tavern</option>
+            <option value="FOREST_TREEHOUSE">🌲 Forest Treehouse</option>
+            <option value="STARLIGHT_SHIP">🌌 Starlight Ship</option>
+          </select>
+        </div>
+        <button type="button" onclick="sendAdventureFromAdminModal()" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm transition">
+          📤 Send Static Adventure to User Room
+        </button>
+      </div>
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <h4 class="text-xs font-extrabold text-slate-200 uppercase tracking-wider">Registered Accounts &amp; Private Rooms</h4>
@@ -1556,16 +1644,84 @@ export function renderVttAppHtml(
     function toggleAudioMute() {
       AudioEngine.muted = !AudioEngine.muted;
       const btn = document.getElementById("btn-audio-toggle");
-      btn.innerText = AudioEngine.muted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
-      btn.className = AudioEngine.muted
-        ? "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
-        : "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-emerald-300 border border-slate-600";
-      if (AudioEngine.muted) {
-        AmbientAudioEngine.stop();
-      } else if (state.ambientSoundscape && state.ambientSoundscape !== "SILENT") {
-        AmbientAudioEngine.start(state.ambientSoundscape, true);
+      if (btn) {
+        btn.innerText = AudioEngine.muted ? "🔇 SFX: OFF" : "🔊 SFX: ON";
+        btn.className = AudioEngine.muted
+          ? "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
+          : "px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-emerald-300 border border-slate-600";
       }
     }
+
+    async function toggleMusicPlayback() {
+      if (AmbientAudioEngine.musicEnabled) {
+        AmbientAudioEngine.stop();
+      } else {
+        const headerSel = document.getElementById("header-music-select");
+        const drawerSel = document.getElementById("select-ambient-soundscape");
+        let track =
+          (state.ambientSoundscape && state.ambientSoundscape !== "SILENT" ? state.ambientSoundscape : "") ||
+          (headerSel && headerSel.value && headerSel.value !== "SILENT" ? headerSel.value : "") ||
+          AmbientAudioEngine.lastTrack ||
+          "COZY_TAVERN";
+        if (headerSel) headerSel.value = track;
+        if (drawerSel) drawerSel.value = track;
+        AmbientAudioEngine.start(track, true);
+        if (displayMode === "GM_COMMAND") {
+          await apiPost("/api/room/atmosphere", { roomCode: state.roomCode, ambientSoundscape: track });
+        }
+      }
+    }
+
+    async function selectMusicTrack(track) {
+      const headerSel = document.getElementById("header-music-select");
+      const drawerSel = document.getElementById("select-ambient-soundscape");
+      if (headerSel) headerSel.value = track;
+      if (drawerSel) drawerSel.value = track;
+      if (!track || track === "SILENT") {
+        AmbientAudioEngine.stop();
+      } else {
+        AmbientAudioEngine.start(track, true);
+      }
+      if (displayMode === "GM_COMMAND") {
+        await apiPost("/api/room/atmosphere", { roomCode: state.roomCode, ambientSoundscape: track });
+      }
+    }
+
+    let mapZoom = 1;
+    function applyMapZoom() {
+      const wrapper = document.getElementById("vtt-grid-wrapper");
+      const label = document.getElementById("map-zoom-label");
+      if (wrapper) {
+        const pct = Math.round(mapZoom * 100);
+        wrapper.style.width = pct + "%";
+        wrapper.style.minWidth = pct >= 100 ? pct + "%" : "auto";
+      }
+      if (label) {
+        label.innerText = Math.round(mapZoom * 100) + "%";
+      }
+      requestAnimationFrame(() => {
+        if (typeof Lighting2DEngine !== "undefined" && Lighting2DEngine.render) Lighting2DEngine.render();
+        if (typeof ToolsWeatherEngine !== "undefined" && ToolsWeatherEngine.render) ToolsWeatherEngine.render();
+      });
+    }
+    function zoomMapBy(delta) {
+      mapZoom = Math.max(0.6, Math.min(2.2, Math.round((mapZoom + delta) * 100) / 100));
+      applyMapZoom();
+    }
+    function resetMapZoom() {
+      mapZoom = 1;
+      applyMapZoom();
+    }
+    (function attachBoardZoomWheel() {
+      const vp = document.getElementById("vtt-board-viewport");
+      if (!vp) return;
+      vp.addEventListener("wheel", (e) => {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          zoomMapBy(e.deltaY < 0 ? 0.15 : -0.15);
+        }
+      }, { passive: false });
+    })();
 
     /* ==========================================================
        2. LIGHT MODE & DARK MODE THEME SYSTEM
@@ -1636,6 +1792,8 @@ export function renderVttAppHtml(
     function updateAccountUi() {
       const btn = document.getElementById("btn-vtt-account");
       const adminBtn = document.getElementById("btn-open-vtt-admin");
+      const creatorBox = document.getElementById("creator-map-authoring-box");
+      const toolsToggleBtn = document.getElementById("btn-toggle-pro-gm-tools");
       const summary = document.getElementById("vtt-account-summary");
       const prefsBox = document.getElementById("vtt-account-preferences-box");
       const closeBtn = document.getElementById("btn-close-auth-modal");
@@ -1646,6 +1804,8 @@ export function renderVttAppHtml(
       if (!currentAccount) {
         if (btn) btn.innerText = "🔐 Sign In / Get Private Session";
         if (adminBtn) adminBtn.classList.add("hidden");
+        if (creatorBox) creatorBox.classList.add("hidden");
+        if (toolsToggleBtn) toolsToggleBtn.innerText = "🕯️ Table Ambiance";
         if (summary) summary.classList.add("hidden");
         if (prefsBox) prefsBox.classList.add("hidden");
         return;
@@ -1658,6 +1818,8 @@ export function renderVttAppHtml(
         ? "Apprentice"
         : "Storybook";
       if (adminBtn) adminBtn.classList.toggle("hidden", !isAdmin);
+      if (creatorBox) creatorBox.classList.toggle("hidden", !isAdmin);
+      if (toolsToggleBtn) toolsToggleBtn.innerText = isAdmin ? "🛠️ Creator & Ambiance Tools" : "🕯️ Table Ambiance";
       if (btn) {
         btn.innerText = (isAdmin ? "👑 " : isPaid ? "🔓 " : "🟢 ") + currentAccount.familyName + " (" + rulesShort + ")";
       }
@@ -1675,6 +1837,50 @@ export function renderVttAppHtml(
         prefsBox.classList.remove("hidden");
         document.getElementById("pref-rules-tier").value = currentAccount.preferredRulesTier || "STORYBOOK_D6";
         document.getElementById("pref-age-group").value = currentAccount.preferredAgeGroup || "AGES_8_10";
+      }
+    }
+
+    function toggleAdminSendModeFields() {
+      const mode = document.getElementById("admin-send-mode")?.value || "CAMPAIGN";
+      document.getElementById("admin-send-campaign-row")?.classList.toggle("hidden", mode !== "CAMPAIGN");
+      document.getElementById("admin-send-theme-row")?.classList.toggle("hidden", mode !== "PROCEDURAL_MAP");
+    }
+
+    async function sendAdventureFromAdminModal() {
+      const fb = document.getElementById("vtt-admin-feedback");
+      const targetRoomCode = document.getElementById("admin-send-target-room")?.value || "";
+      const mode = document.getElementById("admin-send-mode")?.value || "CAMPAIGN";
+      const campaignId = document.getElementById("admin-send-campaign-id")?.value || "camp-goblin-bakery";
+      const theme = document.getElementById("admin-send-theme")?.value || "BAKERY";
+      if (!targetRoomCode) {
+        if (fb) {
+          fb.className = "text-xs font-semibold text-rose-400";
+          fb.innerText = "Pick a target user room first.";
+        }
+        return;
+      }
+      const res = await fetch("/api/vtt-admin/send-adventure", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify({ targetRoomCode, mode, campaignId, theme }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        if (fb) {
+          fb.className = "text-xs font-semibold text-rose-400";
+          fb.innerText = data.error || "Dispatch failed";
+        }
+        return;
+      }
+      if (fb) {
+        fb.className = "text-xs font-semibold text-emerald-400";
+        fb.innerText = data.message || "Adventure dispatched cleanly!";
+      }
+      if (data.room && data.room.roomCode === state.roomCode) {
+        renderAll(data.room);
       }
     }
 
@@ -1701,6 +1907,16 @@ export function renderVttAppHtml(
           (data.googleConfig.configured ? "<span class='text-emerald-400'>CONFIGURED (Live OIDC)</span>" : "<span class='text-amber-300'>UNCONFIGURED (Local Dev Preview Active)</span>") +
           "</div>" +
           "<div class='text-slate-400'>Callback Redirect URI: <code class='text-emerald-300 font-mono'>" + data.googleConfig.redirectUri + "</code></div>";
+      }
+      const targetSel = document.getElementById("admin-send-target-room");
+      if (targetSel) {
+        const prev = targetSel.value;
+        targetSel.innerHTML = (data.accounts || []).map((a) =>
+          "<option value='" + a.trialRoomCode + "'>" + a.familyName + " (" + a.role + ") — Room " + a.trialRoomCode + "</option>"
+        ).join("");
+        if (prev && Array.from(targetSel.options).some((o) => o.value === prev)) {
+          targetSel.value = prev;
+        }
       }
       const listEl = document.getElementById("vtt-admin-accounts-list");
       if (listEl) {
@@ -3104,6 +3320,15 @@ export function renderVttAppHtml(
       document.getElementById("select-content-rating").value = state.contentRating;
       const diffSel = document.getElementById("select-difficulty");
       if (diffSel) diffSel.value = state.difficulty || "BALANCED_NORMAL";
+      const headerMusicSel = document.getElementById("header-music-select");
+      const drawerMusicSel = document.getElementById("select-ambient-soundscape");
+      if (state.ambientSoundscape) {
+        if (headerMusicSel) headerMusicSel.value = state.ambientSoundscape;
+        if (drawerMusicSel) drawerMusicSel.value = state.ambientSoundscape;
+      }
+      if (typeof AmbientAudioEngine !== "undefined" && AmbientAudioEngine.syncButtons) {
+        AmbientAudioEngine.syncButtons();
+      }
 
       // Update pre-combat stage-setting pictures & difficulty badge
       const stageShowcase = document.getElementById("stage-art-showcase");
@@ -3189,6 +3414,25 @@ export function renderVttAppHtml(
         whisperEl.innerText = whisperDefault;
       }
 
+      // Determine controllable/active hero remaining movement range in squares
+      const activeHeroTok = getControllableHeroToken();
+      const activeCombat = state.combat && state.combat.isActive ? state.combat : null;
+      const turnEntry = activeCombat ? (activeCombat.entries[activeCombat.activeTurnIndex] || null) : null;
+      const isTurnLockOn = Boolean(activeCombat && activeCombat.enforceTurnMovement !== false);
+      let heroCanMoveNow = true;
+      let allowedMoveSq = 6;
+      if (activeHeroTok) {
+        const linkedHero = (state.heroes || []).find(h => h.id === activeHeroTok.characterId);
+        const heroSpeedFt = (linkedHero && linkedHero.attributes5e && linkedHero.attributes5e.speedFt) || activeHeroTok.speedFt || 30;
+        if (isTurnLockOn && turnEntry) {
+          heroCanMoveNow = turnEntry.tokenId === activeHeroTok.id || (Boolean(activeHeroTok.characterId) && turnEntry.characterId === activeHeroTok.characterId);
+          const remFt = typeof turnEntry.movementRemainingFt === "number" ? turnEntry.movementRemainingFt : (turnEntry.speedFt || heroSpeedFt);
+          allowedMoveSq = heroCanMoveNow ? Math.floor(remFt / 5) : 0;
+        } else {
+          allowedMoveSq = Math.floor(heroSpeedFt / 5);
+        }
+      }
+
       // Render Grid Cells (10x6)
       gridEl.innerHTML = "";
       for (let y = 0; y < state.gridRows; y++) {
@@ -3197,15 +3441,21 @@ export function renderVttAppHtml(
             z => x >= z.gridX && x < z.gridX + z.width && y >= z.gridY && y < z.gridY + z.height
           );
           const isFogged = zone && !zone.isRevealed && displayMode !== "GM_COMMAND";
+          const distFromHero = activeHeroTok
+            ? Math.max(Math.abs(x - activeHeroTok.gridX), Math.abs(y - activeHeroTok.gridY))
+            : 99;
+          const isReachableSq = !isFogged && heroCanMoveNow && distFromHero > 0 && distFromHero <= allowedMoveSq;
           const cell = document.createElement("div");
           cell.onclick = () => moveTokenToCell(x, y);
           cell.className =
-            "border border-slate-700/40 relative flex items-center justify-center cursor-pointer transition " +
+            "vtt-cell relative flex items-center justify-center cursor-pointer transition " +
             (isFogged
               ? "bg-slate-950/90"
               : zone && !zone.isRevealed
               ? "bg-slate-900/60"
-              : "hover:bg-amber-500/10");
+              : isReachableSq
+              ? "vtt-cell-reachable"
+              : "hover:bg-amber-500/15");
 
           if (x === zone?.gridX && y === 0) {
             const label = document.createElement("span");
@@ -3521,14 +3771,28 @@ export function renderVttAppHtml(
         tabsEl.appendChild(t);
       }
 
-      // Sync Active D-Pad Readout
+      // Sync Active D-Pad Readout + Turn/Move Speed Budget
       const activeTok = getControllableHeroToken();
       const dpadLabelEl = document.getElementById("dpad-active-label");
       const dpadCenterBtn = document.getElementById("dpad-btn-center");
       if (dpadLabelEl) {
-        dpadLabelEl.innerText = activeTok
-          ? (activeTok.avatarEmoji || "🧙") + " " + activeTok.name + " (" + activeTok.gridX + ", " + activeTok.gridY + ")"
-          : "No hero token on map";
+        if (!activeTok) {
+          dpadLabelEl.innerText = "No hero token on map";
+        } else {
+          const linkedHero = (state.heroes || []).find(h => h.id === activeTok.characterId);
+          const baseSpd = (linkedHero && linkedHero.attributes5e && linkedHero.attributes5e.speedFt) || activeTok.speedFt || 30;
+          const combatOn = state.combat && state.combat.isActive && state.combat.enforceTurnMovement !== false;
+          const curTurn = combatOn ? (state.combat.entries[state.combat.activeTurnIndex] || null) : null;
+          if (combatOn && curTurn) {
+            const isMyTurn = curTurn.tokenId === activeTok.id || (Boolean(activeTok.characterId) && curTurn.characterId === activeTok.characterId);
+            const rem = typeof curTurn.movementRemainingFt === "number" ? curTurn.movementRemainingFt : (curTurn.speedFt || baseSpd);
+            dpadLabelEl.innerText = isMyTurn
+              ? (activeTok.avatarEmoji || "🧙") + " " + activeTok.name + " • 🏃 " + rem + "/" + (curTurn.speedFt || baseSpd) + " ft"
+              : "⏳ " + curTurn.name + "'s turn (" + activeTok.name + " paused)";
+          } else {
+            dpadLabelEl.innerText = (activeTok.avatarEmoji || "🧙") + " " + activeTok.name + " • 🏃 Speed " + baseSpd + " ft (" + Math.floor(baseSpd / 5) + " sq)";
+          }
+        }
       }
       if (dpadCenterBtn && activeTok) {
         dpadCenterBtn.innerText = activeTok.avatarEmoji || "🛡️";

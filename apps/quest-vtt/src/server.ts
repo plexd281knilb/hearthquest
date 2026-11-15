@@ -688,6 +688,89 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === "/api/vtt-admin/send-adventure" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const account = getVttAccountByToken(extractSessionToken(req, body));
+    if (!account) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Sign in required." }));
+      return;
+    }
+    if (account.role !== "ADMIN") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Creator/Admin role required to send maps or adventures." }));
+      return;
+    }
+    try {
+      const targetRoomCode = String(body.targetRoomCode || "")
+        .trim()
+        .toUpperCase()
+        .slice(0, 4);
+      if (!targetRoomCode) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Target user room code is required." }));
+        return;
+      }
+      const mode = String(body.mode || "CAMPAIGN").toUpperCase();
+      if (mode === "CAMPAIGN") {
+        const room = switchRoomCampaign({
+          roomCode: targetRoomCode,
+          campaignId: body.campaignId || FAMILY_CAMPAIGNS[0].id,
+        });
+        broadcastRoomUpdate(room);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            ok: true,
+            mode,
+            room,
+            message: `Dispatched campaign '${room.campaignTitle || room.campaignId}' to Room ${room.roomCode}.`,
+          })
+        );
+        return;
+      }
+      if (mode === "PROCEDURAL_MAP") {
+        const room = regenerateRoomProceduralMap({
+          roomCode: targetRoomCode,
+          theme: body.theme,
+        });
+        broadcastRoomUpdate(room);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            ok: true,
+            mode,
+            room,
+            message: `Dispatched new static map layout to Room ${room.roomCode}.`,
+          })
+        );
+        return;
+      }
+      if (mode === "ONE_SHOT") {
+        const generated = generateOneShotInRoom(targetRoomCode);
+        broadcastRoomUpdate(generated.room);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            ok: true,
+            mode,
+            room: generated.room,
+            loreEntry: generated.loreEntry,
+            partyLevel: generated.partyLevel,
+            message: `Dispatched Level ${generated.partyLevel || 1} One-Shot '${generated.loreEntry.title}' to Room ${generated.room.roomCode}.`,
+          })
+        );
+        return;
+      }
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Unsupported dispatch mode." }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Failed to send adventure" }));
+    }
+    return;
+  }
+
   if (pathname === "/api/auth/activate-license" && req.method === "POST") {
     try {
       const body = await readJsonBody(req);
@@ -763,11 +846,13 @@ const server = http.createServer(async (req, res) => {
 
   // Enforce authentication & strict per-user room isolation across ALL /api/room/* mutations
   let authedBody: any = null;
+  let requestAccountForRoomPost: ReturnType<typeof getVttAccountByToken> = null;
   if (pathname.startsWith("/api/room/") && req.method === "POST") {
     authedBody = await readJsonBody(req);
+    requestAccountForRoomPost = getVttAccountByToken(extractSessionToken(req, authedBody));
     const auth = authorizeRoomAccess({
       requestedRoomCode: authedBody.roomCode,
-      account: getVttAccountByToken(extractSessionToken(req, authedBody)),
+      account: requestAccountForRoomPost,
       guestToken: extractGuestToken(req, authedBody, parsedUrl),
       requireGmOwner: !PLAYER_ALLOWED_ROOM_POSTS.has(pathname),
     });
@@ -778,6 +863,22 @@ const server = http.createServer(async (req, res) => {
           ok: false,
           authRequired: auth.status === 401,
           error: auth.error,
+        })
+      );
+      return;
+    }
+    const CREATOR_ONLY_ROOM_POSTS = new Set([
+      "/api/room/switch-campaign",
+      "/api/room/procedural-map",
+      "/api/room/generate-oneshot",
+    ]);
+    if (CREATOR_ONLY_ROOM_POSTS.has(pathname) && requestAccountForRoomPost?.role !== "ADMIN") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error:
+            "Creator/Admin access required — session maps and campaigns are static for players and dispatched by your HearthQuest Creator.",
         })
       );
       return;
@@ -935,11 +1036,23 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/api/room/spawn-custom-token" && req.method === "POST") {
     const body = authedBody;
+    const isAdmin = requestAccountForRoomPost?.role === "ADMIN";
+    const requestedType = body.type || "NPC";
+    if (!isAdmin && requestedType !== "HERO") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: "Users can only add custom tokens for their hero characters.",
+        })
+      );
+      return;
+    }
     const room = spawnCustomTokenInRoom({
       roomCode: body.roomCode,
-      name: body.name || "Custom Token",
+      name: body.name || "Custom Hero Token",
       assetUrl: body.assetUrl || "/assets/tokens/heroes/knight-shield.svg",
-      type: body.type || "NPC",
+      type: requestedType,
       gridX: body.gridX,
       gridY: body.gridY,
     });
@@ -954,6 +1067,10 @@ const server = http.createServer(async (req, res) => {
     const room = updateRoomCombat({
       roomCode: body.roomCode,
       action: body.action || "ROLL_INITIATIVE",
+      enforceTurnMovement:
+        typeof body.enforceTurnMovement === "boolean" ? body.enforceTurnMovement : undefined,
+      entryId: typeof body.entryId === "string" ? body.entryId : undefined,
+      initiative: typeof body.initiative === "number" ? body.initiative : undefined,
     });
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -989,9 +1106,25 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/api/room/forge-actor" && req.method === "POST") {
     const body = authedBody;
+    const isAdmin = requestAccountForRoomPost?.role === "ADMIN";
+    const actorType = body.actorType === "MONSTER" ? "MONSTER" : "HERO";
+    if (!isAdmin && actorType !== "HERO") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error:
+            "Players can only create or customize tokens for their hero characters. Monster/Boss tokens are created by Admin.",
+        })
+      );
+      return;
+    }
     const forged = forgeActorAndTokenInRoom({
       roomCode: body.roomCode,
-      actorType: body.actorType === "MONSTER" ? "MONSTER" : "HERO",
+      actorType,
+      targetHeroId: typeof body.targetHeroId === "string" ? body.targetHeroId : undefined,
+      customImageDataUrl:
+        typeof body.customImageDataUrl === "string" ? body.customImageDataUrl : undefined,
       name: body.name || "Forged Actor",
       archetype: body.archetype,
       bezelStyle: body.bezelStyle,

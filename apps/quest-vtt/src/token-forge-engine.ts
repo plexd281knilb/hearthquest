@@ -382,12 +382,25 @@ export function renderTokenForgeModalHtml(): string {
 
         <!-- Actor Stats, Frame & Emblem Config Column -->
         <div class="md:col-span-7 space-y-2.5 text-xs">
+          <div>
+            <label class="block text-[11px] font-bold text-amber-400 mb-0.5">Apply Custom Token To Character</label>
+            <select id="forge-target-hero" onchange="onForgeTargetHeroChange(this.value)" class="w-full theme-input border rounded-xl px-2.5 py-1.5 font-bold">
+              <option value="">✨ Create New Hero Character Token</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-0.5">📷 Optional: Upload Custom Character Token Image (PNG/JPG/WebP/SVG)</label>
+            <div class="flex items-center gap-2">
+              <input id="forge-custom-image-file" type="file" accept="image/*" onchange="handleForgeCustomImageUpload(event)" class="text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500/20 file:text-amber-300 hover:file:bg-amber-500/30" />
+              <button type="button" onclick="clearForgeCustomImage()" class="px-2 py-1 rounded-lg border border-slate-600 text-[10px] font-bold">Reset SVG</button>
+            </div>
+          </div>
           <div class="grid grid-cols-2 gap-2">
-            <div>
+            <div id="forge-actor-type-wrap">
               <label class="block text-[11px] text-slate-400 mb-0.5">Actor Role</label>
               <select id="forge-actor-type" onchange="updateForgePreview()" class="w-full theme-input border rounded-xl px-2.5 py-1.5 font-bold">
                 <option value="HERO">🛡️ Playable Hero</option>
-                <option value="MONSTER">🐉 Monster / Boss</option>
+                <option value="MONSTER" id="forge-option-monster">🐉 Monster / Boss (Admin Only)</option>
               </select>
             </div>
             <div>
@@ -511,8 +524,53 @@ export function renderTokenForgeClientScript(): string {
     "    '<rect x=\"102\" y=\"20\" width=\"52\" height=\"16\" rx=\"8\" fill=\"#0f172a\" stroke=\"' + bez.st + '\" stroke-width=\"2\"/><text x=\"128\" y=\"31\" text-anchor=\"middle\" fill=\"' + bez.st + '\" font-weight=\"800\" font-size=\"9\">' + badge + '</text>' +",
     "    '</svg>';",
     "}",
+    "var uploadedForgeImageDataUrl = '';",
+    "function clearForgeCustomImage() {",
+    "  uploadedForgeImageDataUrl = '';",
+    "  var f = document.getElementById('forge-custom-image-file');",
+    "  if (f) f.value = '';",
+    "  updateForgePreview();",
+    "}",
+    "function handleForgeCustomImageUpload(ev) {",
+    "  var file = ev && ev.target && ev.target.files && ev.target.files[0];",
+    "  if (!file) return;",
+    "  var reader = new FileReader();",
+    "  reader.onload = function() {",
+    "    var img = new Image();",
+    "    img.onload = function() {",
+    "      var canvas = document.createElement('canvas');",
+    "      canvas.width = 192;",
+    "      canvas.height = 192;",
+    "      var ctx = canvas.getContext('2d');",
+    "      ctx.beginPath();",
+    "      ctx.arc(96, 96, 94, 0, Math.PI * 2);",
+    "      ctx.closePath();",
+    "      ctx.clip();",
+    "      var scale = Math.max(192 / img.width, 192 / img.height);",
+    "      var w = img.width * scale;",
+    "      var h = img.height * scale;",
+    "      ctx.drawImage(img, (192 - w) / 2, (192 - h) / 2, w, h);",
+    "      uploadedForgeImageDataUrl = canvas.toDataURL('image/png');",
+    "      updateForgePreview();",
+    "    };",
+    "    img.src = String(reader.result || '');",
+    "  };",
+    "  reader.readAsDataURL(file);",
+    "}",
+    "function onForgeTargetHeroChange(heroId) {",
+    "  if (!heroId || typeof state === 'undefined' || !state.heroes) return;",
+    "  var h = state.heroes.find(function(x){ return x.id === heroId; });",
+    "  if (h) {",
+    "    document.getElementById('forge-name').value = h.name;",
+    "    document.getElementById('forge-archetype').value = h.archetype || 'Hero';",
+    "    document.getElementById('forge-actor-type').value = 'HERO';",
+    "    updateForgePreview();",
+    "  }",
+    "}",
     "function readForgeForm() {",
     "  return {",
+    "    targetHeroId: (document.getElementById('forge-target-hero') || {}).value || '',",
+    "    customImageDataUrl: uploadedForgeImageDataUrl || '',",
     "    actorType: (document.getElementById('forge-actor-type') || {}).value || 'HERO',",
     "    bezelStyle: (document.getElementById('forge-bezel-style') || {}).value || 'ANTIQUE_BRASS',",
     "    emblem: (document.getElementById('forge-emblem') || {}).value || 'KNIGHT_HELM',",
@@ -537,12 +595,17 @@ export function renderTokenForgeClientScript(): string {
     "function updateForgePreview() {",
     "  var el = document.getElementById('forge-preview-container');",
     "  if (!el) return;",
+    "  if (uploadedForgeImageDataUrl) {",
+    "    el.innerHTML = '<img src=\"' + uploadedForgeImageDataUrl + '\" class=\"w-full h-full rounded-full object-cover border-4 border-amber-400 shadow-lg\" alt=\"Custom Hero Token\" />';",
+    "    return;",
+    "  }",
     "  el.innerHTML = buildBrowserFoundryTokenSvg(readForgeForm());",
     "}",
     "function applyForgePreset(presetId) {",
     "  var p = FORGE_PRESETS.find(function(x){ return x.id === presetId; });",
     "  if (!p) return;",
-    "  document.getElementById('forge-actor-type').value = p.actorType;",
+    "  var isAdminUser = typeof currentAccount !== 'undefined' && currentAccount && currentAccount.role === 'ADMIN';",
+    "  document.getElementById('forge-actor-type').value = isAdminUser ? p.actorType : 'HERO';",
     "  document.getElementById('forge-bezel-style').value = p.bezelStyle;",
     "  document.getElementById('forge-emblem').value = p.emblem;",
     "  document.getElementById('forge-name').value = p.name;",
@@ -562,6 +625,16 @@ export function renderTokenForgeClientScript(): string {
     "  updateForgePreview();",
     "}",
     "function openTokenForgeModal() {",
+    "  var isAdminUser = typeof currentAccount !== 'undefined' && currentAccount && currentAccount.role === 'ADMIN';",
+    "  var monOpt = document.getElementById('forge-option-monster');",
+    "  var typeSel = document.getElementById('forge-actor-type');",
+    "  if (monOpt) monOpt.classList.toggle('hidden', !isAdminUser);",
+    "  if (!isAdminUser && typeSel) typeSel.value = 'HERO';",
+    "  var targetSel = document.getElementById('forge-target-hero');",
+    "  if (targetSel && typeof state !== 'undefined' && state.heroes) {",
+    "    targetSel.innerHTML = '<option value=\"\">✨ Create New Hero Character Token</option>' +",
+    "      state.heroes.map(function(h){ return '<option value=\"' + h.id + '\">🛡️ Apply Token to ' + h.name + '</option>'; }).join('');",
+    "  }",
     "  updateForgePreview();",
     "  document.getElementById('token-forge-modal').classList.remove('hidden');",
     "}",
@@ -570,6 +643,8 @@ export function renderTokenForgeClientScript(): string {
     "}",
     "async function forgeNewActorAndToken() {",
     "  var cfg = readForgeForm();",
+    "  var isAdminUser = typeof currentAccount !== 'undefined' && currentAccount && currentAccount.role === 'ADMIN';",
+    "  if (!isAdminUser) cfg.actorType = 'HERO';",
     "  if (typeof AudioEngine !== 'undefined') AudioEngine.playChestOpen();",
     "  await apiPost('/api/room/forge-actor', Object.assign({ roomCode: state.roomCode }, cfg));",
     "  closeTokenForgeModal();",
