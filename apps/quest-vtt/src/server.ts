@@ -7,6 +7,7 @@ import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
+  attemptInteractDoor,
   FAMILY_CAMPAIGNS,
   forgeActorAndTokenInRoom,
   generateJoinQrSvg,
@@ -414,10 +415,27 @@ const server = http.createServer(async (req, res) => {
       roomCode: body.roomCode || "DRGN",
       ambientLightMode: body.ambientLightMode,
       toggleDoorId: body.toggleDoorId,
+      toggleLockDoorId: body.toggleLockDoorId,
+      lockDc: typeof body.lockDc === "number" ? body.lockDc : undefined,
     });
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/door-interact" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const result = attemptInteractDoor({
+      roomCode: body.roomCode || "DRGN",
+      doorId: body.doorId,
+      characterId: body.characterId,
+      rawRollOverride:
+        typeof body.rawRollOverride === "number" ? body.rawRollOverride : undefined,
+    });
+    broadcastRoomUpdate(result.room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, ...result }));
     return;
   }
 

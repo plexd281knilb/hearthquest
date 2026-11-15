@@ -284,6 +284,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative z-10 select-none"></div>
           <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
           <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
+          <div id="vtt-door-hitboxes" class="absolute inset-0 pointer-events-none z-40"></div>
         </div>
 
         <!-- Zone Fog-of-War, Dynamic Lighting, Ruler/Templates & Unraid Custom Tokens (GM Only) -->
@@ -588,6 +589,41 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         </a>
         <button onclick="document.getElementById('vtt-paywall-modal').classList.add('hidden'); toggleVttAuthModal(true);" class="p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold">
           🔑 Sign In / Enter License Key
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LOCKED DOOR LOCKPICK CHECK -->
+  <div id="lockpick-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border-2 border-rose-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="lockpick-door-title" class="text-base font-extrabold text-amber-400">🔐 Locked Door</h3>
+          <p id="lockpick-door-subtitle" class="text-xs text-slate-300 mt-0.5">Roll Sleight of Hand to pick the tumbler lock!</p>
+        </div>
+        <button onclick="document.getElementById('lockpick-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div class="theme-inner-box border rounded-xl p-3 flex flex-col gap-2">
+        <label class="text-[11px] font-bold text-slate-300">Picking Character (Sleight of Hand / Thieves' Tools)</label>
+        <select id="lockpick-hero-select" class="theme-input border rounded-lg px-2.5 py-2 text-xs font-semibold"></select>
+        <div class="flex items-center gap-2 mt-1">
+          <button id="btn-roll-lockpick" onclick="submitLockpickRoll(false)" class="flex-1 py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition">
+            🗝️ Roll Lockpick Check!
+          </button>
+        </div>
+        <div class="flex items-center gap-2 pt-2 border-t border-slate-700/40">
+          <input id="lockpick-physical-input" type="number" min="1" max="20" placeholder="Or real table die (1-20)" class="theme-input flex-1 border rounded-lg px-2.5 py-1.5 text-xs" />
+          <button onclick="submitLockpickRoll(true)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">
+            🎲 Log Table Die
+          </button>
+        </div>
+      </div>
+      <div id="lockpick-feedback" class="hidden p-2.5 rounded-xl border text-xs font-semibold"></div>
+      <div id="lockpick-gm-actions" class="hidden pt-2 border-t border-slate-700/40 flex items-center justify-between gap-2 text-xs">
+        <span class="text-slate-400">👑 GM Override:</span>
+        <button onclick="gmForceUnlockAndOpenDoor()" class="px-3 py-1.5 rounded-lg bg-rose-900/70 hover:bg-rose-800 border border-rose-500/50 text-rose-200 font-bold">
+          🔓 Unlock & Swing Open
         </button>
       </div>
     </div>
@@ -965,11 +1001,113 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
       });
     }
 
-    async function toggleMapDoor(toggleDoorId) {
+    let activeLockpickDoorId = null;
+
+    async function interactMapDoor(doorId) {
+      const door = (state.walls || []).find(w => w.id === doorId && w.isDoor);
+      if (!door) return;
+
+      if (door.isLocked) {
+        activeLockpickDoorId = doorId;
+        const dcDisplay = state.rulesTier === "STORYBOOK_D6"
+          ? Math.max(3, Math.min(6, Math.round((door.lockDc || 12) / 3)))
+          : (door.lockDc || 12);
+        const dieLabel = state.rulesTier === "STORYBOOK_D6" ? "d6" : "d20";
+        document.getElementById("lockpick-door-title").innerText = "🔐 " + (door.lockLabel || "Locked Door");
+        document.getElementById("lockpick-door-subtitle").innerText =
+          "Requires a Lockpick Check (" + dieLabel + " vs DC " + dcDisplay + ") to unlock and open.";
+
+        const heroSel = document.getElementById("lockpick-hero-select");
+        heroSel.innerHTML = "";
+        const heroes = state.heroes || [];
+        heroes.forEach(h => {
+          const opt = document.createElement("option");
+          opt.value = h.id;
+          const mod = Math.floor(((h.attributes5e?.dex || 10) - 10) / 2) + ((h.proficientSkills || []).includes("sleight_of_hand") ? 2 : 0);
+          opt.innerText = h.avatarEmoji + " " + h.name + " (Lockpick " + (mod >= 0 ? "+" + mod : mod) + ")";
+          if (h.id === selectedHeroId) opt.selected = true;
+          heroSel.appendChild(opt);
+        });
+
+        const fb = document.getElementById("lockpick-feedback");
+        fb.classList.add("hidden");
+        document.getElementById("lockpick-physical-input").value = "";
+        document.getElementById("lockpick-gm-actions").classList.toggle("hidden", displayMode !== "GM_COMMAND");
+        document.getElementById("lockpick-modal").classList.remove("hidden");
+        return;
+      }
+
+      const res = await apiPost("/api/room/door-interact", {
+        roomCode: state.roomCode,
+        doorId,
+        characterId: selectedHeroId
+      });
+      if (res && res.room) {
+        state = res.room;
+        renderAll();
+      }
+    }
+
+    async function submitLockpickRoll(usePhysical) {
+      if (!activeLockpickDoorId) return;
+      const characterId = document.getElementById("lockpick-hero-select").value || selectedHeroId;
+      const rawInput = parseInt(document.getElementById("lockpick-physical-input").value, 10);
+      const payload = {
+        roomCode: state.roomCode,
+        doorId: activeLockpickDoorId,
+        characterId
+      };
+      if (usePhysical && !Number.isNaN(rawInput)) {
+        payload.rawRollOverride = rawInput;
+      }
+
+      const res = await fetch("/api/room/door-interact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data && data.room) {
+        state = data.room;
+        renderAll();
+      }
+      if (data && data.roll && !usePhysical) {
+        animateRollIn3D(data.roll);
+      }
+
+      const fb = document.getElementById("lockpick-feedback");
+      fb.classList.remove("hidden");
+      if (data && data.unlockedNow) {
+        fb.className = "p-2.5 rounded-xl border text-xs font-semibold bg-emerald-950/60 border-emerald-500/60 text-emerald-200";
+        fb.innerText = data.message;
+        if (AudioEngine && AudioEngine.playChestOpen) AudioEngine.playChestOpen();
+        setTimeout(() => {
+          document.getElementById("lockpick-modal").classList.add("hidden");
+        }, 950);
+      } else {
+        fb.className = "p-2.5 rounded-xl border text-xs font-semibold bg-rose-950/60 border-rose-500/60 text-rose-200";
+        fb.innerText = (data && data.message) || "Lockpick check missed — try again!";
+      }
+    }
+
+    async function gmForceUnlockAndOpenDoor() {
+      if (!activeLockpickDoorId) return;
       await apiPost("/api/room/lighting", {
         roomCode: state.roomCode,
-        toggleDoorId
+        toggleDoorId: activeLockpickDoorId
       });
+      document.getElementById("lockpick-modal").classList.add("hidden");
+    }
+
+    async function gmToggleDoorLock(toggleLockDoorId) {
+      await apiPost("/api/room/lighting", {
+        roomCode: state.roomCode,
+        toggleLockDoorId
+      });
+    }
+
+    async function toggleMapDoor(toggleDoorId) {
+      await interactMapDoor(toggleDoorId);
     }
 
     function setTabletopTool(toolName) {
@@ -1653,20 +1791,77 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
         }
       }
 
+      const doorHitboxes = document.getElementById("vtt-door-hitboxes");
+      if (doorHitboxes) {
+        doorHitboxes.innerHTML = "";
+      }
       const doorBtns = document.getElementById("door-toggle-buttons");
       if (doorBtns) {
         doorBtns.innerHTML = "";
         const doors = (state.walls || []).filter(w => w.isDoor);
         doors.forEach((d, idx) => {
+          // 1. Bottom bar door button (clicking acts as character opening/lockpicking)
+          const wrap = document.createElement("div");
+          wrap.className = "inline-flex items-center gap-1";
+
           const db = document.createElement("button");
-          db.onclick = () => toggleMapDoor(d.id);
+          db.onclick = () => interactMapDoor(d.id);
           db.className =
             "px-2.5 py-1 rounded-lg text-xs font-semibold border transition " +
             (d.isOpen
               ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-300"
-              : "bg-amber-950/70 border-amber-500/50 text-amber-300");
-          db.innerText = d.isOpen ? \`🚪 Door #\${idx + 1}: Open\` : \`🔒 Door #\${idx + 1}: Closed\`;
-          doorBtns.appendChild(db);
+              : d.isLocked
+              ? "bg-rose-950/80 border-rose-500/60 text-rose-200 hover:border-rose-400"
+              : "bg-amber-950/70 border-amber-500/50 text-amber-300 hover:border-amber-300");
+          const dcTag = state.rulesTier === "STORYBOOK_D6"
+            ? Math.max(3, Math.min(6, Math.round((d.lockDc || 12) / 3)))
+            : (d.lockDc || 12);
+          db.innerText = d.isOpen
+            ? \`🚪 Door #\${idx + 1}: Open\`
+            : d.isLocked
+            ? \`🔐 Door #\${idx + 1}: Locked (DC \${dcTag})\`
+            : \`🔓 Door #\${idx + 1}: Unlocked\`;
+          wrap.appendChild(db);
+
+          if (displayMode === "GM_COMMAND") {
+            const lockBtn = document.createElement("button");
+            lockBtn.onclick = () => gmToggleDoorLock(d.id);
+            lockBtn.title = d.isLocked ? "Unlock this door as GM" : "Lock this door (requires Sleight of Hand Lockpick Check)";
+            lockBtn.className = "px-2 py-1 rounded-lg text-[11px] font-bold border bg-slate-900 border-slate-600 text-slate-300 hover:border-amber-400";
+            lockBtn.innerText = d.isLocked ? "🔓 GM Unlock" : "🔐 GM Lock";
+            wrap.appendChild(lockBtn);
+          }
+          doorBtns.appendChild(wrap);
+
+          // 2. Direct On-Map Interactive Door Handle / Padlock Hitbox overlay
+          if (doorHitboxes) {
+            const mx = ((d.x1 + d.x2) * 0.5) / (state.gridCols || 10) * 100;
+            const my = ((d.y1 + d.y2) * 0.5) / (state.gridRows || 6) * 100;
+            const hitbox = document.createElement("button");
+            hitbox.type = "button";
+            hitbox.setAttribute("data-door-id", d.id);
+            hitbox.onclick = (e) => {
+              e.stopPropagation();
+              interactMapDoor(d.id);
+            };
+            hitbox.style.left = mx + "%";
+            hitbox.style.top = my + "%";
+            hitbox.style.transform = "translate(-50%, -50%)";
+            hitbox.title = d.isOpen
+              ? \`Open Door #\${idx + 1} — Click to close\`
+              : d.isLocked
+              ? \`Locked Door (\${d.lockLabel || "Brass Tumbler Lock"}, DC \${dcTag}) — Click to roll Lockpick Check!\`
+              : \`Unlocked Door #\${idx + 1} — Click to open!\`;
+            hitbox.className =
+              "pointer-events-auto absolute w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-lg border transition hover:scale-115 " +
+              (d.isOpen
+                ? "bg-emerald-950/70 border-emerald-400/70 text-emerald-200 opacity-75 hover:opacity-100"
+                : d.isLocked
+                ? "bg-rose-950/90 border-rose-400 text-amber-200 ring-2 ring-rose-500/40"
+                : "bg-amber-950/85 border-amber-400/80 text-amber-200 hover:border-white");
+            hitbox.innerText = d.isOpen ? "🚪" : d.isLocked ? "🔐" : "🔓";
+            doorHitboxes.appendChild(hitbox);
+          }
         });
       }
 

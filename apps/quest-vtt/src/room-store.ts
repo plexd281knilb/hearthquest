@@ -17,6 +17,7 @@ import {
   SceneBackdropType,
   SkillId,
   SpellTemplate,
+  WallSegment,
   resolveArchetypeAsset,
 } from "@hearthquest/shared-types";
 import {
@@ -370,6 +371,7 @@ export function advanceRoomStoryNode(params: {
     if (room.walls) {
       for (const w of room.walls) {
         if (w.isDoor && w.zoneId === targetZone.id) {
+          w.isLocked = false;
           w.isOpen = true;
           w.blocksVision = false;
         }
@@ -638,20 +640,141 @@ export function updateRoomLighting(params: {
   roomCode: string;
   ambientLightMode?: AmbientLightingMode;
   toggleDoorId?: string;
+  toggleLockDoorId?: string;
+  lockDc?: number;
 }): RoomSessionState {
   const room = getOrCreateRoom(params.roomCode);
   if (params.ambientLightMode) {
     room.ambientLightMode = params.ambientLightMode;
   }
+  if (params.toggleLockDoorId && room.walls) {
+    const door = room.walls.find((w) => w.id === params.toggleLockDoorId && w.isDoor);
+    if (door) {
+      door.isLocked = !door.isLocked;
+      if (door.isLocked) {
+        door.isOpen = false;
+        door.blocksVision = true;
+        door.lockDc = params.lockDc ?? door.lockDc ?? 12;
+        door.lockLabel = door.lockLabel || "Brass Tumbler Lock";
+      }
+    }
+  }
   if (params.toggleDoorId && room.walls) {
     const door = room.walls.find((w) => w.id === params.toggleDoorId && w.isDoor);
     if (door) {
       door.isOpen = !door.isOpen;
+      if (door.isOpen) {
+        door.isLocked = false;
+      }
       door.blocksVision = !door.isOpen;
     }
   }
   autoPersistRooms();
   return room;
+}
+
+/**
+ * Character Door Interaction & Lockpicking:
+ * - Unlocked doors swing open/closed freely and reveal attached room lighting when opened.
+ * - Locked doors require a Sleight of Hand lockpick check by the acting character to unlock & open.
+ */
+export function attemptInteractDoor(params: {
+  roomCode: string;
+  doorId: string;
+  characterId?: string;
+  rawRollOverride?: number;
+}): {
+  room: RoomSessionState;
+  door?: WallSegment;
+  unlockedNow: boolean;
+  openedNow: boolean;
+  lockedBlocked: boolean;
+  roll?: DiceRollResult;
+  message: string;
+} {
+  const room = getOrCreateRoom(params.roomCode);
+  const door = (room.walls || []).find((w) => w.id === params.doorId && w.isDoor);
+  if (!door) {
+    return {
+      room,
+      unlockedNow: false,
+      openedNow: false,
+      lockedBlocked: false,
+      message: "Door not found on this map.",
+    };
+  }
+
+  // Case 1: Unlocked door — character can open/close freely
+  if (!door.isLocked) {
+    door.isOpen = !door.isOpen;
+    door.blocksVision = !door.isOpen;
+    if (door.isOpen && door.zoneId) {
+      const zone = room.zones.find((z) => z.id === door.zoneId);
+      if (zone) zone.isRevealed = true;
+    }
+    autoPersistRooms();
+    return {
+      room,
+      door,
+      unlockedNow: false,
+      openedNow: Boolean(door.isOpen),
+      lockedBlocked: false,
+      message: door.isOpen ? "🚪 Door swung open cleanly!" : "🚪 Door closed.",
+    };
+  }
+
+  // Case 2: Locked door — must pass a Sleight of Hand lockpick check
+  const hero = room.heroes.find((h) => h.id === params.characterId) || room.heroes[0];
+  const lockName = door.lockLabel || "Locked Door";
+  const roll = rollHeroSkillCheck({
+    hero,
+    skillId: "sleight_of_hand",
+    rulesTier: room.rulesTier,
+    targetDcOverride: door.lockDc ?? 12,
+    actionLabelOverride: `🗝️ Lockpick: ${lockName}`,
+    rawRollOverride: params.rawRollOverride,
+  });
+
+  room.rollHistory = [roll, ...room.rollHistory].slice(0, 25);
+  const existing = room.spotlightRecords.find((r) => r.characterId === hero.id);
+  if (existing) {
+    existing.turnsTaken += 1;
+    existing.lastActionAt = new Date().toISOString();
+  }
+  room.spotlightRecords = computeSiblingSpotlightFairness(room.heroes, room.spotlightRecords);
+
+  if (roll.succeeded) {
+    door.isLocked = false;
+    door.isOpen = true;
+    door.blocksVision = false;
+    if (door.zoneId) {
+      const zone = room.zones.find((z) => z.id === door.zoneId);
+      if (zone) zone.isRevealed = true;
+    }
+    autoPersistRooms();
+    return {
+      room,
+      door,
+      unlockedNow: true,
+      openedNow: true,
+      lockedBlocked: false,
+      roll,
+      message: `🔓 Click-clack! ${hero.name} picked the ${lockName} (Total ${roll.total} vs DC ${roll.targetDC}) and opened the door!`,
+    };
+  }
+
+  door.isOpen = false;
+  door.blocksVision = true;
+  autoPersistRooms();
+  return {
+    room,
+    door,
+    unlockedNow: false,
+    openedNow: false,
+    lockedBlocked: true,
+    roll,
+    message: `🔐 Tumbler jammed! ${hero.name} rolled ${roll.total} vs DC ${roll.targetDC}. Try again or let another hero assist!`,
+  };
 }
 
 /**

@@ -312,7 +312,7 @@ export function renderLighting2DEngineScript(): string {
               ctx.shadowOffsetY = 2;
               ctx.lineCap = "butt";
 
-              ctx.strokeStyle = "#451a03";
+              ctx.strokeStyle = wSeg.isLocked ? "#450a0a" : "#451a03";
               ctx.lineWidth = 10;
               ctx.beginPath();
               ctx.moveTo(x1, y1);
@@ -320,36 +320,66 @@ export function renderLighting2DEngineScript(): string {
               ctx.stroke();
 
               ctx.shadowColor = "transparent";
-              ctx.strokeStyle = "#d97706";
+              ctx.strokeStyle = wSeg.isLocked ? "#991b1b" : "#d97706";
               ctx.lineWidth = 5.5;
               ctx.beginPath();
               ctx.moveTo(x1 + ux * 3, y1 + uy * 3);
               ctx.lineTo(x2 - ux * 3, y2 - uy * 3);
               ctx.stroke();
 
-              // Specular oak bevel
-              ctx.strokeStyle = "rgba(254, 240, 138, 0.6)";
+              // Specular bevel (iron gleam for locked, warm oak highlight for unlocked)
+              ctx.strokeStyle = wSeg.isLocked ? "rgba(252, 165, 165, 0.5)" : "rgba(254, 240, 138, 0.6)";
               ctx.lineWidth = 1.4;
               ctx.beginPath();
               ctx.moveTo(x1 + ux * 4 - nx * 1.3, y1 + uy * 4 - ny * 1.3);
               ctx.lineTo(x2 - ux * 4 - nx * 1.3, y2 - uy * 4 - ny * 1.3);
               ctx.stroke();
 
-              // Glowing brass lockplate & handle in doorway center
               const mx = (x1 + x2) * 0.5;
               const my = (y1 + y2) * 0.5;
-              ctx.fillStyle = "#451a03";
-              ctx.beginPath();
-              ctx.arc(mx, my, 6.2, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = "#fde047";
-              ctx.beginPath();
-              ctx.arc(mx, my, 3.6, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = "#ffffff";
-              ctx.beginPath();
-              ctx.arc(mx - 1, my - 1, 1.2, 0, Math.PI * 2);
-              ctx.fill();
+              if (wSeg.isLocked) {
+                // Detailed Iron & Gold Padlock Emblem on Locked Door
+                ctx.fillStyle = "rgba(244, 63, 94, 0.28)";
+                ctx.beginPath();
+                ctx.arc(mx, my, 12.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Steel Padlock Shackle Arch
+                ctx.strokeStyle = "#e2e8f0";
+                ctx.lineWidth = 2.4;
+                ctx.beginPath();
+                ctx.arc(mx, my - 3.5, 4.4, Math.PI, 0);
+                ctx.stroke();
+
+                // Golden-Brass Padlock Body
+                ctx.fillStyle = "#451a03";
+                ctx.fillRect(mx - 6.8, my - 2.8, 13.6, 11.4);
+                ctx.fillStyle = "#f59e0b";
+                ctx.fillRect(mx - 5.5, my - 1.6, 11, 9);
+                ctx.fillStyle = "#fef08a";
+                ctx.fillRect(mx - 5.5, my - 1.6, 11, 2.2);
+
+                // Padlock Keyhole
+                ctx.fillStyle = "#1c1917";
+                ctx.beginPath();
+                ctx.arc(mx, my + 1.8, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillRect(mx - 0.8, my + 2.2, 1.6, 3.2);
+              } else {
+                // Glowing brass unlocked handle medallion in doorway center
+                ctx.fillStyle = "#451a03";
+                ctx.beginPath();
+                ctx.arc(mx, my, 6.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#fde047";
+                ctx.beginPath();
+                ctx.arc(mx, my, 3.6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(mx - 1, my - 1, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+              }
               ctx.restore();
             }
 
@@ -363,7 +393,7 @@ export function renderLighting2DEngineScript(): string {
               ctx.beginPath();
               ctx.arc(jambEnds[j].px, jambEnds[j].py, 5.5, 0, Math.PI * 2);
               ctx.fill();
-              ctx.fillStyle = wSeg.isOpen ? "#34d399" : "#f59e0b";
+              ctx.fillStyle = wSeg.isOpen ? "#34d399" : wSeg.isLocked ? "#f43f5e" : "#f59e0b";
               ctx.beginPath();
               ctx.arc(jambEnds[j].px, jambEnds[j].py, 2.6, 0, Math.PI * 2);
               ctx.fill();

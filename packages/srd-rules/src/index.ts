@@ -1139,6 +1139,7 @@ export function createDefaultZoneWalls(zones: MapRoomZone[]): WallSegment[] {
       y2: 3.9,
       isDoor: true,
       isOpen: Boolean(z2.isRevealed),
+      isLocked: false,
       blocksVision: !z2.isRevealed,
       zoneId: z2.id,
     },
@@ -1154,6 +1155,9 @@ export function createDefaultZoneWalls(zones: MapRoomZone[]): WallSegment[] {
       y2: 3.9,
       isDoor: true,
       isOpen: Boolean(z3.isRevealed),
+      isLocked: !z3.isRevealed,
+      lockDc: 12,
+      lockLabel: "Brass Tumbler Lock",
       blocksVision: !z3.isRevealed,
       zoneId: z3.id,
     },
@@ -1690,6 +1694,15 @@ export const HEARTHQUEST_SKILLS: SkillDefinition[] = [
     accentDarkClass: "bg-orange-950/70 text-orange-300 border-orange-700/60",
   },
   {
+    id: "sleight_of_hand",
+    name: "Sleight of Hand / Lockpicking",
+    ability5e: "dex",
+    storybookStat: "brains",
+    icon: "🗝️",
+    accentLightClass: "bg-amber-100 text-amber-900 border-amber-300",
+    accentDarkClass: "bg-amber-950/70 text-amber-300 border-amber-700/60",
+  },
+  {
     id: "stealth",
     name: "Stealth",
     ability5e: "dex",
@@ -1791,25 +1804,40 @@ export function rollHeroSkillCheck(params: {
   hero: CharacterSheet;
   skillId: SkillId;
   rulesTier: RulesTier;
+  targetDcOverride?: number;
+  actionLabelOverride?: string;
+  rawRollOverride?: number;
 }): DiceRollResult {
   const skills = getHeroSkillModifiers(params.hero, params.rulesTier);
   const skill = skills.find((s) => s.id === params.skillId) ?? skills[0];
   const dieType: DieType = params.rulesTier === "STORYBOOK_D6" ? "d6" : "d20";
   const maxFace = dieType === "d6" ? 6 : 20;
-  const rawRoll = Math.floor(Math.random() * maxFace) + 1;
+  const rawRoll =
+    typeof params.rawRollOverride === "number" && Number.isFinite(params.rawRollOverride)
+      ? Math.max(1, Math.min(maxFace, Math.round(params.rawRollOverride)))
+      : Math.floor(Math.random() * maxFace) + 1;
   const total = rawRoll + skill.modifier;
-  const targetDC = params.rulesTier === "STORYBOOK_D6" ? 4 : 12;
+  const baseTargetDc =
+    typeof params.targetDcOverride === "number" && Number.isFinite(params.targetDcOverride)
+      ? params.rulesTier === "STORYBOOK_D6" && params.targetDcOverride > 6
+        ? Math.max(3, Math.min(6, Math.round(params.targetDcOverride / 3)))
+        : Math.max(2, Math.round(params.targetDcOverride))
+      : params.rulesTier === "STORYBOOK_D6"
+      ? 4
+      : 12;
+  const targetDC = baseTargetDc;
   const succeeded = total >= targetDC;
   const isCrit = rawRoll === maxFace;
+  const checkTitle = params.actionLabelOverride || `${skill.icon} ${skill.name} Check`;
 
   return {
     id: `sroll_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     characterId: params.hero.id,
     playerName: params.hero.playerName,
     characterName: params.hero.name,
-    actionTitle: `${skill.icon} ${skill.name} Check`,
+    actionTitle: checkTitle,
     dieType,
-    source: "DIGITAL_3D_ROLLER",
+    source: typeof params.rawRollOverride === "number" ? "PHYSICAL_DICE_TABLE" : "DIGITAL_3D_ROLLER",
     rawRoll,
     modifier: skill.modifier,
     total,
@@ -1817,10 +1845,10 @@ export function rollHeroSkillCheck(params: {
     succeeded,
     isCriticalSuccess: isCrit,
     narrativeOutcome: isCrit
-      ? `🌟 Natural ${maxFace}! ${params.hero.name} aces ${skill.name} with effortless flair!`
+      ? `🌟 Natural ${maxFace}! ${params.hero.name} aces ${checkTitle} with effortless flair!`
       : succeeded
-      ? `✅ ${params.hero.name} succeeds at ${skill.name} (Total ${total} vs DC ${targetDC}).`
-      : `💫 ${params.hero.name} misses DC ${targetDC} on ${skill.name} (${total}), learning a helpful clue instead!`,
+      ? `✅ ${params.hero.name} succeeds at ${checkTitle} (Total ${total} vs DC ${targetDC}).`
+      : `💫 ${params.hero.name} misses DC ${targetDC} on ${checkTitle} (${total}), noticing a helpful clue instead!`,
     timestamp: new Date().toISOString(),
   };
 }

@@ -36,6 +36,7 @@ import {
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
+  attemptInteractDoor,
   FAMILY_CAMPAIGNS,
   forgeActorAndTokenInRoom,
   generateJoinQrSvg,
@@ -658,7 +659,7 @@ async function runVerification() {
   assert.ok(vttHtml.includes("select-ambient-soundscape"), "VTT HTML must include soundscape selector");
   assert.ok(vttHtml.includes("SKILL_CATALOG"), "VTT HTML must embed serialized skill catalog");
 
-  assert.strictEqual(HEARTHQUEST_SKILLS.length, 10, "Expected 10 core skills in HEARTHQUEST_SKILLS");
+  assert.strictEqual(HEARTHQUEST_SKILLS.length, 11, "Expected 11 core skills (including sleight_of_hand) in HEARTHQUEST_SKILLS");
   for (const sk of HEARTHQUEST_SKILLS) {
     assert.ok(sk.accentLightClass && sk.accentDarkClass, `Skill ${sk.name} must define both light & dark theme styles`);
   }
@@ -674,7 +675,7 @@ async function runVerification() {
 
   const combatRoom = getOrCreateRoom("CMBT");
   const skillsForHero = getHeroSkillModifiers(combatRoom.heroes[0], combatRoom.rulesTier);
-  assert.strictEqual(skillsForHero.length, 10);
+  assert.strictEqual(skillsForHero.length, 11);
   const { room: afterSkillRoom, roll: skillRoll } = submitHeroSkillRoll({
     roomCode: "CMBT",
     characterId: combatRoom.heroes[0].id,
@@ -1188,8 +1189,85 @@ async function runVerification() {
   );
   console.log("✅ PASSED");
 
+  // Suite 26: Door Locks, Unlocked Free Open & Lockpick Sleight-of-Hand Checks
+  process.stdout.write("26. Testing Door Locks, Unlocked Doors & Sleight-of-Hand Lockpick Checks... ");
+  const lockRoom = getOrCreateRoom("LOCK");
+  const unlockedDoor = lockRoom.walls?.find((w) => w.id === "door-zone-2");
+  const lockedVaultDoor = lockRoom.walls?.find((w) => w.id === "door-zone-3");
+  assert.ok(unlockedDoor && unlockedDoor.isDoor, "door-zone-2 must exist");
+  assert.strictEqual(Boolean(unlockedDoor?.isLocked), false, "door-zone-2 must start unlocked");
+  assert.ok(lockedVaultDoor && lockedVaultDoor.isDoor, "door-zone-3 must exist");
+  assert.strictEqual(lockedVaultDoor?.isLocked, true, "door-zone-3 must start locked by default");
+  assert.strictEqual(lockedVaultDoor?.lockDc, 12, "Locked vault door must carry default DC 12");
+
+  // 1. Clicking an unlocked door opens it freely without rolling dice
+  const freeOpen = attemptInteractDoor({
+    roomCode: "LOCK",
+    doorId: "door-zone-2",
+    characterId: lockRoom.heroes[0].id,
+  });
+  assert.strictEqual(freeOpen.lockedBlocked, false);
+  assert.strictEqual(freeOpen.openedNow, true, "Unlocked door must swing open freely");
+  assert.strictEqual(freeOpen.roll, undefined, "Opening unlocked door must not require a lockpick check");
+
+  // 2. Clicking a locked door with a failing die roll keeps it closed & locked and logs the check
+  const failLockpick = attemptInteractDoor({
+    roomCode: "LOCK",
+    doorId: "door-zone-3",
+    characterId: lockRoom.heroes[0].id,
+    rawRollOverride: 1,
+  });
+  assert.strictEqual(failLockpick.lockedBlocked, true, "Failed lockpick roll must keep door locked");
+  assert.strictEqual(failLockpick.openedNow, false);
+  assert.ok(failLockpick.roll && failLockpick.roll.actionTitle.includes("Lockpick"), "Failed attempt must log Lockpick skill check");
+  assert.strictEqual(
+    failLockpick.room.walls?.find((w) => w.id === "door-zone-3")?.isLocked,
+    true,
+    "Door must remain locked after failed check"
+  );
+
+  // 3. Passing the lockpick check unlocks & swings the door open cleanly
+  const passLockpick = attemptInteractDoor({
+    roomCode: "LOCK",
+    doorId: "door-zone-3",
+    characterId: lockRoom.heroes[0].id,
+    rawRollOverride: 20,
+  });
+  assert.strictEqual(passLockpick.lockedBlocked, false);
+  assert.strictEqual(passLockpick.unlockedNow, true, "Successful lockpick roll must unlock door");
+  assert.strictEqual(passLockpick.openedNow, true, "Successful lockpick roll must open door");
+  assert.strictEqual(
+    passLockpick.room.walls?.find((w) => w.id === "door-zone-3")?.isLocked,
+    false
+  );
+  assert.strictEqual(
+    passLockpick.room.walls?.find((w) => w.id === "door-zone-3")?.blocksVision,
+    false
+  );
+
+  // 4. GM lock toggle & UI HTML hooks verification
+  const relockedRoom = updateRoomLighting({
+    roomCode: "LOCK",
+    toggleLockDoorId: "door-zone-3",
+    lockDc: 14,
+  });
+  const relockedDoor = relockedRoom.walls?.find((w) => w.id === "door-zone-3");
+  assert.strictEqual(relockedDoor?.isLocked, true, "GM toggleLockDoorId must lock door cleanly");
+  assert.strictEqual(relockedDoor?.isOpen, false);
+  assert.strictEqual(relockedDoor?.lockDc, 14);
+
+  const lockVttHtml = renderVttAppHtml(relockedRoom);
+  assert.ok(
+    lockVttHtml.includes("vtt-door-hitboxes") &&
+      lockVttHtml.includes("lockpick-modal") &&
+      lockVttHtml.includes("interactMapDoor") &&
+      lockVttHtml.includes("Detailed Iron & Gold Padlock Emblem"),
+    "VTT UI & lighting canvas must include on-map door hitboxes, padlock emblem & lockpick roll modal"
+  );
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 25/25 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 26/26 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

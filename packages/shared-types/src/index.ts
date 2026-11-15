@@ -36,6 +36,7 @@ export type SceneBackdropType =
 export type SkillId =
   | "athletics"
   | "acrobatics"
+  | "sleight_of_hand"
   | "stealth"
   | "arcana"
   | "investigation"
@@ -96,6 +97,9 @@ export interface WallSegment {
   y2: number;
   isDoor?: boolean;
   isOpen?: boolean;
+  isLocked?: boolean;
+  lockDc?: number;
+  lockLabel?: string;
   blocksVision: boolean;
   zoneId?: string;
 }
