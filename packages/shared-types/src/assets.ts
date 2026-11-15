@@ -119,6 +119,235 @@ export const HEARTHQUEST_ASSETS = {
       name: "Starlight Otter Celestial Deck",
       path: "/assets/tiles/tile-starlight-deck.svg",
     },
+    forestGrass: {
+      id: "tile-forest-grass",
+      name: "Emerald Forest Glade Turf",
+      path: "/assets/tiles/tile-forest-grass.svg",
+    },
+    dungeonStone: {
+      id: "tile-dungeon-stone",
+      name: "Weathered Crypt Ashlar Flagstone",
+      path: "/assets/tiles/tile-dungeon-stone.svg",
+    },
+    cavernDirt: {
+      id: "tile-cavern-dirt",
+      name: "Packed Cavern Earth & Gravel",
+      path: "/assets/tiles/tile-cavern-dirt.svg",
+    },
+  },
+  mapProps: {
+    treeOakCanopy: {
+      id: "prop-tree-oak-canopy",
+      name: "Ancient Oak Canopy",
+      category: "TREE" as const,
+      zLayer: "CANOPY" as const,
+      defaultWidthSq: 2,
+      defaultHeightSq: 2,
+      path: "/assets/map-props/tree-oak-canopy.svg",
+    },
+    treePineCluster: {
+      id: "prop-tree-pine-cluster",
+      name: "Evergreen Pine Tree",
+      category: "TREE" as const,
+      zLayer: "CANOPY" as const,
+      defaultWidthSq: 2,
+      defaultHeightSq: 2,
+      path: "/assets/map-props/tree-pine-cluster.svg",
+    },
+    treeStumpMossy: {
+      id: "prop-tree-stump-mossy",
+      name: "Mossy Tree Stump",
+      category: "TREE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1,
+      defaultHeightSq: 1,
+      path: "/assets/map-props/tree-stump-mossy.svg",
+    },
+    branchFallenLog: {
+      id: "prop-branch-fallen-log",
+      name: "Fallen Mossy Log & Branches",
+      category: "BRANCH" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.5,
+      defaultHeightSq: 1,
+      path: "/assets/map-props/branch-fallen-log.svg",
+    },
+    boulderMossy: {
+      id: "prop-boulder-mossy",
+      name: "Craggy Mossy Boulder",
+      category: "BRANCH" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.2,
+      defaultHeightSq: 1.2,
+      path: "/assets/map-props/boulder-mossy.svg",
+    },
+    bushBerryThicket: {
+      id: "prop-bush-berry-thicket",
+      name: "Wild Berry Bush Thicket",
+      category: "TREE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.2,
+      defaultHeightSq: 1.2,
+      path: "/assets/map-props/bush-berry-thicket.svg",
+    },
+    furnitureOakTable: {
+      id: "prop-furniture-oak-table",
+      name: "Long Oak Banquet Table",
+      category: "FURNITURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.6,
+      defaultHeightSq: 1.1,
+      path: "/assets/map-props/furniture-oak-table.svg",
+    },
+    furnitureChair: {
+      id: "prop-furniture-chair",
+      name: "Oak Tavern Chair",
+      category: "FURNITURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 0.8,
+      defaultHeightSq: 0.8,
+      path: "/assets/map-props/furniture-chair.svg",
+    },
+    furnitureBookshelf: {
+      id: "prop-furniture-bookshelf",
+      name: "Scholarly Oak Bookshelf",
+      category: "FURNITURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.4,
+      defaultHeightSq: 0.9,
+      path: "/assets/map-props/furniture-bookshelf.svg",
+    },
+    furnitureBedrollCot: {
+      id: "prop-furniture-bedroll-cot",
+      name: "Cozy Travel Cot & Quilt",
+      category: "FURNITURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.4,
+      defaultHeightSq: 0.9,
+      path: "/assets/map-props/furniture-bedroll-cot.svg",
+    },
+    furnitureBarrelCrates: {
+      id: "prop-furniture-barrel-crates",
+      name: "Barrels & Supply Crates",
+      category: "FURNITURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.1,
+      defaultHeightSq: 1.1,
+      path: "/assets/map-props/furniture-barrel-crates.svg",
+    },
+    furnitureBakerOven: {
+      id: "prop-furniture-baker-oven",
+      name: "Brick Hearth Bakery Oven",
+      category: "FURNITURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.5,
+      defaultHeightSq: 1.3,
+      lightRadius: 3.0,
+      lightColor: "#fb923c",
+      path: "/assets/map-props/furniture-baker-oven.svg",
+    },
+    lightStandingBrazier: {
+      id: "prop-light-standing-brazier",
+      name: "Glowing Iron Fire Brazier",
+      category: "LIGHT_FIXTURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 0.95,
+      defaultHeightSq: 0.95,
+      lightRadius: 3.4,
+      lightColor: "#f59e0b",
+      path: "/assets/map-props/light-standing-brazier.svg",
+    },
+    lightWallSconce: {
+      id: "prop-light-wall-sconce",
+      name: "Flickering Wall Torch Sconce",
+      category: "LIGHT_FIXTURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 0.85,
+      defaultHeightSq: 0.85,
+      lightRadius: 2.9,
+      lightColor: "#fbbf24",
+      path: "/assets/map-props/light-wall-sconce.svg",
+    },
+    lightChandelier: {
+      id: "prop-light-chandelier",
+      name: "Iron Wheel Chandelier",
+      category: "LIGHT_FIXTURE" as const,
+      zLayer: "CANOPY" as const,
+      defaultWidthSq: 1.4,
+      defaultHeightSq: 1.4,
+      lightRadius: 4.0,
+      lightColor: "#fde68a",
+      path: "/assets/map-props/light-chandelier.svg",
+    },
+    lightLanternPost: {
+      id: "prop-light-lantern-post",
+      name: "Brass Amber Street Lantern",
+      category: "LIGHT_FIXTURE" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 0.85,
+      defaultHeightSq: 0.85,
+      lightRadius: 2.8,
+      lightColor: "#fcd34d",
+      path: "/assets/map-props/light-lantern-post.svg",
+    },
+    campTent: {
+      id: "prop-camp-tent",
+      name: "Pitched Explorer Canvas Tent",
+      category: "CAMP" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.7,
+      defaultHeightSq: 1.5,
+      path: "/assets/map-props/camp-tent.svg",
+    },
+    campCampfireStones: {
+      id: "prop-camp-campfire-stones",
+      name: "Stone Ring Campfire",
+      category: "CAMP" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.1,
+      defaultHeightSq: 1.1,
+      lightRadius: 3.5,
+      lightColor: "#fb923c",
+      path: "/assets/map-props/camp-campfire-stones.svg",
+    },
+    campCauldronPot: {
+      id: "prop-camp-cauldron-pot",
+      name: "Simmering Campfire Cauldron",
+      category: "CAMP" as const,
+      zLayer: "OBJECT" as const,
+      defaultWidthSq: 1.0,
+      defaultHeightSq: 1.0,
+      lightRadius: 2.4,
+      lightColor: "#fdba74",
+      path: "/assets/map-props/camp-cauldron-pot.svg",
+    },
+    campBackpackSupplies: {
+      id: "prop-camp-backpack-supplies",
+      name: "Adventurer Pack, Rope & Map",
+      category: "CAMP" as const,
+      zLayer: "FLOOR" as const,
+      defaultWidthSq: 0.9,
+      defaultHeightSq: 0.9,
+      path: "/assets/map-props/camp-backpack-supplies.svg",
+    },
+    bonesPileSkulls: {
+      id: "prop-bones-pile-skulls",
+      name: "Old Dungeon Bones & Skull",
+      category: "BONES" as const,
+      zLayer: "FLOOR" as const,
+      defaultWidthSq: 1.0,
+      defaultHeightSq: 1.0,
+      path: "/assets/map-props/bones-pile-skulls.svg",
+    },
+    bonesSkeletonRemains: {
+      id: "prop-bones-skeleton-remains",
+      name: "Forgotten Adventurer Skeleton",
+      category: "BONES" as const,
+      zLayer: "FLOOR" as const,
+      defaultWidthSq: 1.25,
+      defaultHeightSq: 1.0,
+      path: "/assets/map-props/bones-skeleton-remains.svg",
+    },
   },
   backgrounds: {
     hearthTavern: {
@@ -286,4 +515,27 @@ export function resolveTrapAsset(trapDescription?: string): string {
     return HEARTHQUEST_ASSETS.traps.flourSnare.path;
   }
   return HEARTHQUEST_ASSETS.traps.spikePlate.path;
+}
+
+/**
+ * Resolves a ground texture tile SVG path from a GroundTileTheme key or biome keyword.
+ */
+export function resolveGroundTileAsset(themeOrCampaign?: string): string {
+  const norm = (themeOrCampaign || "").toUpperCase();
+  if (norm === "FOREST_GRASS" || norm.includes("GRASS") || norm.includes("GLADE")) {
+    return HEARTHQUEST_ASSETS.tiles.forestGrass.path;
+  }
+  if (norm === "DUNGEON_STONE" || norm.includes("CRYPT") || norm.includes("VAULT") || norm.includes("DUNGEON")) {
+    return HEARTHQUEST_ASSETS.tiles.dungeonStone.path;
+  }
+  if (norm === "CAVERN_DIRT" || norm.includes("DIRT") || norm.includes("CAVERN")) {
+    return HEARTHQUEST_ASSETS.tiles.cavernDirt.path;
+  }
+  if (norm === "TREEHOUSE_WOOD" || norm.includes("TREEHOUSE") || norm.includes("FOREST")) {
+    return HEARTHQUEST_ASSETS.tiles.treehouseWood.path;
+  }
+  if (norm === "STARLIGHT_DECK" || norm.includes("STARLIGHT") || norm.includes("OBSERVATORY") || norm.includes("SHIP")) {
+    return HEARTHQUEST_ASSETS.tiles.starlightDeck.path;
+  }
+  return HEARTHQUEST_ASSETS.tiles.bakeryFloor.path;
 }

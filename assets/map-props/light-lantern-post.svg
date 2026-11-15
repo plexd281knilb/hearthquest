@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="lanternGlowFilter" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+    <filter id="lanternShadowFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+
+    <!-- Warm Amber Radiant Glow -->
+    <radialGradient id="lanternHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85" />
+      <stop offset="25%" stop-color="#fef08a" stop-opacity="0.6" />
+      <stop offset="55%" stop-color="#f59e0b" stop-opacity="0.3" />
+      <stop offset="80%" stop-color="#ea580c" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Brass Roof Facet Gradients -->
+    <linearGradient id="brassFacetNorth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#a16207" />
+    </linearGradient>
+
+    <linearGradient id="brassFacetWest" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#eab308" />
+      <stop offset="70%" stop-color="#ca8a04" />
+      <stop offset="100%" stop-color="#854d0e" />
+    </linearGradient>
+
+    <linearGradient id="brassFacetEast" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ca8a04" />
+      <stop offset="70%" stop-color="#a16207" />
+      <stop offset="100%" stop-color="#713f12" />
+    </linearGradient>
+
+    <linearGradient id="brassFacetSouth" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#713f12" />
+      <stop offset="60%" stop-color="#854d0e" />
+      <stop offset="100%" stop-color="#a16207" />
+    </linearGradient>
+
+    <radialGradient id="amberGlassGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#fde047" />
+      <stop offset="75%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#b45309" />
+    </radialGradient>
+
+    <linearGradient id="postWood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#592d07" />
+      <stop offset="50%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#3b1704" />
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Light Halo on Ground / Surrounds -->
+  <circle cx="64" cy="64" r="58" fill="url(#lanternHalo)" filter="url(#lanternGlowFilter)" />
+
+  <!-- Ground Shadow under Post & Lantern -->
+  <g id="groundShadow" fill="#09090b" opacity="0.4" filter="url(#lanternShadowFilter)">
+    <circle cx="64" cy="69" r="28" />
+    <rect x="42" y="46" width="44" height="44" rx="4" />
+  </g>
+
+  <!-- Wooden Support Post Cap (Octagonal Post Top) -->
+  <g id="postCap">
+    <polygon points="52,38 76,38 88,50 88,74 76,86 52,86 40,74 40,50"
+             fill="url(#postWood)" stroke="#271003" stroke-width="1.2" />
+    <!-- Iron Post Band & Studs -->
+    <polygon points="53,40 75,40 86,51 86,73 75,84 53,84 42,73 42,51"
+             fill="none" stroke="#334155" stroke-width="1.8" />
+    <circle cx="50" cy="42" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.3" />
+    <circle cx="78" cy="42" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.3" />
+    <circle cx="50" cy="82" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.3" />
+    <circle cx="78" cy="82" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.3" />
+  </g>
+
+  <!-- Square Brass Lantern Body -->
+  <g id="lanternBody">
+    <!-- Amber Glowing Glass Panes (Base glowing square peeking out) -->
+    <rect x="40" y="40" width="48" height="48" rx="2" fill="url(#amberGlassGlow)" stroke="#78350f" stroke-width="1" />
+
+    <!-- Internal Flame Highlight Core -->
+    <ellipse cx="64" cy="64" rx="14" ry="14" fill="#ffffff" opacity="0.6" />
+
+    <!-- Heavy Brass Framework Base Plate -->
+    <rect x="38" y="38" width="52" height="52" rx="3" fill="none" stroke="#713f12" stroke-width="2.5" />
+    <rect x="39" y="39" width="50" height="50" rx="2" fill="none" stroke="#fde047" stroke-width="0.6" opacity="0.6" />
+
+    <!-- 4 Heavy Brass Corner Pillars -->
+    <rect x="36" y="36" width="6" height="6" rx="1" fill="#eab308" stroke="#451a03" stroke-width="0.8" />
+    <rect x="86" y="36" width="6" height="6" rx="1" fill="#ca8a04" stroke="#451a03" stroke-width="0.8" />
+    <rect x="36" y="86" width="6" height="6" rx="1" fill="#a16207" stroke="#451a03" stroke-width="0.8" />
+    <rect x="86" y="86" width="6" height="6" rx="1" fill="#713f12" stroke="#451a03" stroke-width="0.8" />
+
+    <!-- 4 Pyramidal Hipped Brass Roof Facets -->
+    <!-- North Facet (Sunlit) -->
+    <polygon points="41,41 87,41 64,64" fill="url(#brassFacetNorth)" stroke="#713f12" stroke-width="0.6" />
+    <!-- West Facet (Mid-tone) -->
+    <polygon points="41,41 64,64 41,87" fill="url(#brassFacetWest)" stroke="#713f12" stroke-width="0.6" />
+    <!-- East Facet (Shaded) -->
+    <polygon points="87,41 87,87 64,64" fill="url(#brassFacetEast)" stroke="#713f12" stroke-width="0.6" />
+    <!-- South Facet (Deep Shaded) -->
+    <polygon points="41,87 64,64 87,87" fill="url(#brassFacetSouth)" stroke="#713f12" stroke-width="0.6" />
+
+    <!-- Facet Ridge Specular Lines -->
+    <line x1="41" y1="41" x2="64" y2="64" stroke="#fef08a" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="87" y1="41" x2="64" y2="64" stroke="#fde047" stroke-width="0.9" opacity="0.8" />
+    <line x1="41" y1="87" x2="64" y2="64" stroke="#ca8a04" stroke-width="0.8" opacity="0.7" />
+    <line x1="87" y1="87" x2="64" y2="64" stroke="#451a03" stroke-width="0.8" />
+
+    <!-- Pagoda Smoke Vent & Finial Top -->
+    <circle cx="64" cy="64" r="6" fill="#eab308" stroke="#451a03" stroke-width="1" />
+    <circle cx="64" cy="64" r="4.2" fill="#ca8a04" />
+    <circle cx="64" cy="64" r="2.2" fill="#fef08a" />
+
+    <!-- Hanging Bail (Arched Brass Carrying Handle) -->
+    <!-- Bail shadow -->
+    <path d="M 33 66 C 33 46, 95 46, 95 66" fill="none" stroke="#09090b" stroke-width="2.5" opacity="0.35" />
+    <!-- Bail handle body -->
+    <path d="M 34 64 C 34 44, 94 44, 94 64" fill="none" stroke="#eab308" stroke-width="2.6" stroke-linecap="round" />
+    <path d="M 34 64 C 34 44, 94 44, 94 64" fill="none" stroke="#713f12" stroke-width="0.8" />
+    <path d="M 38 52 C 50 45, 78 45, 90 52" fill="none" stroke="#fef08a" stroke-width="0.9" opacity="0.8" />
+
+    <!-- Bail Mount Rings -->
+    <circle cx="35" cy="64" r="2.5" fill="#ca8a04" stroke="#3b1704" stroke-width="0.6" />
+    <circle cx="93" cy="64" r="2.5" fill="#ca8a04" stroke="#3b1704" stroke-width="0.6" />
+  </g>
+</svg>

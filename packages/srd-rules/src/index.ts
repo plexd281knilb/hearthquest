@@ -12,8 +12,10 @@ import {
   DieType,
   DifficultyPreset,
   FamilyCampaignTemplate,
+  GroundTileTheme,
   InitiativeEntry,
   LoreRegistryEntry,
+  MapPropPlacement,
   MapRoomZone,
   MapToken,
   MonsterStatBlock5e,
@@ -1649,6 +1651,76 @@ export function calculateGridDistanceFeet(
 }
 
 /**
+ * Generates curated Foundry-grade battlemap objects & props (trees, branches, furniture,
+ * flickering light fixtures, camp gear, bones/skeletons) across a map's zones.
+ */
+export function createDefaultMapPropsForTheme(
+  theme: "BAKERY" | "FOREST_TREEHOUSE" | "STARLIGHT_SHIP",
+  zones: MapRoomZone[]
+): MapPropPlacement[] {
+  const z0 = zones[0] || { gridX: 0, gridY: 0, width: 4, height: 6 };
+  const z1 = zones[1] || { gridX: 4, gridY: 0, width: 3, height: 6 };
+  const z2 = zones[2] || { gridX: 7, gridY: 0, width: 3, height: 6 };
+  const props = HEARTHQUEST_ASSETS.mapProps;
+  const uid = (tag: string, idx: number) => `mprop-${theme.toLowerCase()}-${tag}-${idx}`;
+
+  if (theme === "FOREST_TREEHOUSE") {
+    return [
+      { id: uid("oak", 1), propKey: "treeOakCanopy", label: props.treeOakCanopy.name, category: "TREE", assetPath: props.treeOakCanopy.path, gridX: z0.gridX + 0.15, gridY: 0.1, widthSq: 1.7, heightSq: 1.7, zLayer: "CANOPY" },
+      { id: uid("pine", 2), propKey: "treePineCluster", label: props.treePineCluster.name, category: "TREE", assetPath: props.treePineCluster.path, gridX: z0.gridX + 0.1, gridY: 4.1, widthSq: 1.7, heightSq: 1.7, zLayer: "CANOPY" },
+      { id: uid("bush", 3), propKey: "bushBerryThicket", label: props.bushBerryThicket.name, category: "TREE", assetPath: props.bushBerryThicket.path, gridX: z0.gridX + Math.max(1.2, z0.width - 1.3), gridY: 0.25, widthSq: 1.1, heightSq: 1.1, zLayer: "OBJECT" },
+      { id: uid("log", 4), propKey: "branchFallenLog", label: props.branchFallenLog.name, category: "BRANCH", assetPath: props.branchFallenLog.path, gridX: z0.gridX + Math.max(1.0, z0.width - 1.6), gridY: 4.5, widthSq: 1.4, heightSq: 0.9, rotationDeg: -14, zLayer: "OBJECT" },
+      { id: uid("tent", 5), propKey: "campTent", label: props.campTent.name, category: "CAMP", assetPath: props.campTent.path, gridX: z0.gridX + 1.1, gridY: 1.1, widthSq: 1.5, heightSq: 1.4, zLayer: "OBJECT" },
+      { id: uid("fire", 6), propKey: "campCampfireStones", label: props.campCampfireStones.name, category: "CAMP", assetPath: props.campCampfireStones.path, gridX: z0.gridX + 1.4, gridY: 3.1, widthSq: 1.0, heightSq: 1.0, zLayer: "OBJECT", lightRadius: 3.5, lightColor: "#fb923c" },
+      { id: uid("pack", 7), propKey: "campBackpackSupplies", label: props.campBackpackSupplies.name, category: "CAMP", assetPath: props.campBackpackSupplies.path, gridX: z0.gridX + 2.5, gridY: 2.0, widthSq: 0.85, heightSq: 0.85, zLayer: "FLOOR" },
+      { id: uid("boulder", 8), propKey: "boulderMossy", label: props.boulderMossy.name, category: "BRANCH", assetPath: props.boulderMossy.path, gridX: z1.gridX + 0.15, gridY: 0.2, widthSq: 1.1, heightSq: 1.1, zLayer: "OBJECT" },
+      { id: uid("cot", 9), propKey: "furnitureBedrollCot", label: props.furnitureBedrollCot.name, category: "FURNITURE", assetPath: props.furnitureBedrollCot.path, gridX: z1.gridX + Math.max(0.8, z1.width - 1.45), gridY: 0.3, widthSq: 1.35, heightSq: 0.9, zLayer: "OBJECT" },
+      { id: uid("shelf", 10), propKey: "furnitureBookshelf", label: props.furnitureBookshelf.name, category: "FURNITURE", assetPath: props.furnitureBookshelf.path, gridX: z1.gridX + 0.3, gridY: 4.85, widthSq: 1.35, heightSq: 0.9, zLayer: "OBJECT" },
+      { id: uid("lantern", 11), propKey: "lightLanternPost", label: props.lightLanternPost.name, category: "LIGHT_FIXTURE", assetPath: props.lightLanternPost.path, gridX: z1.gridX + 1.2, gridY: 2.3, widthSq: 0.85, heightSq: 0.85, zLayer: "OBJECT", lightRadius: 3.1, lightColor: "#fcd34d" },
+      { id: uid("stump", 12), propKey: "treeStumpMossy", label: props.treeStumpMossy.name, category: "TREE", assetPath: props.treeStumpMossy.path, gridX: z2.gridX + 0.3, gridY: 0.3, widthSq: 1.0, heightSq: 1.0, zLayer: "OBJECT" },
+      { id: uid("cauldron", 13), propKey: "campCauldronPot", label: props.campCauldronPot.name, category: "CAMP", assetPath: props.campCauldronPot.path, gridX: z2.gridX + 1.1, gridY: 3.9, widthSq: 1.0, heightSq: 1.0, zLayer: "OBJECT", lightRadius: 2.6, lightColor: "#fb923c" },
+      { id: uid("skel", 14), propKey: "bonesSkeletonRemains", label: props.bonesSkeletonRemains.name, category: "BONES", assetPath: props.bonesSkeletonRemains.path, gridX: z2.gridX + Math.max(0.8, z2.width - 1.35), gridY: 4.75, widthSq: 1.2, heightSq: 0.95, rotationDeg: 18, zLayer: "FLOOR" },
+      { id: uid("sconce", 15), propKey: "lightWallSconce", label: props.lightWallSconce.name, category: "LIGHT_FIXTURE", assetPath: props.lightWallSconce.path, gridX: z2.gridX + Math.max(0.4, z2.width - 0.95), gridY: 0.2, widthSq: 0.85, heightSq: 0.85, zLayer: "OBJECT", lightRadius: 2.9, lightColor: "#fbbf24" },
+    ];
+  }
+
+  if (theme === "STARLIGHT_SHIP") {
+    return [
+      { id: uid("crates", 1), propKey: "furnitureBarrelCrates", label: props.furnitureBarrelCrates.name, category: "FURNITURE", assetPath: props.furnitureBarrelCrates.path, gridX: z0.gridX + 0.15, gridY: 0.2, widthSq: 1.05, heightSq: 1.05, zLayer: "OBJECT" },
+      { id: uid("table", 2), propKey: "furnitureOakTable", label: props.furnitureOakTable.name, category: "FURNITURE", assetPath: props.furnitureOakTable.path, gridX: z0.gridX + 1.2, gridY: 0.35, widthSq: 1.5, heightSq: 1.05, zLayer: "OBJECT" },
+      { id: uid("chair", 3), propKey: "furnitureChair", label: props.furnitureChair.name, category: "FURNITURE", assetPath: props.furnitureChair.path, gridX: z0.gridX + 1.55, gridY: 1.4, widthSq: 0.75, heightSq: 0.75, rotationDeg: 180, zLayer: "OBJECT" },
+      { id: uid("lantern", 4), propKey: "lightLanternPost", label: props.lightLanternPost.name, category: "LIGHT_FIXTURE", assetPath: props.lightLanternPost.path, gridX: z0.gridX + 0.25, gridY: 4.75, widthSq: 0.85, heightSq: 0.85, zLayer: "OBJECT", lightRadius: 3.1, lightColor: "#38bdf8" },
+      { id: uid("cot", 5), propKey: "furnitureBedrollCot", label: props.furnitureBedrollCot.name, category: "FURNITURE", assetPath: props.furnitureBedrollCot.path, gridX: z0.gridX + 1.8, gridY: 4.8, widthSq: 1.35, heightSq: 0.9, zLayer: "OBJECT" },
+      { id: uid("chand", 6), propKey: "lightChandelier", label: props.lightChandelier.name, category: "LIGHT_FIXTURE", assetPath: props.lightChandelier.path, gridX: z1.gridX + Math.max(0.5, z1.width * 0.5 - 0.7), gridY: 2.2, widthSq: 1.4, heightSq: 1.4, zLayer: "CANOPY", lightRadius: 4.0, lightColor: "#fde68a" },
+      { id: uid("shelf", 7), propKey: "furnitureBookshelf", label: props.furnitureBookshelf.name, category: "FURNITURE", assetPath: props.furnitureBookshelf.path, gridX: z1.gridX + 0.25, gridY: 0.15, widthSq: 1.35, heightSq: 0.88, zLayer: "OBJECT" },
+      { id: uid("braz", 8), propKey: "lightStandingBrazier", label: props.lightStandingBrazier.name, category: "LIGHT_FIXTURE", assetPath: props.lightStandingBrazier.path, gridX: z1.gridX + Math.max(0.6, z1.width - 1.1), gridY: 4.75, widthSq: 0.95, heightSq: 0.95, zLayer: "OBJECT", lightRadius: 3.4, lightColor: "#a855f7" },
+      { id: uid("rock", 9), propKey: "boulderMossy", label: props.boulderMossy.name, category: "BRANCH", assetPath: props.boulderMossy.path, gridX: z2.gridX + 0.2, gridY: 0.25, widthSq: 1.05, heightSq: 1.05, zLayer: "OBJECT" },
+      { id: uid("braz2", 10), propKey: "lightStandingBrazier", label: props.lightStandingBrazier.name, category: "LIGHT_FIXTURE", assetPath: props.lightStandingBrazier.path, gridX: z2.gridX + Math.max(0.7, z2.width - 1.15), gridY: 0.25, widthSq: 0.95, heightSq: 0.95, zLayer: "OBJECT", lightRadius: 3.2, lightColor: "#f59e0b" },
+      { id: uid("bones", 11), propKey: "bonesPileSkulls", label: props.bonesPileSkulls.name, category: "BONES", assetPath: props.bonesPileSkulls.path, gridX: z2.gridX + 0.35, gridY: 4.75, widthSq: 0.95, heightSq: 0.95, zLayer: "FLOOR" },
+      { id: uid("pack", 12), propKey: "campBackpackSupplies", label: props.campBackpackSupplies.name, category: "CAMP", assetPath: props.campBackpackSupplies.path, gridX: z2.gridX + Math.max(0.6, z2.width - 1.05), gridY: 4.7, widthSq: 0.85, heightSq: 0.85, zLayer: "FLOOR" },
+    ];
+  }
+
+  // Default BAKERY / Tavern & Pantry Dungeon theme
+  return [
+    { id: uid("oak", 1), propKey: "treeOakCanopy", label: props.treeOakCanopy.name, category: "TREE", assetPath: props.treeOakCanopy.path, gridX: z0.gridX + 0.05, gridY: 0.05, widthSq: 1.55, heightSq: 1.55, zLayer: "CANOPY" },
+    { id: uid("bush", 2), propKey: "bushBerryThicket", label: props.bushBerryThicket.name, category: "TREE", assetPath: props.bushBerryThicket.path, gridX: z0.gridX + 0.15, gridY: 4.75, widthSq: 1.1, heightSq: 1.1, zLayer: "OBJECT" },
+    { id: uid("table", 3), propKey: "furnitureOakTable", label: props.furnitureOakTable.name, category: "FURNITURE", assetPath: props.furnitureOakTable.path, gridX: z0.gridX + 1.4, gridY: 0.35, widthSq: 1.55, heightSq: 1.05, zLayer: "OBJECT" },
+    { id: uid("chair", 4), propKey: "furnitureChair", label: props.furnitureChair.name, category: "FURNITURE", assetPath: props.furnitureChair.path, gridX: z0.gridX + 1.85, gridY: 1.38, widthSq: 0.78, heightSq: 0.78, rotationDeg: 180, zLayer: "OBJECT" },
+    { id: uid("lantern", 5), propKey: "lightLanternPost", label: props.lightLanternPost.name, category: "LIGHT_FIXTURE", assetPath: props.lightLanternPost.path, gridX: z0.gridX + Math.max(1.2, z0.width - 1.05), gridY: 4.85, widthSq: 0.85, heightSq: 0.85, zLayer: "OBJECT", lightRadius: 3.1, lightColor: "#fcd34d" },
+    { id: uid("pack", 6), propKey: "campBackpackSupplies", label: props.campBackpackSupplies.name, category: "CAMP", assetPath: props.campBackpackSupplies.path, gridX: z0.gridX + 1.25, gridY: 4.85, widthSq: 0.85, heightSq: 0.85, zLayer: "FLOOR" },
+    { id: uid("oven", 7), propKey: "furnitureBakerOven", label: props.furnitureBakerOven.name, category: "FURNITURE", assetPath: props.furnitureBakerOven.path, gridX: z1.gridX + 0.25, gridY: 0.15, widthSq: 1.45, heightSq: 1.2, zLayer: "OBJECT", lightRadius: 3.2, lightColor: "#fb923c" },
+    { id: uid("crates", 8), propKey: "furnitureBarrelCrates", label: props.furnitureBarrelCrates.name, category: "FURNITURE", assetPath: props.furnitureBarrelCrates.path, gridX: z1.gridX + Math.max(0.8, z1.width - 1.2), gridY: 4.7, widthSq: 1.1, heightSq: 1.1, zLayer: "OBJECT" },
+    { id: uid("chand", 9), propKey: "lightChandelier", label: props.lightChandelier.name, category: "LIGHT_FIXTURE", assetPath: props.lightChandelier.path, gridX: z1.gridX + Math.max(0.5, z1.width * 0.5 - 0.65), gridY: 2.25, widthSq: 1.35, heightSq: 1.35, zLayer: "CANOPY", lightRadius: 3.8, lightColor: "#fde68a" },
+    { id: uid("sconce", 10), propKey: "lightWallSconce", label: props.lightWallSconce.name, category: "LIGHT_FIXTURE", assetPath: props.lightWallSconce.path, gridX: z1.gridX + 0.15, gridY: 4.9, widthSq: 0.85, heightSq: 0.85, zLayer: "OBJECT", lightRadius: 2.8, lightColor: "#fbbf24" },
+    { id: uid("shelf", 11), propKey: "furnitureBookshelf", label: props.furnitureBookshelf.name, category: "FURNITURE", assetPath: props.furnitureBookshelf.path, gridX: z2.gridX + 0.25, gridY: 0.15, widthSq: 1.35, heightSq: 0.9, zLayer: "OBJECT" },
+    { id: uid("braz", 12), propKey: "lightStandingBrazier", label: props.lightStandingBrazier.name, category: "LIGHT_FIXTURE", assetPath: props.lightStandingBrazier.path, gridX: z2.gridX + Math.max(0.8, z2.width - 1.1), gridY: 0.25, widthSq: 0.95, heightSq: 0.95, zLayer: "OBJECT", lightRadius: 3.4, lightColor: "#f59e0b" },
+    { id: uid("bones", 13), propKey: "bonesPileSkulls", label: props.bonesPileSkulls.name, category: "BONES", assetPath: props.bonesPileSkulls.path, gridX: z2.gridX + 0.25, gridY: 4.8, widthSq: 0.95, heightSq: 0.95, zLayer: "FLOOR" },
+    { id: uid("skel", 14), propKey: "bonesSkeletonRemains", label: props.bonesSkeletonRemains.name, category: "BONES", assetPath: props.bonesSkeletonRemains.path, gridX: z2.gridX + Math.max(0.9, z2.width - 1.3), gridY: 4.75, widthSq: 1.2, heightSq: 0.95, rotationDeg: -12, zLayer: "FLOOR" },
+  ];
+}
+
+/**
  * Creates a room session loaded with the requested campaign (defaulting to camp-goblin-bakery).
  */
 export function createCampaignSession(
@@ -1658,7 +1730,24 @@ export function createCampaignSession(
   const campaign =
     FAMILY_CAMPAIGNS.find((c) => c.id === campaignId) ?? FAMILY_CAMPAIGNS[0];
   const heroes = createDefaultStarterHeroes();
-  const clonedZones: MapRoomZone[] = JSON.parse(JSON.stringify(campaign.zones));
+  const zones: MapRoomZone[] = (JSON.parse(JSON.stringify(campaign.zones)) as MapRoomZone[]);
+  const zoneThemes =
+    campaign.theme === "FOREST_TREEHOUSE"
+      ? (["FOREST_GRASS", "TREEHOUSE_WOOD", "CAVERN_DIRT"] as GroundTileTheme[])
+      : campaign.theme === "STARLIGHT_SHIP"
+      ? (["STARLIGHT_DECK", "STARLIGHT_DECK", "DUNGEON_STONE"] as GroundTileTheme[])
+      : (["BAKERY_FLOOR", "BAKERY_FLOOR", "DUNGEON_STONE"] as GroundTileTheme[]);
+  const clonedZones: MapRoomZone[] = zones.map((z, idx) => ({
+    ...z,
+    groundTileTheme: z.groundTileTheme || zoneThemes[idx % zoneThemes.length],
+  }));
+  const defaultGroundTileTheme: GroundTileTheme =
+    campaign.theme === "FOREST_TREEHOUSE"
+      ? "TREEHOUSE_WOOD"
+      : campaign.theme === "STARLIGHT_SHIP"
+      ? "STARLIGHT_DECK"
+      : "BAKERY_FLOOR";
+  const mapProps = createDefaultMapPropsForTheme(campaign.theme, clonedZones);
   const clonedTokens: MapToken[] = enrichTokensWithLighting(
     JSON.parse(JSON.stringify(campaign.tokens))
   );
@@ -1730,6 +1819,8 @@ export function createCampaignSession(
     spellTemplates: [],
     ambientSoundscape: defaultSoundscape,
     sceneBackdrop: defaultBackdrop,
+    groundTileTheme: defaultGroundTileTheme,
+    mapProps,
     combat: {
       isActive: false,
       round: 1,
@@ -1755,7 +1846,7 @@ export function createStarterFamilySession(roomCode = "DRGN"): RoomSessionState 
  */
 export function generateProceduralMapLayout(
   theme: "BAKERY" | "FOREST_TREEHOUSE" | "STARLIGHT_SHIP"
-): { zones: MapRoomZone[]; tokens: MapToken[] } {
+): { zones: MapRoomZone[]; tokens: MapToken[]; mapProps: MapPropPlacement[]; groundTileTheme: GroundTileTheme } {
   // Randomize zone widths across 10 columns (0 to 9)
   const width1 = Math.random() < 0.5 ? 3 : 4;
   const width2 = Math.random() < 0.5 ? 3 : 4;
@@ -2047,7 +2138,24 @@ export function generateProceduralMapLayout(
     t.assetPath = resolveTokenAsset({ name: t.name, type: t.type });
   });
 
-  return { zones, tokens: enrichTokensWithLighting(tokens) };
+  const groundTileTheme: GroundTileTheme =
+    theme === "FOREST_TREEHOUSE"
+      ? "TREEHOUSE_WOOD"
+      : theme === "STARLIGHT_SHIP"
+      ? "STARLIGHT_DECK"
+      : "BAKERY_FLOOR";
+  const zoneTileThemes: GroundTileTheme[] =
+    theme === "FOREST_TREEHOUSE"
+      ? ["FOREST_GRASS", "TREEHOUSE_WOOD", "CAVERN_DIRT"]
+      : theme === "STARLIGHT_SHIP"
+      ? ["STARLIGHT_DECK", "STARLIGHT_DECK", "DUNGEON_STONE"]
+      : ["BAKERY_FLOOR", "BAKERY_FLOOR", "DUNGEON_STONE"];
+  zones.forEach((z, idx) => {
+    z.groundTileTheme = zoneTileThemes[idx % zoneTileThemes.length];
+  });
+  const mapProps = createDefaultMapPropsForTheme(theme, zones);
+
+  return { zones, tokens: enrichTokensWithLighting(tokens), mapProps, groundTileTheme };
 }
 
 /**
@@ -2485,6 +2593,8 @@ export function generateLevelScaledOneShot(params: {
   zones: MapRoomZone[];
   tokens: MapToken[];
   walls: WallSegment[];
+  mapProps: MapPropPlacement[];
+  groundTileTheme: GroundTileTheme;
   storyNodes: StoryBranchNode[];
   campaignTitle: string;
   campaignId: string;
@@ -2710,6 +2820,28 @@ export function generateLevelScaledOneShot(params: {
     createdAt: new Date().toISOString(),
   };
 
+  const osTheme: "BAKERY" | "FOREST_TREEHOUSE" | "STARLIGHT_SHIP" =
+    chosen.soundscape === "WHISPERING_WOODS"
+      ? "FOREST_TREEHOUSE"
+      : chosen.soundscape === "CRYSTAL_CAVERN"
+      ? "STARLIGHT_SHIP"
+      : "BAKERY";
+  const osGroundTheme: GroundTileTheme =
+    osTheme === "FOREST_TREEHOUSE"
+      ? "FOREST_GRASS"
+      : osTheme === "STARLIGHT_SHIP"
+      ? "DUNGEON_STONE"
+      : "BAKERY_FLOOR";
+  const osZoneThemes: GroundTileTheme[] =
+    osTheme === "FOREST_TREEHOUSE"
+      ? ["FOREST_GRASS", "TREEHOUSE_WOOD", "CAVERN_DIRT"]
+      : osTheme === "STARLIGHT_SHIP"
+      ? ["STARLIGHT_DECK", "DUNGEON_STONE", "DUNGEON_STONE"]
+      : ["BAKERY_FLOOR", "CAVERN_DIRT", "DUNGEON_STONE"];
+  zones.forEach((z, idx) => {
+    z.groundTileTheme = osZoneThemes[idx % osZoneThemes.length];
+  });
+
   return {
     partyLevel,
     blueprint: chosen,
@@ -2717,6 +2849,8 @@ export function generateLevelScaledOneShot(params: {
     zones,
     tokens: enrichTokensWithLighting(tokens),
     walls: createDefaultZoneWalls(zones),
+    mapProps: createDefaultMapPropsForTheme(osTheme, zones),
+    groundTileTheme: osGroundTheme,
     storyNodes,
     campaignTitle: `⚡ Lv.${partyLevel} One-Shot: ${chosen.title}`,
     campaignId: chosen.slug,

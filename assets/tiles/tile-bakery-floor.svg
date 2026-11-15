@@ -1,96 +1,211 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
-    <!-- Translucent Warm Hearth Mortar Base (lets scenic fireplace glow through gently) -->
+    <!-- Deep Rustic Mortar Bed -->
     <linearGradient id="bkMortar" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1c1410" stop-opacity="0.72" />
-      <stop offset="100%" stop-color="#291d16" stop-opacity="0.76" />
+      <stop offset="0%" stop-color="#18100b" stop-opacity="0.82" />
+      <stop offset="50%" stop-color="#241710" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#1a110c" stop-opacity="0.84" />
     </linearGradient>
 
     <!-- Warm Sandstone & Terracotta Flagstone Gradients -->
-    <linearGradient id="bkStoneA" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#8c7563" stop-opacity="0.88" />
-      <stop offset="50%" stop-color="#6b5647" stop-opacity="0.86" />
-      <stop offset="100%" stop-color="#4e3d32" stop-opacity="0.9" />
-    </linearGradient>
-    <linearGradient id="bkStoneB" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7c6c60" stop-opacity="0.88" />
-      <stop offset="55%" stop-color="#5d4f46" stop-opacity="0.86" />
-      <stop offset="100%" stop-color="#433831" stop-opacity="0.9" />
-    </linearGradient>
-    <linearGradient id="bkStoneWarm" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#9a785c" stop-opacity="0.88" />
-      <stop offset="60%" stop-color="#73553e" stop-opacity="0.86" />
-      <stop offset="100%" stop-color="#523b2a" stop-opacity="0.9" />
+    <linearGradient id="bkStoneA" x1="0.1" y1="0.1" x2="0.9" y2="0.9">
+      <stop offset="0%" stop-color="#a68a74" />
+      <stop offset="35%" stop-color="#8c705b" />
+      <stop offset="70%" stop-color="#705644" />
+      <stop offset="100%" stop-color="#4e3b2e" />
     </linearGradient>
 
-    <!-- Subtle Golden Flour Dust Glow -->
-    <radialGradient id="bkFlourDust" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#fef3c7" stop-opacity="0.22" />
+    <linearGradient id="bkStoneB" x1="0.1" y1="0.1" x2="0.9" y2="0.9">
+      <stop offset="0%" stop-color="#968070" />
+      <stop offset="40%" stop-color="#7a6556" />
+      <stop offset="75%" stop-color="#5f4d40" />
+      <stop offset="100%" stop-color="#44352b" />
+    </linearGradient>
+
+    <linearGradient id="bkStoneWarm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b88f6e" />
+      <stop offset="35%" stop-color="#9e7454" />
+      <stop offset="70%" stop-color="#7a5539" />
+      <stop offset="100%" stop-color="#553924" />
+    </linearGradient>
+
+    <linearGradient id="bkStoneOchre" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#b08b64" />
+      <stop offset="45%" stop-color="#8d6c4a" />
+      <stop offset="80%" stop-color="#694d32" />
+      <stop offset="100%" stop-color="#48321e" />
+    </linearGradient>
+
+    <!-- Warm Golden Hearth Sheen -->
+    <radialGradient id="bkHearthSheen" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.32" />
+      <stop offset="40%" stop-color="#f59e0b" stop-opacity="0.16" />
+      <stop offset="80%" stop-color="#b45309" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#78350f" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Subtle Bakery Flour Dust Clouds -->
+    <radialGradient id="bkFlourDust1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbeb" stop-opacity="0.26" />
+      <stop offset="50%" stop-color="#fef3c7" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#fef3c7" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="bkFlourDust2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef9c3" stop-opacity="0.22" />
       <stop offset="60%" stop-color="#fde68a" stop-opacity="0.08" />
       <stop offset="100%" stop-color="#fde68a" stop-opacity="0" />
     </radialGradient>
+
+    <!-- Mortar Drop Shadow Filter -->
+    <filter id="bkStoneShadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0.8" dy="1.2" stdDeviation="0.8" flood-color="#0e0805" flood-opacity="0.75" />
+    </filter>
   </defs>
 
-  <!-- Deep Chamfered Mortar Groove Layer -->
+  <!-- Deep Mortar Bed Layer -->
   <rect width="128" height="128" fill="url(#bkMortar)" />
 
-  <!-- Top-Left Quadrant (Cell 0,0) - Large Hearth Flagstone + Corner Stone -->
-  <g>
-    <rect x="3" y="3" width="58" height="36" rx="4" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 5 37 L 5 5 L 59 5" fill="none" stroke="#d6beaa" stroke-width="1.4" stroke-opacity="0.45" stroke-linecap="round" />
-    <path d="M 59 7 L 59 37 L 7 37" fill="none" stroke="#2c1e16" stroke-width="1.4" stroke-opacity="0.7" stroke-linecap="round" />
-    <!-- Subtle surface crack & mineral speckles -->
-    <path d="M 18 14 L 27 21 L 34 19" fill="none" stroke="#36271e" stroke-width="1" stroke-opacity="0.55" />
-    <circle cx="46" cy="14" r="1.4" fill="#c7b29e" opacity="0.35" />
-    <circle cx="14" cy="29" r="1.1" fill="#3a2a20" opacity="0.45" />
-
-    <rect x="3" y="43" width="26" height="19" rx="3" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 5 60 L 5 45 L 27 45" fill="none" stroke="#e2c6ab" stroke-width="1.2" stroke-opacity="0.45" />
-    <rect x="33" y="43" width="28" height="19" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 35 60 L 35 45 L 59 45" fill="none" stroke="#cbbfb4" stroke-width="1.2" stroke-opacity="0.4" />
+  <!-- Mortar Grit & Fine Gravel In Seams -->
+  <g fill="#3a281c" opacity="0.65">
+    <!-- Center Vertical Seam (x=61..67) -->
+    <circle cx="63.5" cy="12" r="1.1" />
+    <circle cx="64.8" cy="28" r="0.9" />
+    <circle cx="63.2" cy="48" r="1.3" />
+    <circle cx="65.0" cy="72" r="1.0" />
+    <circle cx="63.8" cy="94" r="1.2" />
+    <circle cx="64.5" cy="116" r="0.8" />
+    <!-- Center Horizontal Seam (y=61..67) -->
+    <circle cx="16" cy="63.8" r="1.0" />
+    <circle cx="32" cy="64.5" r="1.2" />
+    <circle cx="50" cy="63.2" r="0.8" />
+    <circle cx="78" cy="64.8" r="1.1" />
+    <circle cx="104" cy="63.5" r="1.3" />
+    <circle cx="120" cy="64.2" r="0.9" />
+    <!-- Outer Edge Seam Grit (wraps seamlessly) -->
+    <circle cx="1.5" cy="30" r="0.9" />
+    <circle cx="1.5" cy="88" r="1.1" />
+    <circle cx="126.5" cy="30" r="0.9" />
+    <circle cx="126.5" cy="88" r="1.1" />
+    <circle cx="48" cy="1.5" r="1.0" />
+    <circle cx="85" cy="1.5" r="0.8" />
+    <circle cx="48" cy="126.5" r="1.0" />
+    <circle cx="85" cy="126.5" r="0.8" />
   </g>
 
-  <!-- Top-Right Quadrant (Cell 1,0) -->
-  <g>
-    <rect x="67" y="3" width="27" height="27" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 69 28 L 69 5 L 92 5" fill="none" stroke="#cbbfb4" stroke-width="1.2" stroke-opacity="0.42" />
-    <rect x="98" y="3" width="27" height="27" rx="3" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 100 28 L 100 5 L 123 5" fill="none" stroke="#e2c6ab" stroke-width="1.2" stroke-opacity="0.45" />
+  <!-- ==================== QUADRANT 0,0 (Top-Left Cell) ==================== -->
+  <g filter="url(#bkStoneShadow)">
+    <!-- Flagstone 1 (Large Hearth Slab) -->
+    <rect x="3" y="3" width="58" height="36" rx="4" fill="url(#bkStoneA)" stroke="#1a110b" stroke-width="1.2" />
+    <!-- Sunlit Chamfer Highlights (Top/Left) -->
+    <path d="M 4.5 38 L 4.5 5.5 Q 4.5 4.5 5.5 4.5 L 59.5 4.5" fill="none" stroke="#f0d5be" stroke-width="1.3" stroke-linecap="round" stroke-opacity="0.65" />
+    <!-- Shadow Chamfer (Bottom/Right) -->
+    <path d="M 60 6 L 60 37.5 Q 60 38.5 59 38.5 L 6 38.5" fill="none" stroke="#23150c" stroke-width="1.3" stroke-linecap="round" stroke-opacity="0.75" />
+    <!-- Natural Stone Cracks & Texture -->
+    <path d="M 16 11 L 25 18 L 33 16 L 41 22" fill="none" stroke="#362215" stroke-width="0.9" stroke-opacity="0.6" stroke-linecap="round" />
+    <path d="M 25 18 L 27 26" fill="none" stroke="#362215" stroke-width="0.7" stroke-opacity="0.5" />
+    <circle cx="47" cy="13" r="1.5" fill="#dbc0a7" opacity="0.4" />
+    <circle cx="12" cy="28" r="1.2" fill="#362215" opacity="0.45" />
+    <circle cx="52" cy="30" r="1.0" fill="#dbc0a7" opacity="0.35" />
 
-    <rect x="67" y="34" width="58" height="28" rx="4" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 69 60 L 69 36 L 123 36" fill="none" stroke="#d6beaa" stroke-width="1.3" stroke-opacity="0.42" />
-    <path d="M 88 46 Q 98 43 106 50" fill="none" stroke="#36271e" stroke-width="1" stroke-opacity="0.5" />
+    <!-- Flagstone 2 (Small Left) -->
+    <rect x="3" y="43" width="26" height="18" rx="3" fill="url(#bkStoneWarm)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 4.5 60 L 4.5 44.5 Q 4.5 44 5.5 44 L 28 44" fill="none" stroke="#fbe4cf" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 28.5 45 L 28.5 60 L 5.5 60" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 10 49 Q 15 54 22 51" fill="none" stroke="#3d2617" stroke-width="0.8" stroke-opacity="0.5" />
+
+    <!-- Flagstone 3 (Small Center-Left) -->
+    <rect x="33" y="43" width="28" height="18" rx="3" fill="url(#bkStoneB)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 34.5 60 L 34.5 44.5 Q 34.5 44 35.5 44 L 60 44" fill="none" stroke="#e6d4c5" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.55" />
+    <path d="M 60.5 45 L 60.5 60 L 35.5 60" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <circle cx="44" cy="52" r="1.2" fill="#35261d" opacity="0.45" />
   </g>
 
-  <!-- Bottom-Left Quadrant (Cell 0,1) -->
-  <g>
-    <rect x="3" y="67" width="35" height="27" rx="3" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 5 92 L 5 69 L 36 69" fill="none" stroke="#e2c6ab" stroke-width="1.2" stroke-opacity="0.44" />
-    <rect x="42" y="67" width="19" height="58" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 44 123 L 44 69 L 59 69" fill="none" stroke="#cbbfb4" stroke-width="1.2" stroke-opacity="0.4" />
-    <rect x="3" y="98" width="35" height="27" rx="3" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 5 123 L 5 100 L 36 100" fill="none" stroke="#d6beaa" stroke-width="1.2" stroke-opacity="0.42" />
+  <!-- ==================== QUADRANT 1,0 (Top-Right Cell) ==================== -->
+  <g filter="url(#bkStoneShadow)">
+    <!-- Flagstone 4 -->
+    <rect x="67" y="3" width="27" height="27" rx="3" fill="url(#bkStoneOchre)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 68.5 29 L 68.5 4.5 Q 68.5 4 69.5 4 L 93 4" fill="none" stroke="#f6dec7" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 93.5 5 L 93.5 29.5 L 70 29.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 74 12 L 81 19 L 88 15" fill="none" stroke="#352214" stroke-width="0.8" stroke-opacity="0.5" />
+
+    <!-- Flagstone 5 -->
+    <rect x="98" y="3" width="27" height="27" rx="3" fill="url(#bkStoneWarm)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 99.5 29 L 99.5 4.5 Q 99.5 4 100.5 4 L 124 4" fill="none" stroke="#fbe4cf" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 124.5 5 L 124.5 29.5 L 101 29.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <circle cx="112" cy="16" r="1.3" fill="#dfbe9f" opacity="0.4" />
+
+    <!-- Flagstone 6 (Wide Terracotta Slab) -->
+    <rect x="67" y="34" width="58" height="27" rx="4" fill="url(#bkStoneA)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 68.5 60 L 68.5 35.5 Q 68.5 35 69.5 35 L 124 35" fill="none" stroke="#f0d5be" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 124.5 36 L 124.5 60.5 L 70 60.5" fill="none" stroke="#23150c" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.75" />
+    <path d="M 86 46 Q 96 42 107 48" fill="none" stroke="#382417" stroke-width="0.9" stroke-opacity="0.55" />
+    <circle cx="117" cy="44" r="1.4" fill="#382417" opacity="0.45" />
   </g>
 
-  <!-- Bottom-Right Quadrant (Cell 1,1) -->
-  <g>
-    <rect x="67" y="67" width="58" height="33" rx="4" fill="url(#bkStoneWarm)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 69 98 L 69 69 L 123 69" fill="none" stroke="#e2c6ab" stroke-width="1.4" stroke-opacity="0.46" />
-    <path d="M 123 71 L 123 98 L 70 98" fill="none" stroke="#302016" stroke-width="1.3" stroke-opacity="0.65" />
+  <!-- ==================== QUADRANT 0,1 (Bottom-Left Cell) ==================== -->
+  <g filter="url(#bkStoneShadow)">
+    <!-- Flagstone 7 -->
+    <rect x="3" y="67" width="35" height="27" rx="3" fill="url(#bkStoneWarm)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 4.5 93 L 4.5 68.5 Q 4.5 68 5.5 68 L 37 68" fill="none" stroke="#fbe4cf" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 37.5 69 L 37.5 93.5 L 6 93.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 12 76 L 22 81" fill="none" stroke="#3d2719" stroke-width="0.8" stroke-opacity="0.5" />
 
-    <rect x="67" y="104" width="28" height="21" rx="3" fill="url(#bkStoneB)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 69 123 L 69 106 L 93 106" fill="none" stroke="#cbbfb4" stroke-width="1.1" stroke-opacity="0.4" />
-    <rect x="99" y="104" width="26" height="21" rx="3" fill="url(#bkStoneA)" stroke="#231812" stroke-width="1.5" />
-    <path d="M 101 123 L 101 106 L 123 106" fill="none" stroke="#d6beaa" stroke-width="1.1" stroke-opacity="0.4" />
+    <!-- Flagstone 8 (Long Vertical Runner) -->
+    <rect x="42" y="67" width="19" height="58" rx="3" fill="url(#bkStoneB)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 43.5 124 L 43.5 68.5 Q 43.5 68 44.5 68 L 60 68" fill="none" stroke="#e6d4c5" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.55" />
+    <path d="M 60.5 69 L 60.5 124.5 L 45 124.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 50 82 L 53 96 L 48 108" fill="none" stroke="#33241b" stroke-width="0.8" stroke-opacity="0.5" />
+    <circle cx="51" cy="74" r="1.1" fill="#dbc5b3" opacity="0.4" />
+
+    <!-- Flagstone 9 -->
+    <rect x="3" y="98" width="35" height="27" rx="3" fill="url(#bkStoneA)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 4.5 124 L 4.5 99.5 Q 4.5 99 5.5 99 L 37 99" fill="none" stroke="#f0d5be" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 37.5 100 L 37.5 124.5 L 6 124.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <circle cx="16" cy="112" r="1.3" fill="#382417" opacity="0.45" />
   </g>
 
-  <!-- Subtle Bakery Flour Dusting & Tactile Ember Pebbles -->
-  <circle cx="95" cy="84" r="18" fill="url(#bkFlourDust)" />
-  <circle cx="28" cy="24" r="14" fill="url(#bkFlourDust)" />
-  <circle cx="64" cy="64" r="2.2" fill="#f59e0b" opacity="0.28" />
+  <!-- ==================== QUADRANT 1,1 (Bottom-Right Cell) ==================== -->
+  <g filter="url(#bkStoneShadow)">
+    <!-- Flagstone 10 (Large Lower Hearth Slab) -->
+    <rect x="67" y="67" width="58" height="33" rx="4" fill="url(#bkStoneWarm)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 68.5 99 L 68.5 68.5 Q 68.5 68 69.5 68 L 124 68" fill="none" stroke="#fbe4cf" stroke-width="1.3" stroke-linecap="round" stroke-opacity="0.62" />
+    <path d="M 124.5 69 L 124.5 99.5 L 70 99.5" fill="none" stroke="#23150c" stroke-width="1.3" stroke-linecap="round" stroke-opacity="0.75" />
+    <path d="M 82 78 L 94 76 L 102 83 L 112 80" fill="none" stroke="#3d2719" stroke-width="0.9" stroke-opacity="0.55" />
+    <circle cx="75" cy="88" r="1.3" fill="#dfbe9f" opacity="0.4" />
+    <circle cx="118" cy="74" r="1.1" fill="#3d2719" opacity="0.45" />
 
-    <!-- Subtle 2x2 Tactical Grid Alignment Crosshairs & Seams -->
-  <g stroke="#fde68a" stroke-opacity="0.52" stroke-width="1.4" fill="none">
+    <!-- Flagstone 11 -->
+    <rect x="67" y="104" width="28" height="21" rx="3" fill="url(#bkStoneB)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 68.5 124 L 68.5 105.5 Q 68.5 105 69.5 105 L 94 105" fill="none" stroke="#e6d4c5" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.55" />
+    <path d="M 94.5 106 L 94.5 124.5 L 70 124.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+
+    <!-- Flagstone 12 -->
+    <rect x="99" y="104" width="26" height="21" rx="3" fill="url(#bkStoneOchre)" stroke="#1a110b" stroke-width="1.2" />
+    <path d="M 100.5 124 L 100.5 105.5 Q 100.5 105 101.5 105 L 124 105" fill="none" stroke="#f6dec7" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.6" />
+    <path d="M 124.5 106 L 124.5 124.5 L 102 124.5" fill="none" stroke="#23150c" stroke-width="1.1" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 106 114 Q 114 111 119 116" fill="none" stroke="#352214" stroke-width="0.8" stroke-opacity="0.5" />
+  </g>
+
+  <!-- Golden Hearth Sheen & Warm Oven Ambient Glow -->
+  <rect width="128" height="128" fill="url(#bkHearthSheen)" pointer-events="none" />
+
+  <!-- Bakery Flour Dusting & Tactile Flour Patches -->
+  <circle cx="32" cy="22" r="18" fill="url(#bkFlourDust1)" />
+  <circle cx="96" cy="84" r="22" fill="url(#bkFlourDust2)" />
+  <ellipse cx="64" cy="50" rx="14" ry="8" fill="url(#bkFlourDust1)" opacity="0.7" />
+
+  <!-- Fine River Grit & Toast Specks -->
+  <g fill="#2d1c12" opacity="0.55">
+    <circle cx="22" cy="15" r="0.8" />
+    <circle cx="88" cy="20" r="0.7" />
+    <circle cx="108" cy="52" r="0.8" />
+    <circle cx="25" cy="80" r="0.7" />
+    <circle cx="80" cy="112" r="0.8" />
+  </g>
+
+  <!-- Crisp 2x2 Tactical Grid Alignment Overlay (Warm Amber) -->
+  <g stroke="#fde68a" stroke-opacity="0.54" stroke-width="1.4" fill="none" pointer-events="none">
     <rect x="0.7" y="0.7" width="126.6" height="126.6" />
     <line x1="64" y1="0" x2="64" y2="128" stroke-dasharray="6 3" />
     <line x1="0" y1="64" x2="128" y2="64" stroke-dasharray="6 3" />

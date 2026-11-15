@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="tentShadowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+
+    <linearGradient id="canvasSlopeLeft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e7e5e4" />
+      <stop offset="40%" stop-color="#f5f5f4" />
+      <stop offset="100%" stop-color="#d6d3d1" />
+    </linearGradient>
+
+    <linearGradient id="canvasSlopeRight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d6d3d1" />
+      <stop offset="60%" stop-color="#a8a29e" />
+      <stop offset="100%" stop-color="#78716c" />
+    </linearGradient>
+
+    <linearGradient id="flapLeftGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5f5f4" />
+      <stop offset="100%" stop-color="#d6d3d1" />
+    </linearGradient>
+
+    <linearGradient id="flapRightGrad" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8a29e" />
+      <stop offset="100%" stop-color="#78716c" />
+    </linearGradient>
+
+    <linearGradient id="bedmatGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#92400e" />
+      <stop offset="50%" stop-color="#b45309" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+
+    <linearGradient id="pegWood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Ground Shadow under Tent -->
+  <polygon points="26,22 102,22 104,104 24,104" fill="#09090b" opacity="0.38" filter="url(#tentShadowFilter)" />
+
+  <!-- Guy Lines & Wooden Stakes -->
+  <!-- Ropes -->
+  <g id="guyRopes" stroke="#b45309" stroke-width="1.2" stroke-linecap="round">
+    <!-- North-West Guy Line -->
+    <line x1="28" y1="24" x2="12" y2="14" />
+    <!-- North-East Guy Line -->
+    <line x1="100" y1="24" x2="116" y2="14" />
+    <!-- South-West Guy Line -->
+    <line x1="28" y1="100" x2="12" y2="114" />
+    <!-- South-East Guy Line -->
+    <line x1="100" y1="100" x2="116" y2="114" />
+    <!-- Ridge Guy Lines (North & South) -->
+    <line x1="64" y1="20" x2="64" y2="8" />
+    <line x1="64" y1="104" x2="64" y2="120" />
+  </g>
+
+  <!-- Wooden Stakes Driven into Ground -->
+  <g id="stakes">
+    <!-- NW Stake -->
+    <circle cx="12" cy="14" r="3" fill="url(#pegWood)" stroke="#1c0a01" stroke-width="0.6" />
+    <circle cx="11.5" cy="13.5" r="0.8" fill="#fde68a" />
+    <!-- NE Stake -->
+    <circle cx="116" cy="14" r="3" fill="url(#pegWood)" stroke="#1c0a01" stroke-width="0.6" />
+    <circle cx="115.5" cy="13.5" r="0.8" fill="#fde68a" />
+    <!-- SW Stake -->
+    <circle cx="12" cy="114" r="3" fill="url(#pegWood)" stroke="#1c0a01" stroke-width="0.6" />
+    <circle cx="11.5" cy="113.5" r="0.8" fill="#fde68a" />
+    <!-- SE Stake -->
+    <circle cx="116" cy="114" r="3" fill="url(#pegWood)" stroke="#1c0a01" stroke-width="0.6" />
+    <circle cx="115.5" cy="113.5" r="0.8" fill="#fde68a" />
+    <!-- North Ridge Stake -->
+    <circle cx="64" cy="8" r="3" fill="url(#pegWood)" stroke="#1c0a01" stroke-width="0.6" />
+    <!-- South Ridge Stake -->
+    <circle cx="64" cy="120" r="3" fill="url(#pegWood)" stroke="#1c0a01" stroke-width="0.6" />
+  </g>
+
+  <!-- Tent Main Canvas Pitched Canopy -->
+  <g id="tentCanopy">
+    <!-- Left Sloping Pitch Canvas -->
+    <polygon points="28,24 64,20 64,82 28,96" fill="url(#canvasSlopeLeft)" stroke="#57534e" stroke-width="0.8" />
+
+    <!-- Right Sloping Pitch Canvas (Shaded) -->
+    <polygon points="64,20 100,24 100,96 64,82" fill="url(#canvasSlopeRight)" stroke="#44403c" stroke-width="0.8" />
+
+    <!-- Fabric Wrinkle / Tension Crease Lines -->
+    <!-- Left side creases -->
+    <path d="M 28 24 Q 46 25 64 21" stroke="#d6d3d1" stroke-width="0.75" fill="none" />
+    <path d="M 28 42 Q 46 40 64 36" stroke="#a8a29e" stroke-width="0.6" fill="none" opacity="0.6" />
+    <path d="M 28 64 Q 46 60 64 54" stroke="#a8a29e" stroke-width="0.6" fill="none" opacity="0.6" />
+    <path d="M 28 96 Q 46 88 64 82" stroke="#a8a29e" stroke-width="0.75" fill="none" />
+
+    <!-- Right side creases -->
+    <path d="M 100 24 Q 82 25 64 21" stroke="#78716c" stroke-width="0.75" fill="none" />
+    <path d="M 100 42 Q 82 40 64 36" stroke="#57534e" stroke-width="0.6" fill="none" opacity="0.7" />
+    <path d="M 100 64 Q 82 60 64 54" stroke="#57534e" stroke-width="0.6" fill="none" opacity="0.7" />
+    <path d="M 100 96 Q 82 88 64 82" stroke="#57534e" stroke-width="0.75" fill="none" />
+
+    <!-- Stitched Spine Ridge Seam -->
+    <line x1="64" y1="20" x2="64" y2="82" stroke="#44403c" stroke-width="2" stroke-linecap="round" />
+    <line x1="63.2" y1="20" x2="63.2" y2="82" stroke="#f5f5f4" stroke-width="0.75" stroke-dasharray="2 1.5" />
+    <line x1="64.8" y1="20" x2="64.8" y2="82" stroke="#78716c" stroke-width="0.75" stroke-dasharray="2 1.5" />
+
+    <!-- Wooden Ridgepole Tips Peeking at Apex Ends -->
+    <circle cx="64" cy="20" r="2.5" fill="#78350f" stroke="#1c0a01" stroke-width="0.6" />
+    <circle cx="64" cy="82" r="2.5" fill="#78350f" stroke="#1c0a01" stroke-width="0.6" />
+
+    <!-- Corner Reinforced Leather Gusset Patches -->
+    <polygon points="28,24 35,24 28,31" fill="#78350f" stroke="#292524" stroke-width="0.5" />
+    <polygon points="100,24 93,24 100,31" fill="#78350f" stroke="#292524" stroke-width="0.5" />
+    <polygon points="28,96 35,96 28,89" fill="#78350f" stroke="#292524" stroke-width="0.5" />
+    <polygon points="100,96 93,96 100,89" fill="#78350f" stroke="#292524" stroke-width="0.5" />
+  </g>
+
+  <!-- Front Entrance Opening & Folded Canvas Flaps (South Entrance) -->
+  <g id="tentEntrance">
+    <!-- Dark Interior Gap -->
+    <polygon points="28,96 64,82 100,96 82,106 46,106" fill="#18181b" stroke="#09090b" stroke-width="0.8" />
+
+    <!-- Rolled Bedmat & Adventurer Blanket Visible Inside -->
+    <g transform="translate(64, 94)">
+      <!-- Rolled straw/fur bedmat -->
+      <rect x="-16" y="-3" width="32" height="7" rx="3.5" fill="url(#bedmatGrad)" stroke="#451a03" stroke-width="0.6" />
+      <!-- Blanket leather tie straps -->
+      <rect x="-10" y="-3" width="1.8" height="7" fill="#18181b" />
+      <rect x="8" y="-3" width="1.8" height="7" fill="#18181b" />
+      <!-- Wool blanket fold edge -->
+      <path d="M -15 0 C -8 3, 8 3, 15 0" stroke="#fde047" stroke-width="0.6" fill="none" opacity="0.6" />
+    </g>
+
+    <!-- Folded Triangular Entrance Flap Left (Folded Open) -->
+    <polygon points="28,96 64,82 46,106" fill="url(#flapLeftGrad)" stroke="#57534e" stroke-width="0.8" />
+    <path d="M 32 97 L 58 84" stroke="#a8a29e" stroke-width="0.6" stroke-dasharray="1.5 1" />
+
+    <!-- Folded Triangular Entrance Flap Right (Folded Open, Shaded) -->
+    <polygon points="100,96 64,82 82,106" fill="url(#flapRightGrad)" stroke="#44403c" stroke-width="0.8" />
+    <path d="M 96 97 L 70 84" stroke="#57534e" stroke-width="0.6" stroke-dasharray="1.5 1" />
+
+    <!-- Pegged Flap Corner Loops -->
+    <circle cx="46" cy="106" r="1.5" fill="#78350f" stroke="#1c0a01" stroke-width="0.4" />
+    <circle cx="82" cy="106" r="1.5" fill="#78350f" stroke="#1c0a01" stroke-width="0.4" />
+  </g>
+</svg>

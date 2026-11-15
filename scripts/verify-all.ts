@@ -65,6 +65,7 @@ import {
   updateRoomAtmosphere,
   updateRoomCombat,
   updateRoomLighting,
+  updateRoomMapProps,
   updateRoomSettings,
   updateRoomToolsAndWeather,
 } from "../apps/quest-vtt/src/room-store";
@@ -98,6 +99,7 @@ import {
   resolveArchetypeAsset,
   resolveAreaMapAsset,
   resolveCampaignTileAsset,
+  resolveGroundTileAsset,
   resolveSceneBackdropAsset,
   resolveTokenAsset,
   resolveTrapAsset,
@@ -2337,8 +2339,162 @@ async function runVerification() {
   );
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // TEST 32: Foundry Ground Textures, Map Props (Trees/Furniture/Lights/Camp/Bones), Walls & RBAC
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 32/32] Foundry Map Assets (Ground Tiles, Trees, Furniture, Lights, Camp, Bones) ... ");
+  // 1. Validate every tile & mapProp SVG asset exists and contains valid XML <svg>...</svg>
+  for (const tileAsset of Object.values(HEARTHQUEST_ASSETS.tiles)) {
+    const absTile = pathMod.default.join(process.cwd(), tileAsset.path.replace(/^\//, ""));
+    assert.ok(fsSync.default.existsSync(absTile), `Missing ground tile SVG: ${absTile}`);
+    const svgRaw = fsSync.default.readFileSync(absTile, "utf8");
+    assert.ok(svgRaw.includes("<svg") && svgRaw.includes("</svg>"), `Invalid ground tile SVG: ${tileAsset.path}`);
+  }
+  assert.strictEqual(Object.keys(HEARTHQUEST_ASSETS.tiles).length >= 6, true, "Must include at least 6 ground tile textures");
+  assert.strictEqual(Object.keys(HEARTHQUEST_ASSETS.mapProps).length >= 20, true, "Must include comprehensive Foundry prop catalog");
+
+  for (const propAsset of Object.values(HEARTHQUEST_ASSETS.mapProps)) {
+    const absProp = pathMod.default.join(process.cwd(), propAsset.path.replace(/^\//, ""));
+    assert.ok(fsSync.default.existsSync(absProp), `Missing map prop SVG: ${absProp}`);
+    const svgRaw = fsSync.default.readFileSync(absProp, "utf8");
+    assert.ok(svgRaw.includes("<svg") && svgRaw.includes("</svg>"), `Invalid map prop SVG: ${propAsset.path}`);
+  }
+  assert.strictEqual(resolveGroundTileAsset("FOREST_GRASS"), HEARTHQUEST_ASSETS.tiles.forestGrass.path);
+  assert.strictEqual(resolveGroundTileAsset("DUNGEON_STONE"), HEARTHQUEST_ASSETS.tiles.dungeonStone.path);
+  assert.strictEqual(resolveGroundTileAsset("CAVERN_DIRT"), HEARTHQUEST_ASSETS.tiles.cavernDirt.path);
+
+  // 2. Verify all 3 core campaigns populate rich furnished mapProps across categories
+  for (const campId of ["camp-goblin-bakery", "camp-clockwork-treehouse", "camp-starlight-otter"]) {
+    const campRoom = switchRoomCampaign({ roomCode: trCode, campaignId: campId });
+    assert.ok(Array.isArray(campRoom.mapProps) && campRoom.mapProps.length >= 10, `${campId} must ship furnished mapProps`);
+    const cats = new Set(campRoom.mapProps!.map((p) => p.category));
+    assert.ok(cats.has("FURNITURE"), `${campId} must include FURNITURE props`);
+    assert.ok(cats.has("LIGHT_FIXTURE"), `${campId} must include LIGHT_FIXTURE props`);
+    assert.ok(cats.has("BONES"), `${campId} must include BONES / skeleton props`);
+    assert.ok(
+      campRoom.mapProps!.some((p) => (p.lightRadius || 0) > 0),
+      `${campId} must include glowing light fixture props feeding Lighting2DEngine`
+    );
+  }
+
+  // 3. Verify procedural map & One-Shot generators populate themed mapProps + ground tiles
+  const procForest = regenerateRoomProceduralMap({ roomCode: trCode, theme: "FOREST_TREEHOUSE" });
+  assert.ok((procForest.mapProps || []).some((p) => p.category === "TREE"), "Forest procedural map must include TREE canopies");
+  assert.ok((procForest.mapProps || []).some((p) => p.category === "CAMP"), "Forest procedural map must include CAMP items");
+  assert.ok((procForest.mapProps || []).some((p) => p.category === "BRANCH"), "Forest procedural map must include BRANCH logs/boulders");
+
+  // 4. Verify updateRoomMapProps CRUD (stamp/remove/ground-tile) + lighting/UI/static serving + non-admin HTTP 403
+  const stamped = updateRoomMapProps({
+    roomCode: trCode,
+    action: "STAMP",
+    propKey: "campCampfireStones",
+    gridX: 4,
+    gridY: 3,
+  });
+  assert.ok(stamped.addedProp?.id, "Stamped campfire must return created placement");
+  assert.ok(stamped.room.mapProps!.some((p) => p.id === stamped.addedProp!.id));
+  const groundUpdated = updateRoomMapProps({
+    roomCode: trCode,
+    action: "SET_GROUND_TILE",
+    groundTileTheme: "DUNGEON_STONE",
+  });
+  assert.strictEqual(groundUpdated.room.groundTileTheme, "DUNGEON_STONE");
+
+  const propUi = renderVttAppHtml(groundUpdated.room);
+  assert.ok(
+    propUi.includes("vtt-map-props-layer") &&
+      propUi.includes("vtt-map-canopy-layer") &&
+      propUi.includes("creator-map-props-studio") &&
+      propUi.includes("bg-dungeon-stone") &&
+      propUi.includes("propLightSources") &&
+      propUi.includes("feature-tour-modal") &&
+      propUi.includes("pointToUiSection") &&
+      propUi.includes("buildFallbackOpeningPrompt"),
+    "VTT UI & Lighting2DEngine must include layered map props, canopy layer, creator stamp studio, prop point lights, and Where-to-Start Feature Tour modal"
+  );
+  // Regression guard: ensure EVERY inline <script> block in VTT App & Login Gate parses cleanly with 0 JS syntax errors!
+  for (const [label, html] of [
+    ["VTT App", propUi],
+    ["Login Gate", renderVttLoginGateHtml()],
+  ] as const) {
+    const scriptMatches = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
+    assert.ok(scriptMatches.length > 0, `${label} must emit inline script blocks`);
+    scriptMatches.forEach((m, idx) => {
+      if (m[1].trim()) {
+        new Function(m[1]);
+      }
+      assert.ok(idx >= 0);
+    });
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const httpGetText = (urlStr: string): Promise<{ status: number; contentType: string; text: string }> =>
+      new Promise((resP, rejP) => {
+        const req = http.request(urlStr, { method: "GET" }, (resp) => {
+          let buf = "";
+          resp.on("data", (c) => (buf += c));
+          resp.on("end", () =>
+            resP({
+              status: resp.statusCode || 0,
+              contentType: String(resp.headers["content-type"] || ""),
+              text: buf,
+            })
+          );
+        });
+        req.on("error", rejP);
+        req.end();
+      });
+    const httpPostStatus = (urlStr: string, headers: Record<string, string>, payload: unknown): Promise<number> =>
+      new Promise((resP, rejP) => {
+        const raw = JSON.stringify(payload);
+        const req = http.request(
+          urlStr,
+          { method: "POST", headers: { ...headers, "Content-Length": Buffer.byteLength(raw) } },
+          (resp) => {
+            resp.resume();
+            resp.on("end", () => resP(resp.statusCode || 0));
+          }
+        );
+        req.on("error", rejP);
+        req.write(raw);
+        req.end();
+      });
+
+    const runPropHttp = async (port: number, shouldClose: boolean) => {
+      try {
+        const assetRes = await httpGetText(`http://127.0.0.1:${port}/assets/map-props/camp-tent.svg`);
+        assert.strictEqual(assetRes.status, 200, "Nested /assets/map-props/*.svg must serve with 200 OK");
+        assert.ok(assetRes.contentType.includes("image/svg+xml"));
+
+        const nonAdminStatus = await httpPostStatus(
+          `http://127.0.0.1:${port}/api/room/map-props`,
+          {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${turnReg.token}`,
+          },
+          { roomCode: trCode, action: "STAMP", propKey: "treeOakCanopy", gridX: 2, gridY: 2 }
+        );
+        assert.strictEqual(nonAdminStatus, 403, "Non-admin player must get 403 on POST /api/room/map-props");
+        if (shouldClose) {
+          vttServer.closeAllConnections?.();
+          vttServer.close(() => resolve());
+        } else {
+          resolve();
+        }
+      } catch (e) {
+        reject(e);
+      }
+    };
+    if (vttServer.listening) {
+      runPropHttp((vttServer.address() as { port: number }).port, false);
+    } else {
+      vttServer.listen(0, "127.0.0.1", () => runPropHttp((vttServer.address() as { port: number }).port, true));
+    }
+  });
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 31/31 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 32/32 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();

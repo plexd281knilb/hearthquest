@@ -1,104 +1,212 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
-    <!-- Translucent Timber Seam Backing (allows canopy moonbeams to warm the deck) -->
-    <rect id="twBaseRect" width="128" height="128" />
+    <!-- Deep Timber Seam Underlay -->
     <linearGradient id="twSeamBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#140c06" stop-opacity="0.74" />
-      <stop offset="100%" stop-color="#1f1209" stop-opacity="0.78" />
+      <stop offset="0%" stop-color="#120904" />
+      <stop offset="100%" stop-color="#1c0e07" />
+    </linearGradient>
+
+    <!-- Rich Cedar Plank Gradients -->
+    <linearGradient id="twPlankCedar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ad6932" />
+      <stop offset="15%" stop-color="#995625" />
+      <stop offset="50%" stop-color="#804419" />
+      <stop offset="85%" stop-color="#643210" />
+      <stop offset="100%" stop-color="#462007" />
+    </linearGradient>
+
+    <linearGradient id="twPlankAged" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#945828" />
+      <stop offset="15%" stop-color="#82471b" />
+      <stop offset="50%" stop-color="#6c3612" />
+      <stop offset="85%" stop-color="#52260a" />
+      <stop offset="100%" stop-color="#381704" />
     </linearGradient>
 
     <linearGradient id="twPlankWarm" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#9a6128" stop-opacity="0.9" />
-      <stop offset="18%" stop-color="#854f1d" stop-opacity="0.86" />
-      <stop offset="85%" stop-color="#613712" stop-opacity="0.88" />
-      <stop offset="100%" stop-color="#452509" stop-opacity="0.92" />
+      <stop offset="0%" stop-color="#ba7438" />
+      <stop offset="15%" stop-color="#a45f2a" />
+      <stop offset="50%" stop-color="#89491c" />
+      <stop offset="85%" stop-color="#6c340f" />
+      <stop offset="100%" stop-color="#4d2107" />
     </linearGradient>
 
-    <linearGradient id="twPlankDeep" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#7c4c1f" stop-opacity="0.9" />
-      <stop offset="22%" stop-color="#6a3e17" stop-opacity="0.86" />
-      <stop offset="85%" stop-color="#4e2b0d" stop-opacity="0.88" />
-      <stop offset="100%" stop-color="#371d07" stop-opacity="0.92" />
-    </linearGradient>
+    <!-- Hand-Forged Iron Nail Head Gradient -->
+    <radialGradient id="twIronNail" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#71717a" />
+      <stop offset="45%" stop-color="#3f3f46" />
+      <stop offset="80%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </radialGradient>
 
-    <radialGradient id="twBrassRivet" cx="35%" cy="35%" r="65%">
-      <stop offset="0%" stop-color="#fef08a" />
-      <stop offset="55%" stop-color="#d97706" />
-      <stop offset="100%" stop-color="#78350f" />
+    <!-- Warm Forest Canopy Sheen -->
+    <radialGradient id="twCanopyGlow" cx="60%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.18" />
+      <stop offset="50%" stop-color="#84cc16" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#15803d" stop-opacity="0" />
     </radialGradient>
   </defs>
 
-  <!-- Plank Groove Base -->
+  <!-- Deep Timber Gap Base -->
   <rect width="128" height="128" fill="url(#twSeamBg)" />
 
-  <!-- Row 1 Planks (Staggered join at x=78) -->
+  <!-- ==================== ROW 1 (y=2..30) ==================== -->
   <g>
-    <rect x="1.5" y="2" width="74.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
-    <line x1="3" y1="3.5" x2="74" y2="3.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
-    <path d="M 10 14 Q 32 10 56 16 Q 66 18 72 15" fill="none" stroke="#3f1e07" stroke-opacity="0.45" stroke-width="1.2" />
+    <!-- Plank 1A (Left) -->
+    <rect x="1.5" y="2" width="74.5" height="28" rx="2" fill="url(#twPlankCedar)" stroke="#1a0c04" stroke-width="1.2" />
+    <!-- Sunlit Top Bevel Chamfer -->
+    <line x1="3" y1="3.4" x2="74.5" y2="3.4" stroke="#fed7aa" stroke-opacity="0.45" stroke-width="1.1" stroke-linecap="round" />
+    <!-- Bottom Shadow Chamfer -->
+    <line x1="3" y1="29" x2="74.5" y2="29" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <!-- Flowing Cedar Woodgrain -->
+    <path d="M 4 9 Q 28 6 52 11 Q 65 14 74 10" fill="none" stroke="#481f08" stroke-opacity="0.45" stroke-width="1.1" />
+    <path d="M 4 16 Q 22 13 42 19 Q 60 22 74 18" fill="none" stroke="#481f08" stroke-opacity="0.4" stroke-width="1.0" />
+    <path d="M 4 23 Q 32 20 58 25 Q 68 26 74 24" fill="none" stroke="#481f08" stroke-opacity="0.38" stroke-width="1.0" />
 
-    <rect x="79" y="2" width="47.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
-    <line x1="80.5" y1="3.5" x2="125" y2="3.5" stroke="#fde68a" stroke-opacity="0.24" stroke-width="1" />
-    <path d="M 85 18 Q 104 21 122 14" fill="none" stroke="#2c1304" stroke-opacity="0.45" stroke-width="1.1" />
+    <!-- Plank 1B (Right) -->
+    <rect x="79" y="2" width="47.5" height="28" rx="2" fill="url(#twPlankAged)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="80.5" y1="3.4" x2="125" y2="3.4" stroke="#fed7aa" stroke-opacity="0.4" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="80.5" y1="29" x2="125" y2="29" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <path d="M 81 12 Q 100 16 124 10" fill="none" stroke="#371504" stroke-opacity="0.45" stroke-width="1.1" />
+    <path d="M 81 21 Q 105 24 124 17" fill="none" stroke="#371504" stroke-opacity="0.4" stroke-width="1.0" />
   </g>
 
-  <!-- Row 2 Planks (Staggered join at x=42) -->
+  <!-- ==================== ROW 2 (y=34..62) ==================== -->
   <g>
-    <rect x="1.5" y="34" width="38.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
-    <line x1="3" y1="35.5" x2="38" y2="35.5" stroke="#fde68a" stroke-opacity="0.24" stroke-width="1" />
+    <!-- Plank 2A (Left) -->
+    <rect x="1.5" y="34" width="38.5" height="28" rx="2" fill="url(#twPlankAged)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="3" y1="35.4" x2="38.5" y2="35.4" stroke="#fed7aa" stroke-opacity="0.4" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="3" y1="61" x2="38.5" y2="61" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <path d="M 4 45 Q 20 41 38 47" fill="none" stroke="#371504" stroke-opacity="0.42" stroke-width="1.1" />
+    <path d="M 4 54 Q 18 51 38 56" fill="none" stroke="#371504" stroke-opacity="0.4" stroke-width="1.0" />
 
-    <rect x="43" y="34" width="83.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
-    <line x1="44.5" y1="35.5" x2="125" y2="35.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
-    <ellipse cx="90" cy="48" rx="7" ry="3.2" fill="#451a03" opacity="0.5" />
-    <ellipse cx="90" cy="48" rx="3.5" ry="1.5" fill="#2c1203" opacity="0.7" />
-    <path d="M 48 44 Q 68 41 80 47 M 100 49 Q 114 53 123 47" fill="none" stroke="#3f1e07" stroke-opacity="0.4" stroke-width="1.1" />
+    <!-- Plank 2B (Right) with Knothole & Growth Rings -->
+    <rect x="43" y="34" width="83.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="44.5" y1="35.4" x2="125" y2="35.4" stroke="#fed7aa" stroke-opacity="0.45" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="44.5" y1="61" x2="125" y2="61" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <!-- Grain deflecting around knothole at cx=92, cy=48 -->
+    <path d="M 45 42 Q 70 38 84 43 Q 92 39 102 43 Q 114 47 124 41" fill="none" stroke="#481f08" stroke-opacity="0.42" stroke-width="1.1" />
+    <path d="M 45 54 Q 72 58 84 53 Q 92 57 102 53 Q 115 49 124 55" fill="none" stroke="#481f08" stroke-opacity="0.42" stroke-width="1.1" />
+    <!-- Detailed Concentric Knothole -->
+    <ellipse cx="92" cy="48" rx="8" ry="4.5" fill="#381504" opacity="0.6" stroke="#240c02" stroke-width="0.8" />
+    <ellipse cx="92" cy="48" rx="5" ry="2.8" fill="#542308" opacity="0.75" />
+    <ellipse cx="92" cy="48" rx="2.5" ry="1.4" fill="#1b0801" />
+    <circle cx="91.2" cy="47.6" r="0.6" fill="#a45f2a" opacity="0.8" />
   </g>
 
-  <!-- Row 3 Planks (Staggered join at x=98) -->
+  <!-- ==================== ROW 3 (y=66..94) ==================== -->
   <g>
-    <rect x="1.5" y="66" width="94.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
-    <line x1="3" y1="67.5" x2="94" y2="67.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
-    <path d="M 12 79 Q 45 84 86 76" fill="none" stroke="#3f1e07" stroke-opacity="0.45" stroke-width="1.2" />
+    <!-- Plank 3A (Left) with Knothole -->
+    <rect x="1.5" y="66" width="94.5" height="28" rx="2" fill="url(#twPlankCedar)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="3" y1="67.4" x2="94.5" y2="67.4" stroke="#fed7aa" stroke-opacity="0.45" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="3" y1="93" x2="94.5" y2="93" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <path d="M 4 75 Q 36 71 68 76 Q 84 79 94 74" fill="none" stroke="#481f08" stroke-opacity="0.45" stroke-width="1.1" />
+    <path d="M 4 85 Q 40 89 74 82 Q 86 85 94 83" fill="none" stroke="#481f08" stroke-opacity="0.4" stroke-width="1.0" />
+    <!-- Secondary Knot at cx=38, cy=78 -->
+    <ellipse cx="38" cy="78" rx="5.5" ry="3" fill="#381504" opacity="0.5" stroke="#240c02" stroke-width="0.6" />
+    <ellipse cx="38" cy="78" rx="2.2" ry="1.2" fill="#1b0801" />
 
-    <rect x="99" y="66" width="27.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
-    <line x1="100.5" y1="67.5" x2="125" y2="67.5" stroke="#fde68a" stroke-opacity="0.22" stroke-width="1" />
+    <!-- Plank 3B (Right) -->
+    <rect x="99" y="66" width="27.5" height="28" rx="2" fill="url(#twPlankAged)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="100.5" y1="67.4" x2="125" y2="67.4" stroke="#fed7aa" stroke-opacity="0.4" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="100.5" y1="93" x2="125" y2="93" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <path d="M 101 77 Q 112 80 124 74" fill="none" stroke="#371504" stroke-opacity="0.42" stroke-width="1.0" />
+    <path d="M 101 86 Q 114 83 124 87" fill="none" stroke="#371504" stroke-opacity="0.4" stroke-width="1.0" />
   </g>
 
-  <!-- Row 4 Planks (Staggered join at x=54) -->
+  <!-- ==================== ROW 4 (y=98..126) ==================== -->
   <g>
-    <rect x="1.5" y="98" width="50.5" height="28" rx="2" fill="url(#twPlankDeep)" stroke="#241104" stroke-width="1.2" />
-    <line x1="3" y1="99.5" x2="50" y2="99.5" stroke="#fde68a" stroke-opacity="0.24" stroke-width="1" />
-    <path d="M 8 114 Q 26 109 46 115" fill="none" stroke="#2c1304" stroke-opacity="0.45" stroke-width="1.1" />
+    <!-- Plank 4A (Left) -->
+    <rect x="1.5" y="98" width="50.5" height="28" rx="2" fill="url(#twPlankAged)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="3" y1="99.4" x2="50.5" y2="99.4" stroke="#fed7aa" stroke-opacity="0.4" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="3" y1="125" x2="50.5" y2="125" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <path d="M 4 108 Q 24 104 50 110" fill="none" stroke="#371504" stroke-opacity="0.42" stroke-width="1.1" />
+    <path d="M 4 118 Q 28 114 50 120" fill="none" stroke="#371504" stroke-opacity="0.4" stroke-width="1.0" />
 
-    <rect x="55" y="98" width="71.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#241104" stroke-width="1.2" />
-    <line x1="56.5" y1="99.5" x2="125" y2="99.5" stroke="#fde68a" stroke-opacity="0.28" stroke-width="1" />
-    <path d="M 62 110 Q 92 106 118 113" fill="none" stroke="#3f1e07" stroke-opacity="0.45" stroke-width="1.1" />
+    <!-- Plank 4B (Right) -->
+    <rect x="55" y="98" width="71.5" height="28" rx="2" fill="url(#twPlankWarm)" stroke="#1a0c04" stroke-width="1.2" />
+    <line x1="56.5" y1="99.4" x2="125" y2="99.4" stroke="#fed7aa" stroke-opacity="0.45" stroke-width="1.1" stroke-linecap="round" />
+    <line x1="56.5" y1="125" x2="125" y2="125" stroke="#261005" stroke-opacity="0.75" stroke-width="1.2" />
+    <path d="M 57 109 Q 86 105 124 112" fill="none" stroke="#481f08" stroke-opacity="0.45" stroke-width="1.1" />
+    <path d="M 57 119 Q 90 122 124 116" fill="none" stroke="#481f08" stroke-opacity="0.4" stroke-width="1.0" />
   </g>
 
-  <!-- Specular Brass Carpenter Nails -->
-  <g stroke="#291204" stroke-width="0.7">
-    <circle cx="8" cy="11" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="8" cy="21" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="70" cy="16" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="85" cy="16" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="49" cy="48" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="120" cy="48" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="8" cy="80" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="90" cy="80" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="46" cy="112" r="2.2" fill="url(#twBrassRivet)" />
-    <circle cx="61" cy="112" r="2.2" fill="url(#twBrassRivet)" />
+  <!-- ==================== HAND-FORGED IRON NAIL HEADS ==================== -->
+  <g stroke="#09090b" stroke-width="0.7">
+    <!-- Joist 1 (x ≈ 8) -->
+    <circle cx="8" cy="9" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="23" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="41" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="55" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="73" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="87" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="105" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="8" cy="119" r="2.1" fill="url(#twIronNail)" />
+
+    <!-- Staggered Joists & Seam Anchors -->
+    <circle cx="72" cy="16" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="83" cy="16" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="36" cy="48" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="47" cy="48" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="92" cy="80" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="103" cy="80" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="48" cy="112" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="59" cy="112" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="120" cy="48" r="2.1" fill="url(#twIronNail)" />
+    <circle cx="120" cy="112" r="2.1" fill="url(#twIronNail)" />
   </g>
 
-  <!-- Emerald Treehouse Moss Tufting in Planks -->
-  <g opacity="0.82">
-    <circle cx="40" cy="33" r="3.2" fill="#4d7c0f" />
-    <circle cx="44" cy="34" r="2.2" fill="#84cc16" />
-    <circle cx="97" cy="96" r="3" fill="#4d7c0f" />
-    <circle cx="101" cy="97" r="2" fill="#65a30d" />
+  <!-- Specular Glints on Iron Nails -->
+  <g fill="#e4e4e7" opacity="0.6">
+    <circle cx="7.4" cy="8.4" r="0.6" />
+    <circle cx="7.4" cy="22.4" r="0.6" />
+    <circle cx="71.4" cy="15.4" r="0.6" />
+    <circle cx="82.4" cy="15.4" r="0.6" />
+    <circle cx="35.4" cy="47.4" r="0.6" />
+    <circle cx="46.4" cy="47.4" r="0.6" />
+    <circle cx="91.4" cy="79.4" r="0.6" />
+    <circle cx="102.4" cy="79.4" r="0.6" />
   </g>
 
-  <!-- Crisp 2x2 Tactical Grid Alignment Crosshairs -->
-  <g stroke="#bef264" stroke-opacity="0.5" stroke-width="1.4" fill="none">
+  <!-- ==================== EMERALD MOSS TUFTS IN SEAMS ==================== -->
+  <g>
+    <!-- Cluster 1 (Row 1-2 seam near join x=41, y=32) -->
+    <circle cx="38" cy="32" r="2.8" fill="#365314" />
+    <circle cx="41" cy="33" r="3.2" fill="#4d7c0f" />
+    <circle cx="44" cy="32.5" r="2.6" fill="#65a30d" />
+    <circle cx="42" cy="31.8" r="1.5" fill="#84cc16" />
+    <circle cx="39.5" cy="33.2" r="1.2" fill="#a3e635" />
+
+    <!-- Cluster 2 (Row 1 seam near join x=77, y=16) -->
+    <circle cx="77.5" cy="6" r="2.2" fill="#365314" />
+    <circle cx="77.8" cy="9" r="1.8" fill="#4d7c0f" />
+    <circle cx="77.2" cy="8" r="1.0" fill="#84cc16" />
+
+    <!-- Cluster 3 (Row 2-3 seam near join x=97, y=64) -->
+    <circle cx="95" cy="64" r="2.9" fill="#365314" />
+    <circle cx="98" cy="64.5" r="3.4" fill="#4d7c0f" />
+    <circle cx="101" cy="63.8" r="2.4" fill="#65a30d" />
+    <circle cx="97.5" cy="63.2" r="1.6" fill="#84cc16" />
+    <circle cx="99.5" cy="64.2" r="1.2" fill="#bef264" />
+
+    <!-- Cluster 4 (Row 3-4 seam near join x=53, y=96) -->
+    <circle cx="51" cy="96" r="2.5" fill="#365314" />
+    <circle cx="54" cy="96.5" r="3.0" fill="#4d7c0f" />
+    <circle cx="56.5" cy="95.8" r="2.2" fill="#65a30d" />
+    <circle cx="53.5" cy="95.2" r="1.4" fill="#84cc16" />
+
+    <!-- Cluster 5 (Bottom Edge Seam y=127 - wraps seamlessly with top y=1) -->
+    <circle cx="24" cy="127" r="2.0" fill="#365314" />
+    <circle cx="26" cy="127.5" r="1.8" fill="#65a30d" />
+    <circle cx="24" cy="0.5" r="2.0" fill="#365314" />
+    <circle cx="26" cy="1" r="1.8" fill="#65a30d" />
+  </g>
+
+  <!-- Warm Canopy Ambient Glow Overlay -->
+  <rect width="128" height="128" fill="url(#twCanopyGlow)" pointer-events="none" />
+
+  <!-- Crisp 2x2 Tactical Grid Alignment Crosshairs (Moss Lime) -->
+  <g stroke="#bef264" stroke-opacity="0.52" stroke-width="1.4" fill="none" pointer-events="none">
     <rect x="0.7" y="0.7" width="126.6" height="126.6" />
     <line x1="64" y1="0" x2="64" y2="128" stroke-dasharray="6 3" />
     <line x1="0" y1="64" x2="128" y2="64" stroke-dasharray="6 3" />

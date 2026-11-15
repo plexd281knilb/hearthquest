@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="chairShadowFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+
+    <linearGradient id="chairOak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#92400e" />
+      <stop offset="40%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+
+    <linearGradient id="crestGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5a2707" />
+      <stop offset="20%" stop-color="#92400e" />
+      <stop offset="50%" stop-color="#b45309" />
+      <stop offset="80%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#5a2707" />
+    </linearGradient>
+
+    <radialGradient id="postCapGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#d97706" />
+      <stop offset="55%" stop-color="#92400e" />
+      <stop offset="100%" stop-color="#3b1502" />
+    </radialGradient>
+
+    <linearGradient id="seatBevel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#b45309" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#351403" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Ground Shadow -->
+  <ellipse cx="64" cy="67" rx="36" ry="32" fill="#09090b" opacity="0.38" filter="url(#chairShadowFilter)" />
+
+  <!-- Chair Base & Under-Stretchers -->
+  <g id="chairFrame">
+    <!-- Side Rails peeking below seat -->
+    <rect x="38" y="46" width="6" height="38" rx="2" fill="#3b1502" />
+    <rect x="84" y="46" width="6" height="38" rx="2" fill="#3b1502" />
+    <rect x="40" y="82" width="48" height="5" rx="1.5" fill="#3b1502" />
+
+    <!-- 4 Turned Leg Corner Tenons (Base Posts) -->
+    <circle cx="40" cy="85" r="4.5" fill="url(#postCapGrad)" stroke="#220b01" stroke-width="0.8" />
+    <circle cx="88" cy="85" r="4.5" fill="url(#postCapGrad)" stroke="#220b01" stroke-width="0.8" />
+    <circle cx="38" cy="46" r="4.5" fill="url(#postCapGrad)" stroke="#220b01" stroke-width="0.8" />
+    <circle cx="90" cy="46" r="4.5" fill="url(#postCapGrad)" stroke="#220b01" stroke-width="0.8" />
+
+    <!-- Planked Seat Base (Trapezoidal / Chamfered Tavern Seat) -->
+    <path d="M 40 47 L 88 47 Q 92 47 92 51 L 89 83 Q 89 87 85 87 L 43 87 Q 39 87 39 83 L 36 51 Q 36 47 40 47 Z"
+          fill="url(#chairOak)" stroke="#271003" stroke-width="1.2" />
+
+    <!-- Seat Planks (3 Vertical Planks) -->
+    <!-- Left Plank Separation -->
+    <path d="M 53 47 L 53 87" stroke="#220b01" stroke-width="1.1" />
+    <path d="M 54 48 L 54 86" stroke="#b45309" stroke-width="0.6" opacity="0.4" />
+    <!-- Right Plank Separation -->
+    <path d="M 75 47 L 75 87" stroke="#220b01" stroke-width="1.1" />
+    <path d="M 76 48 L 76 86" stroke="#b45309" stroke-width="0.6" opacity="0.4" />
+
+    <!-- Wood Grain Details on Center & Outer Planks -->
+    <path d="M 45 52 Q 47 66 44 80" stroke="#b45309" stroke-width="0.6" fill="none" opacity="0.3" />
+    <path d="M 64 50 Q 62 68 65 84" stroke="#d97706" stroke-width="0.6" fill="none" opacity="0.3" />
+    <path d="M 82 53 Q 80 67 83 81" stroke="#b45309" stroke-width="0.6" fill="none" opacity="0.3" />
+
+    <!-- Seat Rim Highlight (North bevel) -->
+    <path d="M 41 48 L 87 48" stroke="#f59e0b" stroke-width="0.8" opacity="0.4" />
+    <!-- Front Bevel Rim (South edge) -->
+    <path d="M 43 86.5 L 85 86.5" stroke="#1c0a01" stroke-width="1.2" />
+
+    <!-- Spindles Connecting to Back Crest Rail -->
+    <circle cx="48" cy="42" r="2.2" fill="#3b1502" />
+    <circle cx="58" cy="40" r="2.2" fill="#3b1502" />
+    <circle cx="70" cy="40" r="2.2" fill="#3b1502" />
+    <circle cx="80" cy="42" r="2.2" fill="#3b1502" />
+
+    <!-- Curved Backrest Crest Rail -->
+    <!-- Cast Shadow of backrest on seat -->
+    <path d="M 33 45 C 44 33, 84 33, 95 45 C 84 38, 44 38, 33 45 Z" fill="#09090b" opacity="0.3" />
+    <!-- Crest Rail Body -->
+    <path d="M 33 44 C 44 32, 84 32, 95 44 C 95 48, 84 41, 64 41 C 44 41, 33 48, 33 44 Z"
+          fill="url(#crestGrad)" stroke="#220b01" stroke-width="1.1" />
+
+    <!-- Crest Rail Specular Top Highlight -->
+    <path d="M 36 43 C 46 33.5, 82 33.5, 92 43" stroke="#fde68a" stroke-width="0.8" fill="none" opacity="0.6" />
+
+    <!-- Post Finials at Top of Back Posts -->
+    <circle cx="34" cy="44" r="3.2" fill="url(#postCapGrad)" stroke="#1c0a01" stroke-width="0.8" />
+    <circle cx="33.5" cy="43.5" r="1" fill="#fef08a" opacity="0.6" />
+    <circle cx="94" cy="44" r="3.2" fill="url(#postCapGrad)" stroke="#1c0a01" stroke-width="0.8" />
+    <circle cx="93.5" cy="43.5" r="1" fill="#fef08a" opacity="0.6" />
+
+    <!-- Front Leg Tenons Specular Dots -->
+    <circle cx="39.5" cy="84.5" r="1.1" fill="#fde68a" opacity="0.6" />
+    <circle cx="87.5" cy="84.5" r="1.1" fill="#fde68a" opacity="0.6" />
+  </g>
+</svg>

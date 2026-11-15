@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="chdGlowFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+    <filter id="chdShadowFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+
+    <!-- Large Overall Room Glow -->
+    <radialGradient id="chdRoomHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8" />
+      <stop offset="30%" stop-color="#fef08a" stop-opacity="0.5" />
+      <stop offset="60%" stop-color="#f59e0b" stop-opacity="0.25" />
+      <stop offset="85%" stop-color="#ea580c" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Individual Candle Flame Halo -->
+    <radialGradient id="candleHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="35%" stop-color="#fde047" stop-opacity="0.7" />
+      <stop offset="70%" stop-color="#f97316" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Forged Iron Wheel Gradient -->
+    <linearGradient id="chdIronGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="45%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <!-- Brass Bobeche Saucer -->
+    <radialGradient id="bobecheGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#ca8a04" />
+      <stop offset="100%" stop-color="#592d07" />
+    </radialGradient>
+  </defs>
+
+  <!-- Large Ambient Golden Floor Halo -->
+  <circle cx="64" cy="64" r="60" fill="url(#chdRoomHalo)" filter="url(#chdGlowFilter)" />
+
+  <!-- Chandelier Cast Shadow on the Floor below (Offset slightly south-east) -->
+  <g id="groundShadow" fill="#09090b" opacity="0.35" filter="url(#chdShadowFilter)" transform="translate(4, 8)">
+    <circle cx="64" cy="64" r="41" fill="none" stroke="#09090b" stroke-width="5" />
+    <circle cx="64" cy="64" r="10" />
+    <!-- 6 Shadow Spokes -->
+    <line x1="64" y1="23" x2="64" y2="105" stroke="#09090b" stroke-width="3.5" />
+    <line x1="28.5" y1="43.5" x2="99.5" y2="84.5" stroke="#09090b" stroke-width="3.5" />
+    <line x1="28.5" y1="84.5" x2="99.5" y2="43.5" stroke="#09090b" stroke-width="3.5" />
+  </g>
+
+  <!-- Chandelier Frame Body -->
+  <g id="chandelierWheel">
+    <!-- Outer Iron Rim Hoop -->
+    <circle cx="64" cy="64" r="41" fill="none" stroke="url(#chdIronGrad)" stroke-width="5" />
+    <circle cx="64" cy="64" r="43.5" fill="none" stroke="#09090b" stroke-width="0.8" />
+    <circle cx="64" cy="64" r="38.5" fill="none" stroke="#09090b" stroke-width="0.8" />
+    <circle cx="64" cy="64" r="42.5" fill="none" stroke="#94a3b8" stroke-width="0.6" opacity="0.6" />
+
+    <!-- 6 Iron Spokes -->
+    <g id="spokes" stroke="url(#chdIronGrad)" stroke-width="3" stroke-linecap="round">
+      <line x1="64" y1="23" x2="64" y2="64" />
+      <line x1="64" y1="64" x2="64" y2="105" />
+      <line x1="64" y1="64" x2="99.5" y2="43.5" />
+      <line x1="64" y1="64" x2="99.5" y2="84.5" />
+      <line x1="64" y1="64" x2="28.5" y2="84.5" />
+      <line x1="64" y1="64" x2="28.5" y2="43.5" />
+    </g>
+
+    <!-- Center Boss Hub -->
+    <circle cx="64" cy="64" r="10" fill="url(#chdIronGrad)" stroke="#09090b" stroke-width="1.2" />
+    <circle cx="64" cy="64" r="9.2" fill="none" stroke="#94a3b8" stroke-width="0.6" opacity="0.6" />
+    <circle cx="64" cy="64" r="6" fill="#18181b" stroke="#09090b" stroke-width="0.8" />
+
+    <!-- Center Suspension Eyebolt Ring -->
+    <circle cx="64" cy="64" r="3.5" fill="none" stroke="#cbd5e1" stroke-width="1.5" />
+    <circle cx="64" cy="64" r="2" fill="#09090b" />
+
+    <!-- 3 Hanging Chain Links meeting at center -->
+    <line x1="64" y1="60" x2="64" y2="46" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 1" />
+    <line x1="61" y1="66" x2="48" y2="73" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 1" />
+    <line x1="67" y1="66" x2="80" y2="73" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 1" />
+
+    <!-- Decorative Scrollwork Filigree Between Spokes -->
+    <g id="scrollFiligree" stroke="#334155" stroke-width="1.2" fill="none">
+      <path d="M 64 35 C 70 36, 78 40, 80 46" />
+      <path d="M 64 35 C 58 36, 50 40, 48 46" />
+      <path d="M 88 50 C 90 56, 90 68, 86 76" />
+      <path d="M 80 82 C 76 88, 68 92, 64 93" />
+      <path d="M 40 82 C 44 88, 52 92, 64 93" />
+      <path d="M 40 50 C 38 56, 38 68, 42 76" />
+    </g>
+
+    <!-- 6 Radial Glowing Candle Stations -->
+    <!-- Station 1 (0° - Top: x=64, y=23) -->
+    <g transform="translate(64, 23)">
+      <circle cx="0" cy="0" r="16" fill="url(#candleHalo)" filter="url(#chdGlowFilter)" />
+      <circle cx="0" cy="0" r="6" fill="url(#bobecheGrad)" stroke="#592d07" stroke-width="0.6" />
+      <circle cx="0" cy="0" r="3.5" fill="#fef3c7" stroke="#b45309" stroke-width="0.4" />
+      <circle cx="0" cy="0" r="0.75" fill="#18181b" />
+      <circle cx="0" cy="-0.5" r="1.6" fill="#fde047" />
+      <circle cx="0" cy="-0.5" r="0.8" fill="#ffffff" />
+    </g>
+
+    <!-- Station 2 (60° - Top Right: x=99.5, y=43.5) -->
+    <g transform="translate(99.5, 43.5)">
+      <circle cx="0" cy="0" r="16" fill="url(#candleHalo)" filter="url(#chdGlowFilter)" />
+      <circle cx="0" cy="0" r="6" fill="url(#bobecheGrad)" stroke="#592d07" stroke-width="0.6" />
+      <circle cx="0" cy="0" r="3.5" fill="#fef3c7" stroke="#b45309" stroke-width="0.4" />
+      <circle cx="0" cy="0" r="0.75" fill="#18181b" />
+      <circle cx="0" cy="-0.5" r="1.6" fill="#fde047" />
+      <circle cx="0" cy="-0.5" r="0.8" fill="#ffffff" />
+    </g>
+
+    <!-- Station 3 (120° - Bottom Right: x=99.5, y=84.5) -->
+    <g transform="translate(99.5, 84.5)">
+      <circle cx="0" cy="0" r="16" fill="url(#candleHalo)" filter="url(#chdGlowFilter)" />
+      <circle cx="0" cy="0" r="6" fill="url(#bobecheGrad)" stroke="#592d07" stroke-width="0.6" />
+      <circle cx="0" cy="0" r="3.5" fill="#fef3c7" stroke="#b45309" stroke-width="0.4" />
+      <circle cx="0" cy="0" r="0.75" fill="#18181b" />
+      <circle cx="0" cy="-0.5" r="1.6" fill="#fde047" />
+      <circle cx="0" cy="-0.5" r="0.8" fill="#ffffff" />
+    </g>
+
+    <!-- Station 4 (180° - Bottom: x=64, y=105) -->
+    <g transform="translate(64, 105)">
+      <circle cx="0" cy="0" r="16" fill="url(#candleHalo)" filter="url(#chdGlowFilter)" />
+      <circle cx="0" cy="0" r="6" fill="url(#bobecheGrad)" stroke="#592d07" stroke-width="0.6" />
+      <circle cx="0" cy="0" r="3.5" fill="#fef3c7" stroke="#b45309" stroke-width="0.4" />
+      <circle cx="0" cy="0" r="0.75" fill="#18181b" />
+      <circle cx="0" cy="-0.5" r="1.6" fill="#fde047" />
+      <circle cx="0" cy="-0.5" r="0.8" fill="#ffffff" />
+    </g>
+
+    <!-- Station 5 (240° - Bottom Left: x=28.5, y=84.5) -->
+    <g transform="translate(28.5, 84.5)">
+      <circle cx="0" cy="0" r="16" fill="url(#candleHalo)" filter="url(#chdGlowFilter)" />
+      <circle cx="0" cy="0" r="6" fill="url(#bobecheGrad)" stroke="#592d07" stroke-width="0.6" />
+      <circle cx="0" cy="0" r="3.5" fill="#fef3c7" stroke="#b45309" stroke-width="0.4" />
+      <circle cx="0" cy="0" r="0.75" fill="#18181b" />
+      <circle cx="0" cy="-0.5" r="1.6" fill="#fde047" />
+      <circle cx="0" cy="-0.5" r="0.8" fill="#ffffff" />
+    </g>
+
+    <!-- Station 6 (300° - Top Left: x=28.5, y=43.5) -->
+    <g transform="translate(28.5, 43.5)">
+      <circle cx="0" cy="0" r="16" fill="url(#candleHalo)" filter="url(#chdGlowFilter)" />
+      <circle cx="0" cy="0" r="6" fill="url(#bobecheGrad)" stroke="#592d07" stroke-width="0.6" />
+      <circle cx="0" cy="0" r="3.5" fill="#fef3c7" stroke="#b45309" stroke-width="0.4" />
+      <circle cx="0" cy="0" r="0.75" fill="#18181b" />
+      <circle cx="0" cy="-0.5" r="1.6" fill="#fde047" />
+      <circle cx="0" cy="-0.5" r="0.8" fill="#ffffff" />
+    </g>
+  </g>
+</svg>

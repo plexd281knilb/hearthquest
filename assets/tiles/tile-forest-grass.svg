@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Deep Forest Loam Soil Base -->
+    <linearGradient id="fgSoilBed" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111f0d" />
+      <stop offset="50%" stop-color="#192e13" />
+      <stop offset="100%" stop-color="#13240e" />
+    </linearGradient>
+
+    <!-- Rich Emerald Glade Turf Gradient -->
+    <linearGradient id="fgTurfBase" x1="0.2" y1="0.1" x2="0.8" y2="0.9">
+      <stop offset="0%" stop-color="#24581f" />
+      <stop offset="35%" stop-color="#2f6e29" />
+      <stop offset="70%" stop-color="#21521c" />
+      <stop offset="100%" stop-color="#183e15" />
+    </linearGradient>
+
+    <!-- Flat Stepping River Pebble Gradients -->
+    <linearGradient id="fgPebbleA" x1="0.1" y1="0.1" x2="0.9" y2="0.9">
+      <stop offset="0%" stop-color="#94a3b8" />
+      <stop offset="40%" stop-color="#64748b" />
+      <stop offset="85%" stop-color="#475163" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+
+    <linearGradient id="fgPebbleB" x1="0.1" y1="0.1" x2="0.9" y2="0.9">
+      <stop offset="0%" stop-color="#8c9284" />
+      <stop offset="45%" stop-color="#6b7264" />
+      <stop offset="85%" stop-color="#4d5347" />
+      <stop offset="100%" stop-color="#363b31" />
+    </linearGradient>
+
+    <!-- Moss Cushion Gradients -->
+    <radialGradient id="fgMossCushion1" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#4d9435" />
+      <stop offset="60%" stop-color="#346c24" />
+      <stop offset="100%" stop-color="#1e4415" />
+    </radialGradient>
+
+    <radialGradient id="fgMossCushion2" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#65a30d" />
+      <stop offset="55%" stop-color="#3f6e16" />
+      <stop offset="100%" stop-color="#24440c" />
+    </radialGradient>
+
+    <!-- Sunlit Glade Dappled Sheen -->
+    <radialGradient id="fgSunDapple" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.22" />
+      <stop offset="45%" stop-color="#86efac" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#15803d" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="fgPebbleShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0.6" dy="1.0" stdDeviation="0.8" flood-color="#0a1207" flood-opacity="0.75" />
+    </filter>
+  </defs>
+
+  <!-- Deep Loam Earth Bed -->
+  <rect width="128" height="128" fill="url(#fgSoilBed)" />
+
+  <!-- Rich Emerald Glade Turf Base -->
+  <rect width="128" height="128" fill="url(#fgTurfBase)" opacity="0.95" />
+
+  <!-- ==================== ORGANIC MOSS PATCHES ==================== -->
+  <g opacity="0.88">
+    <!-- Moss Patch Top-Left (Quadrant 0,0) -->
+    <path d="M 10 18 Q 16 8 32 12 Q 44 14 48 26 Q 52 38 40 46 Q 24 50 14 42 Q 6 32 10 18 Z" fill="url(#fgMossCushion1)" />
+
+    <!-- Moss Patch Top-Right (Quadrant 1,0) -->
+    <path d="M 76 10 Q 94 6 112 14 Q 124 24 118 38 Q 112 50 96 48 Q 80 46 72 34 Q 68 20 76 10 Z" fill="url(#fgMossCushion2)" />
+
+    <!-- Moss Patch Bottom-Left (Quadrant 0,1) -->
+    <path d="M 8 78 Q 18 68 34 72 Q 48 76 52 90 Q 54 106 38 116 Q 20 120 10 110 Q 2 96 8 78 Z" fill="url(#fgMossCushion2)" />
+
+    <!-- Moss Patch Bottom-Right (Quadrant 1,1) -->
+    <path d="M 74 76 Q 88 66 108 72 Q 122 82 118 102 Q 112 118 94 116 Q 78 114 70 100 Q 66 86 74 76 Z" fill="url(#fgMossCushion1)" />
+
+    <!-- Center Glade Moss Swell -->
+    <path d="M 48 54 Q 64 46 78 52 Q 88 62 82 74 Q 72 84 56 80 Q 44 76 44 64 Q 44 56 48 54 Z" fill="url(#fgMossCushion1)" opacity="0.75" />
+  </g>
+
+  <!-- ==================== FLAT STEPPING PEBBLES (Tactical Footholds) ==================== -->
+  <g filter="url(#fgPebbleShadow)">
+    <!-- Quadrant 0,0 Stepping Slate -->
+    <g transform="translate(26, 26) rotate(-12)">
+      <ellipse cx="0" cy="0" rx="10" ry="7.5" fill="url(#fgPebbleA)" stroke="#1a2517" stroke-width="0.8" />
+      <path d="M -8 1 Q -6 -5 3 -5 Q 7 -5 8 -1" fill="none" stroke="#e2e8f0" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.6" />
+      <path d="M -3 -1 L 4 3 L 7 1" fill="none" stroke="#253022" stroke-width="0.7" stroke-opacity="0.6" />
+      <!-- Creeping Moss Trim on Stone -->
+      <circle cx="-6" cy="4" r="2.2" fill="#3f6e16" />
+      <circle cx="-4" cy="5" r="1.6" fill="#65a30d" />
+      <circle cx="5" cy="5" r="1.8" fill="#346c24" />
+    </g>
+
+    <!-- Quadrant 1,0 Stepping Pebble -->
+    <g transform="translate(98, 36) rotate(18)">
+      <ellipse cx="0" cy="0" rx="11" ry="8" fill="url(#fgPebbleB)" stroke="#1a2517" stroke-width="0.8" />
+      <path d="M -9 1 Q -7 -6 4 -6 Q 8 -5 9 -1" fill="none" stroke="#e6ebd8" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.55" />
+      <circle cx="7" cy="-3" r="1.8" fill="#4d9435" />
+      <circle cx="8" cy="-2" r="1.2" fill="#84cc16" />
+    </g>
+
+    <!-- Quadrant 0,1 Stepping Slate -->
+    <g transform="translate(36, 96) rotate(8)">
+      <ellipse cx="0" cy="0" rx="12" ry="8.5" fill="url(#fgPebbleA)" stroke="#1a2517" stroke-width="0.8" />
+      <path d="M -10 1 Q -8 -6 5 -6 Q 9 -5 10 -1" fill="none" stroke="#e2e8f0" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.6" />
+      <path d="M -4 2 L 2 -2 L 8 1" fill="none" stroke="#253022" stroke-width="0.7" stroke-opacity="0.6" />
+      <circle cx="-8" cy="3" r="2.0" fill="#3f6e16" />
+      <circle cx="6" cy="4" r="2.2" fill="#346c24" />
+    </g>
+
+    <!-- Quadrant 1,1 Stepping Pebble -->
+    <g transform="translate(92, 88) rotate(-16)">
+      <ellipse cx="0" cy="0" rx="9.5" ry="7" fill="url(#fgPebbleB)" stroke="#1a2517" stroke-width="0.8" />
+      <path d="M -7 1 Q -6 -5 3 -5 Q 7 -4 8 -1" fill="none" stroke="#e6ebd8" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.55" />
+      <circle cx="-5" cy="3" r="1.8" fill="#4d9435" />
+      <circle cx="-3" cy="4" r="1.3" fill="#84cc16" />
+    </g>
+
+    <!-- Minor Scatter Gravel Pebbles -->
+    <ellipse cx="58" cy="32" rx="3.2" ry="2.2" fill="#64748b" stroke="#1b2518" stroke-width="0.5" />
+    <ellipse cx="72" cy="98" rx="2.8" ry="2.0" fill="#6b7264" stroke="#1b2518" stroke-width="0.5" />
+    <ellipse cx="20" cy="60" rx="2.5" ry="1.8" fill="#64748b" stroke="#1b2518" stroke-width="0.5" />
+  </g>
+
+  <!-- ==================== CLOVER & GRASS BLADE TUFTS ==================== -->
+  <!-- 3-Leaf Clovers -->
+  <g fill="#22c55e" stroke="#14532d" stroke-width="0.4">
+    <!-- Clover Group 1 (x=16, y=38) -->
+    <circle cx="15" cy="36" r="1.8" fill="#4ade80" />
+    <circle cx="17.5" cy="36" r="1.8" fill="#4ade80" />
+    <circle cx="16.2" cy="38" r="1.8" fill="#22c55e" />
+    <!-- Clover Group 2 (x=84, y=24) -->
+    <circle cx="83" cy="23" r="1.7" fill="#4ade80" />
+    <circle cx="85.5" cy="23" r="1.7" fill="#4ade80" />
+    <circle cx="84.2" cy="25" r="1.7" fill="#22c55e" />
+    <!-- Clover Group 3 (x=50, y=92) -->
+    <circle cx="49" cy="90" r="1.8" fill="#4ade80" />
+    <circle cx="51.5" cy="90" r="1.8" fill="#4ade80" />
+    <circle cx="50.2" cy="92" r="1.8" fill="#22c55e" />
+    <!-- Clover Group 4 (x=110, y=78) -->
+    <circle cx="109" cy="76" r="1.7" fill="#4ade80" />
+    <circle cx="111.5" cy="76" r="1.7" fill="#4ade80" />
+    <circle cx="110.2" cy="78" r="1.7" fill="#22c55e" />
+  </g>
+
+  <!-- Grass Blade Clusters -->
+  <g stroke-linecap="round" fill="none">
+    <!-- Cluster Top-Left -->
+    <path d="M 40 18 Q 43 14 47 16 M 41 19 Q 44 12 43 10 M 42 20 Q 38 13 36 15" stroke="#4ade80" stroke-width="1.1" />
+    <path d="M 41 19 Q 44 12 43 10" stroke="#86efac" stroke-width="0.7" />
+
+    <!-- Cluster Top-Right -->
+    <path d="M 86 48 Q 89 42 93 45 M 87 49 Q 90 40 88 38 M 88 50 Q 84 43 82 46" stroke="#4ade80" stroke-width="1.1" />
+    <path d="M 87 49 Q 90 40 88 38" stroke="#86efac" stroke-width="0.7" />
+
+    <!-- Cluster Center-Bottom -->
+    <path d="M 64 68 Q 67 62 71 65 M 65 69 Q 67 59 66 57 M 66 70 Q 61 63 59 66" stroke="#4ade80" stroke-width="1.1" />
+
+    <!-- Cluster Bottom-Left -->
+    <path d="M 22 84 Q 25 78 29 81 M 23 85 Q 25 74 24 72 M 24 86 Q 19 80 17 83" stroke="#4ade80" stroke-width="1.1" />
+
+    <!-- Cluster Bottom-Right -->
+    <path d="M 104 102 Q 107 96 111 99 M 105 103 Q 108 93 106 91 M 106 104 Q 101 97 99 100" stroke="#4ade80" stroke-width="1.1" />
+  </g>
+
+  <!-- ==================== WILDFLOWER SPECKS ==================== -->
+  <!-- Golden Buttercups -->
+  <g>
+    <circle cx="18" cy="20" r="1.6" fill="#fde047" stroke="#ca8a04" stroke-width="0.4" />
+    <circle cx="18" cy="20" r="0.6" fill="#ea580c" />
+
+    <circle cx="70" cy="18" r="1.5" fill="#fde047" stroke="#ca8a04" stroke-width="0.4" />
+    <circle cx="70" cy="18" r="0.5" fill="#ea580c" />
+
+    <circle cx="84" cy="98" r="1.6" fill="#fde047" stroke="#ca8a04" stroke-width="0.4" />
+    <circle cx="84" cy="98" r="0.6" fill="#ea580c" />
+  </g>
+
+  <!-- Bluebell Azure Specks -->
+  <g>
+    <circle cx="48" cy="44" r="1.5" fill="#60a5fa" stroke="#1d4ed8" stroke-width="0.4" />
+    <circle cx="48" cy="44" r="0.5" fill="#ffffff" />
+
+    <circle cx="114" cy="30" r="1.6" fill="#60a5fa" stroke="#1d4ed8" stroke-width="0.4" />
+    <circle cx="114" cy="30" r="0.5" fill="#ffffff" />
+
+    <circle cx="28" cy="112" r="1.5" fill="#60a5fa" stroke="#1d4ed8" stroke-width="0.4" />
+    <circle cx="28" cy="112" r="0.5" fill="#ffffff" />
+  </g>
+
+  <!-- Star Anemone Whites -->
+  <g>
+    <circle cx="104" cy="18" r="1.4" fill="#ffffff" stroke="#94a3b8" stroke-width="0.3" />
+    <circle cx="104" cy="18" r="0.5" fill="#facc15" />
+
+    <circle cx="12" cy="98" r="1.4" fill="#ffffff" stroke="#94a3b8" stroke-width="0.3" />
+    <circle cx="12" cy="98" r="0.5" fill="#facc15" />
+
+    <circle cx="78" cy="62" r="1.3" fill="#ffffff" stroke="#94a3b8" stroke-width="0.3" />
+    <circle cx="78" cy="62" r="0.4" fill="#facc15" />
+  </g>
+
+  <!-- Woodland Violet Specks -->
+  <g>
+    <circle cx="58" cy="108" r="1.4" fill="#c084fc" stroke="#6b21a8" stroke-width="0.3" />
+    <circle cx="58" cy="108" r="0.5" fill="#fde047" />
+
+    <circle cx="92" cy="14" r="1.3" fill="#c084fc" stroke="#6b21a8" stroke-width="0.3" />
+    <circle cx="92" cy="14" r="0.4" fill="#fde047" />
+  </g>
+
+  <!-- Sunlit Glade Dappled Ambient Glow -->
+  <rect width="128" height="128" fill="url(#fgSunDapple)" pointer-events="none" />
+
+  <!-- Crisp 2x2 Tactical Grid Alignment Crosshairs (Glade Emerald) -->
+  <g stroke="#86efac" stroke-opacity="0.48" stroke-width="1.4" fill="none" pointer-events="none">
+    <rect x="0.7" y="0.7" width="126.6" height="126.6" />
+    <line x1="64" y1="0" x2="64" y2="128" stroke-dasharray="6 3" />
+    <line x1="0" y1="64" x2="128" y2="64" stroke-dasharray="6 3" />
+  </g>
+</svg>

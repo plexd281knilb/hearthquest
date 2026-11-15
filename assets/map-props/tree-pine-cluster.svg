@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Soft Ground Cast Shadow Blur -->
+    <filter id="pineShadowBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+
+    <!-- Lowest Tier Deep Evergreen Gradient -->
+    <radialGradient id="pineTier1" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#183d2b" />
+      <stop offset="60%" stop-color="#102b1e" />
+      <stop offset="100%" stop-color="#071710" />
+    </radialGradient>
+
+    <!-- Tier 2 Rich Spruce Gradient -->
+    <radialGradient id="pineTier2" cx="42%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#22593e" />
+      <stop offset="55%" stop-color="#194530" />
+      <stop offset="100%" stop-color="#0f2b1d" />
+    </radialGradient>
+
+    <!-- Tier 3 Mid Evergreen Gradient -->
+    <radialGradient id="pineTier3" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#2d7a55" />
+      <stop offset="50%" stop-color="#216042" />
+      <stop offset="100%" stop-color="#15422d" />
+    </radialGradient>
+
+    <!-- Tier 4 Sunlit Upper Crown Gradient -->
+    <radialGradient id="pineTier4" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#48bb78" />
+      <stop offset="50%" stop-color="#31975b" />
+      <stop offset="100%" stop-color="#1f693e" />
+    </radialGradient>
+
+    <!-- Crisp Center Spire Highlight -->
+    <radialGradient id="pineSpire" cx="35%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#d1fae5" />
+      <stop offset="40%" stop-color="#6ee7b7" />
+      <stop offset="85%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#10b981" />
+    </radialGradient>
+
+    <!-- Pinecone Brown Gradient -->
+    <linearGradient id="pineConeGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#92400e" />
+      <stop offset="50%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#451a03" />
+    </linearGradient>
+  </defs>
+
+  <!-- ==================== AMBIENT GROUND CAST SHADOW ==================== -->
+  <g filter="url(#pineShadowBlur)" opacity="0.6">
+    <ellipse cx="68" cy="71" rx="46" ry="43" fill="#040d07" />
+    <!-- Radiating branch shadow lobes -->
+    <polygon points="68,71 114,64 74,84 102,106 66,92 50,114 44,88 20,96 38,76 16,56 46,62 36,36 60,54 82,32 78,56 106,44" fill="#040d07" />
+  </g>
+
+  <!-- ==================== TIER 1: LOWEST WIDEST NEEDLE BOUGHS (r ≈ 50) ==================== -->
+  <g fill="url(#pineTier1)" stroke="#06170e" stroke-width="0.8">
+    <polygon points="64,14 72,32 94,18 88,38 112,36 98,52 118,62 98,72 112,88 90,86 96,108 76,96 70,116 58,96 46,112 44,90 22,100 32,82 12,74 28,62 14,48 34,48 26,28 48,36 52,16 64,30" />
+  </g>
+
+  <!-- ==================== SUBTLE PINECONES ON LOWER BOUGHS ==================== -->
+  <g stroke="#260e02" stroke-width="0.6">
+    <!-- Pinecone 1 (South-East) -->
+    <g transform="translate(90, 80) rotate(35)">
+      <ellipse cx="0" cy="0" rx="4.5" ry="7.5" fill="url(#pineConeGrad)" />
+      <path d="M -3 -3 Q 0 -5 3 -3 M -3.5 0 Q 0 -2 3.5 0 M -3 3 Q 0 1 3 3" fill="none" stroke="#b45309" stroke-width="0.6" />
+    </g>
+    <!-- Pinecone 2 (North-East) -->
+    <g transform="translate(86, 38) rotate(70)">
+      <ellipse cx="0" cy="0" rx="4" ry="6.5" fill="url(#pineConeGrad)" />
+      <path d="M -2.5 -2.5 Q 0 -4 2.5 -2.5 M -3 0 Q 0 -2 3 0" fill="none" stroke="#b45309" stroke-width="0.5" />
+    </g>
+    <!-- Pinecone 3 (South-West) -->
+    <g transform="translate(38, 82) rotate(-45)">
+      <ellipse cx="0" cy="0" rx="4.2" ry="7" fill="url(#pineConeGrad)" />
+      <path d="M -3 -2.5 Q 0 -4.5 3 -2.5 M -3 0.5 Q 0 -1.5 3 0.5" fill="none" stroke="#b45309" stroke-width="0.5" />
+    </g>
+    <!-- Pinecone 4 (West) -->
+    <g transform="translate(30, 50) rotate(-85)">
+      <ellipse cx="0" cy="0" rx="3.8" ry="6.2" fill="url(#pineConeGrad)" />
+    </g>
+  </g>
+
+  <!-- ==================== TIER 2: MIDDLE-LOWER NEEDLE BOUGHS (r ≈ 40) ==================== -->
+  <g fill="url(#pineTier2)" stroke="#0a2116" stroke-width="0.8">
+    <polygon points="64,24 71,38 88,28 82,44 102,44 90,56 106,64 89,72 100,86 82,83 86,100 71,90 64,106 55,90 44,102 44,84 26,90 34,74 20,66 33,57 22,46 38,45 34,30 50,38 55,22 64,34" />
+  </g>
+
+  <!-- Radiating needle rib lines Tier 2 -->
+  <g stroke="#2e7957" stroke-width="0.8" stroke-linecap="round" opacity="0.65">
+    <line x1="64" y1="64" x2="88" y2="28" />
+    <line x1="64" y1="64" x2="102" y2="44" />
+    <line x1="64" y1="64" x2="106" y2="64" />
+    <line x1="64" y1="64" x2="100" y2="86" />
+    <line x1="64" y1="64" x2="86" y2="100" />
+    <line x1="64" y1="64" x2="64" y2="106" />
+    <line x1="64" y1="64" x2="44" y2="102" />
+    <line x1="64" y1="64" x2="26" y2="90" />
+    <line x1="64" y1="64" x2="20" y2="66" />
+    <line x1="64" y1="64" x2="22" y2="46" />
+    <line x1="64" y1="64" x2="34" y2="30" />
+    <line x1="64" y1="64" x2="55" y2="22" />
+  </g>
+
+  <!-- ==================== TIER 3: MIDDLE-UPPER NEEDLE BOUGHS (r ≈ 30) ==================== -->
+  <g fill="url(#pineTier3)" stroke="#0e2f1f" stroke-width="0.7">
+    <polygon points="64,34 70,44 82,38 78,50 92,51 82,59 95,65 82,71 90,82 76,79 78,92 68,84 64,96 58,84 48,93 49,80 36,83 42,72 32,65 43,59 34,50 46,50 43,39 54,45 57,33 64,41" />
+  </g>
+
+  <!-- Radiating needle rib lines Tier 3 -->
+  <g stroke="#34d399" stroke-width="0.7" stroke-linecap="round" opacity="0.6">
+    <line x1="64" y1="64" x2="82" y2="38" />
+    <line x1="64" y1="64" x2="92" y2="51" />
+    <line x1="64" y1="64" x2="95" y2="65" />
+    <line x1="64" y1="64" x2="90" y2="82" />
+    <line x1="64" y1="64" x2="78" y2="92" />
+    <line x1="64" y1="64" x2="48" y2="93" />
+    <line x1="64" y1="64" x2="36" y2="83" />
+    <line x1="64" y1="64" x2="32" y2="65" />
+    <line x1="64" y1="64" x2="34" y2="50" />
+    <line x1="64" y1="64" x2="43" y2="39" />
+    <line x1="64" y1="64" x2="57" y2="33" />
+  </g>
+
+  <!-- ==================== TIER 4: SUNLIT UPPER CROWN (r ≈ 20) ==================== -->
+  <g fill="url(#pineTier4)" stroke="#15422d" stroke-width="0.6">
+    <polygon points="64,44 69,51 77,47 74,55 83,56 76,62 85,66 76,70 82,78 72,75 73,84 66,78 64,86 60,78 53,84 54,75 44,77 49,70 41,65 49,61 43,55 51,55 49,47 57,51 59,43 64,49" />
+  </g>
+
+  <!-- Sunlit NW Needle Highlights on Tier 4 -->
+  <g stroke="#a7f3d0" stroke-width="0.8" stroke-linecap="round" opacity="0.75">
+    <line x1="64" y1="64" x2="59" y2="43" />
+    <line x1="64" y1="64" x2="49" y2="47" />
+    <line x1="64" y1="64" x2="43" y2="55" />
+    <line x1="64" y1="64" x2="41" y2="65" />
+    <line x1="64" y1="64" x2="77" y2="47" />
+  </g>
+
+  <!-- ==================== TIER 5: CRISP CENTER SPIRE APEX ==================== -->
+  <!-- Radiating Spire Star -->
+  <g fill="url(#pineSpire)" stroke="#065f46" stroke-width="0.5">
+    <polygon points="64,52 66,59 73,56 69,61 76,63 70,66 74,72 67,69 67,76 63,71 59,75 60,68 53,69 57,64 51,61 57,58 55,53 61,56" />
+  </g>
+
+  <!-- Sharp Central Apex Needle Tip -->
+  <circle cx="64" cy="63.5" r="4.5" fill="#10b981" stroke="#047857" stroke-width="0.6" />
+  <circle cx="63.5" cy="63" r="2.4" fill="#6ee7b7" />
+  <circle cx="63" cy="62.5" r="1.1" fill="#ffffff" />
+</svg>

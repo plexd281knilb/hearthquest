@@ -251,6 +251,44 @@ export interface MapToken {
   lightColor?: string;
 }
 
+export type MapPropCategory =
+  | "GROUND"
+  | "WALL"
+  | "TREE"
+  | "DOOR"
+  | "FURNITURE"
+  | "LIGHT_FIXTURE"
+  | "CAMP"
+  | "BONES"
+  | "BRANCH";
+
+export type MapPropZLayer = "FLOOR" | "OBJECT" | "CANOPY";
+
+export type GroundTileTheme =
+  | "BAKERY_FLOOR"
+  | "TREEHOUSE_WOOD"
+  | "STARLIGHT_DECK"
+  | "FOREST_GRASS"
+  | "DUNGEON_STONE"
+  | "CAVERN_DIRT";
+
+export interface MapPropPlacement {
+  id: string;
+  propKey: string;
+  label: string;
+  category: MapPropCategory;
+  assetPath: string;
+  gridX: number;
+  gridY: number;
+  widthSq?: number;
+  heightSq?: number;
+  rotationDeg?: number;
+  zLayer?: MapPropZLayer;
+  lightRadius?: number;
+  lightColor?: string;
+  blocksMovement?: boolean;
+}
+
 export interface MapRoomZone {
   id: string;
   name: string;
@@ -262,6 +300,7 @@ export interface MapRoomZone {
   hasSecretTrap?: boolean;
   trapDescription?: string;
   ambientSoundscape: "COZY_TAVERN" | "WHISPERING_WOODS" | "GOBLIN_KITCHEN" | "CRYSTAL_CAVERN";
+  groundTileTheme?: GroundTileTheme;
 }
 
 export interface StoryBranchChoice {
@@ -424,6 +463,8 @@ export interface RoomSessionState {
   stageMoodArtUrl?: string;
   sessionOpeningHook?: string;
   activeRpPrompt?: StoryRpPrompt | null;
+  groundTileTheme?: GroundTileTheme;
+  mapProps?: MapPropPlacement[];
 }
 
 export type LoreEntryType =

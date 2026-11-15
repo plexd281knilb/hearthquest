@@ -141,14 +141,41 @@ export function renderLighting2DEngineScript(): string {
         ctx.clearRect(0, 0, w, h);
 
         const walls = state.walls || [];
-        const lightSources = (state.tokens || []).filter(tok => {
-          if (tok.isHiddenFromPlayers && displayMode !== "GM_COMMAND") return false;
-          const zone = (state.zones || []).find(
-            z => tok.gridX >= z.gridX && tok.gridX < z.gridX + z.width && tok.gridY >= z.gridY && tok.gridY < z.gridY + z.height
-          );
-          if (zone && !zone.isRevealed && displayMode !== "GM_COMMAND") return false;
-          return (tok.lightRadius && tok.lightRadius > 0) || tok.type === "HERO" || tok.type === "PROP";
-        });
+        const tokenLightSources = (state.tokens || [])
+          .filter(tok => {
+            if (tok.isHiddenFromPlayers && displayMode !== "GM_COMMAND") return false;
+            const zone = (state.zones || []).find(
+              z => tok.gridX >= z.gridX && tok.gridX < z.gridX + z.width && tok.gridY >= z.gridY && tok.gridY < z.gridY + z.height
+            );
+            if (zone && !zone.isRevealed && displayMode !== "GM_COMMAND") return false;
+            return (tok.lightRadius && tok.lightRadius > 0) || tok.type === "HERO" || tok.type === "PROP";
+          })
+          .map(tok => ({
+            ox: tok.gridX + 0.5,
+            oy: tok.gridY + 0.5,
+            lightRadius: tok.lightRadius || (tok.type === "HERO" ? 3.8 : 2.6),
+            lightColor: tok.lightColor || tok.color || "#fbbf24",
+          }));
+
+        const propLightSources = (state.mapProps || [])
+          .filter(prop => {
+            if (!prop.lightRadius || prop.lightRadius <= 0) return false;
+            const cxGrid = prop.gridX + (prop.widthSq || 1) * 0.5;
+            const cyGrid = prop.gridY + (prop.heightSq || 1) * 0.5;
+            const zone = (state.zones || []).find(
+              z => cxGrid >= z.gridX && cxGrid < z.gridX + z.width && cyGrid >= z.gridY && cyGrid < z.gridY + z.height
+            );
+            if (zone && !zone.isRevealed && displayMode !== "GM_COMMAND") return false;
+            return true;
+          })
+          .map(prop => ({
+            ox: prop.gridX + (prop.widthSq || 1) * 0.5,
+            oy: prop.gridY + (prop.heightSq || 1) * 0.5,
+            lightRadius: prop.lightRadius,
+            lightColor: prop.lightColor || "#fbbf24",
+          }));
+
+        const lightSources = tokenLightSources.concat(propLightSources);
 
         // 1. Build Darkness Occlusion Mask punctured by Raycast Visibility Polygons
         if (baseDarkness > 0.01) {
@@ -161,10 +188,10 @@ export function renderLighting2DEngineScript(): string {
 
           for (let i = 0; i < lightSources.length; i++) {
             const src = lightSources[i];
-            const ox = src.gridX + 0.5;
-            const oy = src.gridY + 0.5;
+            const ox = src.ox;
+            const oy = src.oy;
             const flicker = 1 + Math.sin(t * 6.5 + i * 1.7) * 0.035 + Math.cos(t * 13.2 + i) * 0.02;
-            const baseR = src.lightRadius || (src.type === "HERO" ? 3.8 : 2.6);
+            const baseR = src.lightRadius || 3.0;
             const radiusGrid = baseR * flicker;
 
             const poly = this.computeVisibilityPolygon(ox, oy, radiusGrid, walls);
@@ -202,10 +229,10 @@ export function renderLighting2DEngineScript(): string {
         ctx.globalCompositeOperation = "screen";
         for (let i = 0; i < lightSources.length; i++) {
           const src = lightSources[i];
-          const ox = src.gridX + 0.5;
-          const oy = src.gridY + 0.5;
+          const ox = src.ox;
+          const oy = src.oy;
           const flicker = 1 + Math.sin(t * 6.5 + i * 1.7) * 0.035 + Math.cos(t * 13.2 + i) * 0.02;
-          const baseR = src.lightRadius || (src.type === "HERO" ? 3.8 : 2.6);
+          const baseR = src.lightRadius || 3.0;
           const radiusGrid = baseR * flicker;
 
           const poly = this.computeVisibilityPolygon(ox, oy, radiusGrid, walls);
@@ -225,7 +252,7 @@ export function renderLighting2DEngineScript(): string {
           const cx = ox * cellW;
           const cy = oy * cellH;
           const rPx = radiusGrid * cellW;
-          const rgb = this.hexToRgb(src.lightColor || src.color || "#fbbf24");
+          const rgb = this.hexToRgb(src.lightColor || "#fbbf24");
           const glowAlpha = mode === "BRIGHT_DAYLIGHT" ? 0.14 : 0.28;
           const tintGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, rPx);
           tintGrad.addColorStop(0, "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + "," + glowAlpha + ")");
@@ -399,55 +426,78 @@ export function renderLighting2DEngineScript(): string {
               ctx.fill();
             }
           } else {
-            // Multi-pass Foundry dressed ashlar stone wall
+            // Multi-pass Foundry architectural wall (theme-aware: Cedar Timber / Starlight Brass / Ashlar Masonry)
+            const cid = (state.campaignId || "").toLowerCase();
+            const gtheme = (state.groundTileTheme || "").toUpperCase();
+            const isWoodWall = gtheme === "TREEHOUSE_WOOD" || gtheme === "FOREST_GRASS" || cid.includes("treehouse") || cid.includes("forest");
+            const isBrassWall = gtheme === "STARLIGHT_DECK" || cid.includes("starlight") || cid.includes("otter");
+
             ctx.save();
             ctx.lineCap = "round";
-            ctx.shadowColor = "rgba(2, 6, 23, 0.82)";
-            ctx.shadowBlur = 9;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 3;
+            ctx.shadowColor = "rgba(2, 6, 23, 0.86)";
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 2.5;
+            ctx.shadowOffsetY = 3.5;
 
-            // Outer iron-slate stone casing
-            ctx.strokeStyle = "#1e293b";
-            ctx.lineWidth = 10.5;
+            // Outer recessed mortar/bark/hull casing
+            ctx.strokeStyle = isWoodWall ? "#291509" : isBrassWall ? "#0f172a" : "#181f2c";
+            ctx.lineWidth = 12;
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
 
-            // Sculpted stone ashlar core gradient
+            // Sculpted textured wall core gradient
             ctx.shadowColor = "transparent";
             const wallGrad = ctx.createLinearGradient(x1, y1, x2, y2);
-            wallGrad.addColorStop(0, "#64748b");
-            wallGrad.addColorStop(0.5, "#94a3b8");
-            wallGrad.addColorStop(1, "#64748b");
+            if (isWoodWall) {
+              wallGrad.addColorStop(0, "#78350f");
+              wallGrad.addColorStop(0.5, "#a16207");
+              wallGrad.addColorStop(1, "#78350f");
+            } else if (isBrassWall) {
+              wallGrad.addColorStop(0, "#312e81");
+              wallGrad.addColorStop(0.5, "#6366f1");
+              wallGrad.addColorStop(1, "#312e81");
+            } else {
+              wallGrad.addColorStop(0, "#57534e");
+              wallGrad.addColorStop(0.5, "#94a3b8");
+              wallGrad.addColorStop(1, "#57534e");
+            }
             ctx.strokeStyle = wallGrad;
-            ctx.lineWidth = 6.2;
+            ctx.lineWidth = 7.2;
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
 
-            // Dressed stone block mortar seam ticks along wall segment
-            const tickStep = 20;
-            ctx.strokeStyle = "rgba(15, 23, 42, 0.72)";
-            ctx.lineWidth = 1.5;
+            // Alternating ashlar block mortar seams / iron log straps / brass bulkhead ribs
+            const tickStep = isWoodWall ? 26 : 18;
+            ctx.strokeStyle = isWoodWall ? "#1c1917" : isBrassWall ? "#f59e0b" : "rgba(15, 23, 42, 0.78)";
+            ctx.lineWidth = isBrassWall ? 2.0 : 1.7;
             ctx.lineCap = "butt";
             for (let d = tickStep; d < segLen - 8; d += tickStep) {
               const tx = x1 + ux * d;
               const ty = y1 + uy * d;
               ctx.beginPath();
-              ctx.moveTo(tx - nx * 3.1, ty - ny * 3.1);
-              ctx.lineTo(tx + nx * 3.1, ty + ny * 3.1);
+              ctx.moveTo(tx - nx * 3.8, ty - ny * 3.8);
+              ctx.lineTo(tx + nx * 3.8, ty + ny * 3.8);
               ctx.stroke();
+
+              // Extra moss accent or gold rivet dot every second seam
+              if (Math.round(d / tickStep) % 2 === 0) {
+                ctx.fillStyle = isWoodWall ? "#22c55e" : isBrassWall ? "#fde047" : "#cbd5e1";
+                ctx.beginPath();
+                ctx.arc(tx, ty, 1.4, 0, Math.PI * 2);
+                ctx.fill();
+              }
             }
 
             // Specular top-edge highlight bevel
-            ctx.strokeStyle = "rgba(248, 250, 252, 0.42)";
-            ctx.lineWidth = 1.4;
+            ctx.strokeStyle = isWoodWall ? "rgba(253, 230, 138, 0.35)" : isBrassWall ? "rgba(165, 243, 252, 0.55)" : "rgba(248, 250, 252, 0.45)";
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(x1 - nx * 1.4, y1 - ny * 1.4);
-            ctx.lineTo(x2 - nx * 1.4, y2 - ny * 1.4);
+            ctx.moveTo(x1 - nx * 1.6, y1 - ny * 1.6);
+            ctx.lineTo(x2 - nx * 1.6, y2 - ny * 1.6);
             ctx.stroke();
             ctx.restore();
 
@@ -456,22 +506,26 @@ export function renderLighting2DEngineScript(): string {
           }
         }
 
-        // Sculpted stone corner pillar caps at wall intersections/endpoints
+        // Sculpted corner pillar capstones / timber posts / brass bollards
+        const pCid = (state.campaignId || "").toLowerCase();
+        const pGtheme = (state.groundTileTheme || "").toUpperCase();
+        const pIsWood = pGtheme === "TREEHOUSE_WOOD" || pGtheme === "FOREST_GRASS" || pCid.includes("treehouse");
+        const pIsBrass = pGtheme === "STARLIGHT_DECK" || pCid.includes("starlight");
         for (let p = 0; p < wallPillars.length; p++) {
           const cap = wallPillars[p];
-          ctx.fillStyle = "#0f172a";
+          ctx.fillStyle = pIsWood ? "#291509" : "#0f172a";
           ctx.beginPath();
-          ctx.arc(cap.px, cap.py, 6.5, 0, Math.PI * 2);
+          ctx.arc(cap.px, cap.py, 7.2, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.fillStyle = "#94a3b8";
+          ctx.fillStyle = pIsWood ? "#92400e" : pIsBrass ? "#d97706" : "#94a3b8";
           ctx.beginPath();
-          ctx.arc(cap.px, cap.py, 4.2, 0, Math.PI * 2);
+          ctx.arc(cap.px, cap.py, 4.6, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.fillStyle = "#cbd5e1";
+          ctx.fillStyle = pIsWood ? "#4ade80" : pIsBrass ? "#fef08a" : "#e2e8f0";
           ctx.beginPath();
-          ctx.arc(cap.px - 0.8, cap.py - 0.8, 1.8, 0, Math.PI * 2);
+          ctx.arc(cap.px - 0.9, cap.py - 0.9, 1.9, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();

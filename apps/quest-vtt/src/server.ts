@@ -3,7 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { URL } from "node:url";
 import { generateGmCoPilotWhisper } from "@hearthquest/quest-ai-bridge";
-import { AgeGroupPreset, RoomSessionState, RulesTier, getBuildMetadata } from "@hearthquest/shared-types";
+import { AgeGroupPreset, HEARTHQUEST_ASSETS, RoomSessionState, RulesTier, getBuildMetadata } from "@hearthquest/shared-types";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
@@ -31,6 +31,7 @@ import {
   updateRoomAtmosphere,
   updateRoomCombat,
   updateRoomLighting,
+  updateRoomMapProps,
   updateRoomSettings,
   updateRoomToolsAndWeather,
 } from "./room-store";
@@ -871,6 +872,7 @@ const server = http.createServer(async (req, res) => {
       "/api/room/switch-campaign",
       "/api/room/procedural-map",
       "/api/room/generate-oneshot",
+      "/api/room/map-props",
     ]);
     if (CREATOR_ONLY_ROOM_POSTS.has(pathname) && requestAccountForRoomPost?.role !== "ADMIN") {
       res.writeHead(403, { "Content-Type": "application/json" });
@@ -972,6 +974,25 @@ const server = http.createServer(async (req, res) => {
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/map-props" && req.method === "POST") {
+    const body = authedBody;
+    const out = updateRoomMapProps({
+      roomCode: body.roomCode,
+      action: body.action || "STAMP",
+      propKey: body.propKey,
+      propId: body.propId,
+      gridX: typeof body.gridX === "number" ? body.gridX : undefined,
+      gridY: typeof body.gridY === "number" ? body.gridY : undefined,
+      rotationDeg: typeof body.rotationDeg === "number" ? body.rotationDeg : undefined,
+      groundTileTheme: body.groundTileTheme,
+      zoneId: body.zoneId,
+    });
+    broadcastRoomUpdate(out.room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room: out.room, addedProp: out.addedProp }));
     return;
   }
 

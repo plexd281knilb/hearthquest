@@ -1,4 +1,4 @@
-import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
+import { HEARTHQUEST_ASSETS, RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import { HEARTHQUEST_SKILLS } from "@hearthquest/srd-rules";
 import { computeRoomInviteSig } from "./auth-store";
 import {
@@ -475,6 +475,24 @@ export function renderVttAppHtml(
       background-repeat: repeat;
       filter: brightness(1.18) contrast(1.08);
     }
+    .bg-forest-grass {
+      background-image: url('/assets/tiles/tile-forest-grass.svg');
+      background-size: 20% 33.3333%;
+      background-repeat: repeat;
+      filter: brightness(1.12) contrast(1.06);
+    }
+    .bg-dungeon-stone {
+      background-image: url('/assets/tiles/tile-dungeon-stone.svg');
+      background-size: 20% 33.3333%;
+      background-repeat: repeat;
+      filter: brightness(1.16) contrast(1.08);
+    }
+    .bg-cavern-dirt {
+      background-image: url('/assets/tiles/tile-cavern-dirt.svg');
+      background-size: 20% 33.3333%;
+      background-repeat: repeat;
+      filter: brightness(1.12) contrast(1.06);
+    }
 
     body[data-theme="light"] .bg-bakery {
       background-image: url('/assets/tiles/tile-bakery-floor.svg');
@@ -493,6 +511,24 @@ export function renderVttAppHtml(
       background-size: 20% 33.3333%;
       background-repeat: repeat;
       filter: brightness(1.28) contrast(1.05);
+    }
+    body[data-theme="light"] .bg-forest-grass {
+      background-image: url('/assets/tiles/tile-forest-grass.svg');
+      background-size: 20% 33.3333%;
+      background-repeat: repeat;
+      filter: brightness(1.22) contrast(1.04);
+    }
+    body[data-theme="light"] .bg-dungeon-stone {
+      background-image: url('/assets/tiles/tile-dungeon-stone.svg');
+      background-size: 20% 33.3333%;
+      background-repeat: repeat;
+      filter: brightness(1.25) contrast(1.05);
+    }
+    body[data-theme="light"] .bg-cavern-dirt {
+      background-image: url('/assets/tiles/tile-cavern-dirt.svg');
+      background-size: 20% 33.3333%;
+      background-repeat: repeat;
+      filter: brightness(1.22) contrast(1.04);
     }
 
     /* High-visibility individual tile borders & reachable move range */
@@ -523,8 +559,18 @@ export function renderVttAppHtml(
     /* Token Standee Styling */
     .token-standee {
       position: relative;
+      z-index: 16;
       transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
       cursor: pointer;
+    }
+    .vtt-map-prop-item {
+      position: absolute;
+      transform-origin: center center;
+      filter: drop-shadow(0 4px 6px rgba(2, 6, 23, 0.58));
+      transition: opacity 0.2s ease, transform 0.15s ease;
+    }
+    .vtt-prop-canopy {
+      opacity: 0.78;
     }
     .token-standee:hover {
       transform: scale(1.18) translateY(-4px);
@@ -559,6 +605,9 @@ export function renderVttAppHtml(
           </button>
           <button onclick="openSessionWalkthroughModal(0); toggleStartHereGuideBar(true);" id="btn-session-walkthrough" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 transition">
             🧭 Start Here Guide
+          </button>
+          <button onclick="openFeatureTourModal()" id="btn-feature-tour" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-400/50 transition">
+            ❓ What Things Do
           </button>
           <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
             🛍️ Store
@@ -663,6 +712,9 @@ export function renderVttAppHtml(
           <button type="button" onclick="openSessionWalkthroughModal(0)" class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 font-bold">
             📖 Open Walkthrough
           </button>
+          <button type="button" onclick="openFeatureTourModal()" class="px-2.5 py-1 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-400/50 font-bold">
+            ❓ What Things Do
+          </button>
           <button type="button" onclick="toggleStartHereGuideBar(false)" class="px-2 py-1 rounded-lg text-slate-400 hover:text-slate-200 font-semibold">
             ✕ Hide Guide
           </button>
@@ -734,6 +786,8 @@ export function renderVttAppHtml(
             <img id="vtt-scene-backdrop" src="/assets/backgrounds/backdrop-hearth-tavern.svg" alt="Scene Backdrop" class="hidden absolute inset-0 w-full h-full object-cover opacity-65 pointer-events-none z-0 transition-opacity duration-500" />
             <div class="pointer-events-none absolute inset-0 z-[5] rounded-xl" style="box-shadow: inset 0 0 22px rgba(2, 6, 23, 0.28);"></div>
             <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative z-10 select-none"></div>
+            <div id="vtt-map-props-layer" class="absolute inset-0 pointer-events-none z-[13] rounded-xl overflow-hidden"></div>
+            <div id="vtt-map-canopy-layer" class="absolute inset-0 pointer-events-none z-[18] rounded-xl overflow-hidden"></div>
             <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
             <canvas id="vtt-tools-canvas" style="touch-action: none;" class="absolute inset-0 w-full h-full pointer-events-none z-30 rounded-xl"></canvas>
             <div id="vtt-door-hitboxes" class="absolute inset-0 pointer-events-none z-40"></div>
@@ -792,6 +846,68 @@ export function renderVttAppHtml(
                     <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
                   </div>
                   <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
+                </div>
+                <!-- Foundry Ground Textures & Scenery Prop Stamp Studio (Admin / Creator Only) -->
+                <div id="creator-map-props-studio" class="mt-1 pt-2 border-t border-amber-500/25 space-y-1.5 text-xs">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-bold text-emerald-300">🌲 Foundry Map Scenery &amp; Ground:</span>
+                      <select id="select-ground-tile-theme" onchange="setCreatorGroundTileTheme(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs">
+                        <option value="BAKERY_FLOOR">🪨 Warm Hearth Sandstone</option>
+                        <option value="TREEHOUSE_WOOD">🪵 Cedar Treehouse Planks</option>
+                        <option value="STARLIGHT_DECK">✨ Celestial Slate &amp; Brass</option>
+                        <option value="FOREST_GRASS">🌿 Emerald Forest Grass</option>
+                        <option value="DUNGEON_STONE">🏰 Crypt Ashlar Flagstone</option>
+                        <option value="CAVERN_DIRT">🏜️ Packed Cavern Dirt &amp; Gravel</option>
+                      </select>
+                    </div>
+                    <span id="creator-stamp-status" class="text-[11px] text-slate-400">Pick a prop &amp; click board to stamp</span>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <select id="select-creator-map-prop" class="theme-input border rounded-lg px-2 py-1 text-xs">
+                      <optgroup label="🌳 Trees, Branches &amp; Nature">
+                        <option value="treeOakCanopy">🌳 Ancient Oak Canopy (2x2)</option>
+                        <option value="treePineCluster">🌲 Evergreen Pine Tree (2x2)</option>
+                        <option value="treeStumpMossy">🪵 Mossy Tree Stump</option>
+                        <option value="branchFallenLog">🌿 Fallen Mossy Log &amp; Branches</option>
+                        <option value="boulderMossy">🪨 Craggy Mossy Boulder</option>
+                        <option value="bushBerryThicket">🫐 Wild Berry Bush Thicket</option>
+                      </optgroup>
+                      <optgroup label="🪑 Furniture &amp; Hearth">
+                        <option value="furnitureOakTable">🍽️ Long Oak Banquet Table</option>
+                        <option value="furnitureChair">🪑 Oak Tavern Chair</option>
+                        <option value="furnitureBookshelf">📚 Scholarly Oak Bookshelf</option>
+                        <option value="furnitureBedrollCot">🛏️ Cozy Travel Cot &amp; Quilt</option>
+                        <option value="furnitureBarrelCrates">🛢️ Barrels &amp; Supply Crates</option>
+                        <option value="furnitureBakerOven">🥖 Brick Hearth Bakery Oven</option>
+                      </optgroup>
+                      <optgroup label="🔥 Light Fixtures (Dynamic Glow)">
+                        <option value="lightStandingBrazier">🔥 Standing Fire Brazier</option>
+                        <option value="lightWallSconce">🏮 Wall Torch Sconce</option>
+                        <option value="lightChandelier">🕯️ Iron Wheel Chandelier</option>
+                        <option value="lightLanternPost">🔦 Brass Street Lantern</option>
+                      </optgroup>
+                      <optgroup label="⛺ Camp Gear &amp; Supplies">
+                        <option value="campTent">⛺ Explorer Canvas Tent</option>
+                        <option value="campCampfireStones">🔥 Stone Ring Campfire</option>
+                        <option value="campCauldronPot">🍲 Simmering Cauldron</option>
+                        <option value="campBackpackSupplies">🎒 Pack, Rope &amp; Map</option>
+                      </optgroup>
+                      <optgroup label="💀 Bones &amp; Dungeon Scatter">
+                        <option value="bonesPileSkulls">💀 Old Bones &amp; Skull</option>
+                        <option value="bonesSkeletonRemains">🦴 Forgotten Skeleton Remains</option>
+                      </optgroup>
+                    </select>
+                    <button id="btn-toggle-prop-stamp" type="button" onclick="toggleCreatorPropStampMode()" class="px-2.5 py-1 rounded-lg font-bold bg-slate-800 hover:bg-emerald-700 text-slate-200 border border-slate-600 transition">
+                      🖌️ Stamp Mode: OFF
+                    </button>
+                    <button type="button" onclick="stampSelectedMapPropAt(4, 2)" class="px-2.5 py-1 rounded-lg font-bold bg-emerald-700 hover:bg-emerald-600 text-white shadow-sm">
+                      ➕ Quick Stamp Center
+                    </button>
+                    <button type="button" onclick="clearCreatorMapProps()" class="px-2 py-1 rounded-lg font-bold bg-rose-950/70 hover:bg-rose-800 text-rose-200 border border-rose-500/40">
+                      🧹 Clear Props
+                    </button>
+                  </div>
                 </div>
               </div>
               ${renderLightingControlsHtml()}
@@ -1498,6 +1614,72 @@ export function renderVttAppHtml(
     </div>
   </div>
 
+  <!-- MODAL: INTERACTIVE UI TOUR — WHERE TO START & WHAT EVERYTHING DOES -->
+  <div id="feature-tour-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeFeatureTourModal()">
+    <div class="theme-card border-2 border-violet-400/80 rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span class="px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-violet-500/20 text-violet-300 border border-violet-400/50">
+            Interactive Workspace Guide
+          </span>
+          <h3 class="text-lg font-extrabold text-amber-400 mt-1">🗺️ Where to Start &amp; What Everything Does</h3>
+          <p class="text-xs text-slate-400">Click any <strong>👉 Highlight on Screen</strong> button below to scroll straight to that tool and highlight it for your table.</p>
+        </div>
+        <button type="button" onclick="closeFeatureTourModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-emerald-300">1️⃣ Start Here Quick-Start Strip</div>
+          <p class="text-slate-300 leading-relaxed">Your numbered 4-step checklist at the top of the screen: Read the Opening Hook, share the QR invite, move your Hero to the first door, and roll an Action Card.</p>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="closeFeatureTourModal(); quickStartStep1ReadIntro();" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">🚀 Read Opening Hook</button>
+            <button type="button" onclick="pointToUiSection('start-here-guide-bar')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold border border-slate-600">👉 Point to It</button>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-amber-300">2️⃣ Battlemap, Doors, Props &amp; Zoom</div>
+          <p class="text-slate-300 leading-relaxed">Your static tabletop adventure map with layered furniture, trees, campfires, dynamic torchlight shadows, interactive doors, and <strong>Zoom - / + / Fit</strong> controls.</p>
+          <button type="button" onclick="pointToUiSection('vtt-board-viewport')" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/50 font-bold">👉 Point to Battlemap</button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-indigo-300">3️⃣ Teleprompter, Stage Art &amp; Voice Read-Aloud</div>
+          <p class="text-slate-300 leading-relaxed">Read-aloud box text tailored to <em>Cozy</em>, <em>Heroic</em>, or <em>Mystery</em> tone, plus pre-combat <strong>Area Map &amp; Scene Mood</strong> pictures and <strong>🔊 Voice TTS</strong>.</p>
+          <button type="button" onclick="pointToUiSection('gm-story-panel')" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-400/50 font-bold">👉 Point to Teleprompter</button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-sky-300">4️⃣ Kid Controller, D-Pad, Action Cards &amp; Custom Tokens</div>
+          <p class="text-slate-300 leading-relaxed">Select a Hero, walk with the <strong>Cross D-Pad / WASD</strong> (green tile highlights show speed range), upload custom character portraits, and roll cards!</p>
+          <button type="button" onclick="pointToUiSection('vtt-dpad-controller')" class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 font-bold">👉 Point to Hero Controls</button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-rose-300">5️⃣ Initiative, Turn Order &amp; DM Turn Lock</div>
+          <p class="text-slate-300 leading-relaxed">Tap <strong>🎲 Roll Initiative</strong> when combat starts! Enforces turn-by-turn movement &amp; speed caps automatically—or flip <strong>🔓 Free Move</strong> anytime.</p>
+          <button type="button" onclick="pointToUiSection('combat-tracker-bar')" class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/50 font-bold">👉 Point to Turn Order</button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-purple-300">6️⃣ Music Player, Invites &amp; Table Ambiance</div>
+          <p class="text-slate-300 leading-relaxed">Play or mute fantasy music right in the top bar, share a <strong>📲 QR Code</strong> for phones/TVs, and tune ambient light or difficulty from <strong>🕯️ Table Ambiance</strong>.</p>
+          <button type="button" onclick="pointToUiSection('btn-music-toggle')" class="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-400/50 font-bold">👉 Point to Music Bar</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-700/50 text-xs">
+        <button type="button" onclick="closeFeatureTourModal(); openSessionWalkthroughModal(0);" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 font-bold">
+          🧭 Open 4-Step Walkthrough
+        </button>
+        <button type="button" onclick="closeFeatureTourModal()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">
+          ✓ Got It, Let's Play!
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let state = ${serialized};
     const rawUrlMode = (new URLSearchParams(window.location.search).get("mode") || "").toUpperCase();
@@ -1928,7 +2110,7 @@ export function renderVttAppHtml(
               "<div class='font-bold text-slate-100'>" + (isAdmin ? "👑 " : "👤 ") + a.familyName + " <span class='font-mono text-slate-400'>(" + a.email + ")</span></div>" +
               "<div class='text-[11px] text-slate-400'>Room: <strong class='text-amber-300 font-mono'>" + a.trialRoomCode + "</strong> • Auth: <strong>" + a.authProvider + "</strong> • Tier: <strong>" + a.subscriptionTier + "</strong></div>" +
             "</div>" +
-            "<button onclick=\"toggleAccountRoleByAdmin('" + a.id + "', '" + nextRole + "')\" class='px-2.5 py-1 rounded-lg text-[11px] font-bold " + (isAdmin ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-amber-500 hover:bg-amber-400 text-slate-950") + "'>" +
+            "<button type='button' data-acct-id='" + a.id + "' data-next-role='" + nextRole + "' onclick='toggleAccountRoleByAdmin(this.dataset.acctId, this.dataset.nextRole)' class='px-2.5 py-1 rounded-lg text-[11px] font-bold " + (isAdmin ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-amber-500 hover:bg-amber-400 text-slate-950") + "'>" +
               (isAdmin ? "Demote to User" : "Make Admin") +
             "</button>" +
           "</div>";
@@ -2049,6 +2231,47 @@ export function renderVttAppHtml(
       if (modal) modal.classList.remove("hidden");
     }
 
+    function buildFallbackOpeningPrompt() {
+      const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
+      const byTone = activeNode.readAloudByTone || {};
+      return {
+        id: "opening-hook-fallback",
+        trigger: "SESSION_START",
+        speakerName: state.campaignTitle || "Adventure Narrator",
+        speakerEmoji: "📖",
+        speakerRole: "NARRATOR",
+        title: activeNode.title || "Session 1 Opening Hook",
+        spokenText: state.sessionOpeningHook || byTone[activeTone] || byTone.COZY_SILLY || "Your heroes gather at the edge of adventure! Roll initiative or open the first door when ready.",
+        playerPromptQuestion: "How does your party kick off the adventure?",
+        suggestedReplyOptions: [
+          "We inspect the area carefully and ready our gear!",
+          "We call out a cheerful greeting and stride boldly forward!",
+        ],
+      };
+    }
+
+    function openFeatureTourModal() {
+      const modal = document.getElementById("feature-tour-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeFeatureTourModal() {
+      const modal = document.getElementById("feature-tour-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function pointToUiSection(elementId) {
+      closeFeatureTourModal();
+      const target = document.getElementById(elementId);
+      if (!target) return;
+      target.classList.remove("hidden");
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("ring-4", "ring-amber-400", "ring-offset-2", "ring-offset-slate-950", "transition-all");
+      setTimeout(() => {
+        target.classList.remove("ring-4", "ring-amber-400", "ring-offset-2", "ring-offset-slate-950");
+      }, 3200);
+    }
+
     function closeSessionWalkthroughModal(openReadoutAfter) {
       if (state && state.roomCode) {
         try {
@@ -2061,12 +2284,12 @@ export function renderVttAppHtml(
         window.speechSynthesis.cancel();
       }
       if (openReadoutAfter) {
+        quickStartProgress.readIntro = true;
+        renderStartHereGuideBar();
         const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
-        const promptToOpen = state.activeRpPrompt || (activeNode.rpPrompts && activeNode.rpPrompts[0]) || null;
-        if (promptToOpen) {
-          openRpReadoutModal(promptToOpen);
-          return;
-        }
+        const promptToOpen = state.activeRpPrompt || (activeNode.rpPrompts && activeNode.rpPrompts[0]) || buildFallbackOpeningPrompt();
+        openRpReadoutModal(promptToOpen);
+        return;
       }
       if (state.activeRpPrompt && state.activeRpPrompt.id !== lastSeenRpPromptId) {
         openRpReadoutModal(state.activeRpPrompt);
@@ -2150,12 +2373,8 @@ export function renderVttAppHtml(
       quickStartProgress.readIntro = true;
       renderStartHereGuideBar();
       const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
-      const prompt = state.activeRpPrompt || (activeNode.rpPrompts && activeNode.rpPrompts[0]) || null;
-      if (prompt) {
-        openRpReadoutModal(prompt);
-      } else {
-        document.getElementById("gm-story-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      const prompt = state.activeRpPrompt || (activeNode.rpPrompts && activeNode.rpPrompts[0]) || buildFallbackOpeningPrompt();
+      openRpReadoutModal(prompt);
     }
 
     function quickStartStep2QrInvite() {
@@ -2877,7 +3096,82 @@ export function renderVttAppHtml(
       );
     }
 
+    let isCreatorPropStampMode = false;
+
+    function toggleCreatorPropStampMode() {
+      isCreatorPropStampMode = !isCreatorPropStampMode;
+      const btn = document.getElementById("btn-toggle-prop-stamp");
+      const status = document.getElementById("creator-stamp-status");
+      if (btn) {
+        btn.innerText = isCreatorPropStampMode ? "🖌️ Stamp Mode: ON (Click Board)" : "🖌️ Stamp Mode: OFF";
+        btn.className = isCreatorPropStampMode
+          ? "px-2.5 py-1 rounded-lg font-bold bg-emerald-500 text-slate-950 border border-emerald-300 shadow-sm transition"
+          : "px-2.5 py-1 rounded-lg font-bold bg-slate-800 hover:bg-emerald-700 text-slate-200 border border-slate-600 transition";
+      }
+      if (status) {
+        status.innerText = isCreatorPropStampMode
+          ? "Click any board square to stamp — click a prop to remove it"
+          : "Pick a prop & click board to stamp";
+      }
+      renderGrid();
+    }
+
+    async function stampSelectedMapPropAt(x, y) {
+      const sel = document.getElementById("select-creator-map-prop");
+      const propKey = sel ? sel.value : "furnitureOakTable";
+      const res = await apiPost("/api/room/map-props", {
+        roomCode: state.roomCode,
+        action: "STAMP",
+        propKey,
+        gridX: x,
+        gridY: y,
+      });
+      if (res && res.room) {
+        state = res.room;
+        renderAll();
+      }
+    }
+
+    async function removeCreatorMapProp(propId) {
+      const res = await apiPost("/api/room/map-props", {
+        roomCode: state.roomCode,
+        action: "REMOVE",
+        propId,
+      });
+      if (res && res.room) {
+        state = res.room;
+        renderAll();
+      }
+    }
+
+    async function clearCreatorMapProps() {
+      const res = await apiPost("/api/room/map-props", {
+        roomCode: state.roomCode,
+        action: "CLEAR",
+      });
+      if (res && res.room) {
+        state = res.room;
+        renderAll();
+      }
+    }
+
+    async function setCreatorGroundTileTheme(groundTileTheme) {
+      const res = await apiPost("/api/room/map-props", {
+        roomCode: state.roomCode,
+        action: "SET_GROUND_TILE",
+        groundTileTheme,
+      });
+      if (res && res.room) {
+        state = res.room;
+        renderAll();
+      }
+    }
+
     async function moveTokenToCell(x, y) {
+      if (isCreatorPropStampMode && currentAccount && currentAccount.role === "ADMIN") {
+        await stampSelectedMapPropAt(x, y);
+        return;
+      }
       const heroTok = getControllableHeroToken();
       if (!heroTok) return;
       selectedTokenId = heroTok.id;
@@ -3375,12 +3669,36 @@ export function renderVttAppHtml(
 
       // Tactical Battlemap Theme Background
       const gridEl = document.getElementById("vtt-grid");
-      gridEl.className = "grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 relative select-none shadow-inner " +
+      const groundThemeClassMap = {
+        BAKERY_FLOOR: "bg-bakery",
+        TREEHOUSE_WOOD: "bg-treehouse",
+        STARLIGHT_DECK: "bg-starlight",
+        FOREST_GRASS: "bg-forest-grass",
+        DUNGEON_STONE: "bg-dungeon-stone",
+        CAVERN_DIRT: "bg-cavern-dirt",
+      };
+      const groundThemeTileUrlMap = {
+        BAKERY_FLOOR: "/assets/tiles/tile-bakery-floor.svg",
+        TREEHOUSE_WOOD: "/assets/tiles/tile-treehouse-wood.svg",
+        STARLIGHT_DECK: "/assets/tiles/tile-starlight-deck.svg",
+        FOREST_GRASS: "/assets/tiles/tile-forest-grass.svg",
+        DUNGEON_STONE: "/assets/tiles/tile-dungeon-stone.svg",
+        CAVERN_DIRT: "/assets/tiles/tile-cavern-dirt.svg",
+      };
+      const defaultBgClass =
+        (state.groundTileTheme && groundThemeClassMap[state.groundTileTheme]) ||
         (state.campaignId === "camp-clockwork-treehouse"
           ? "bg-treehouse"
           : state.campaignId === "camp-starlight-otter"
           ? "bg-starlight"
           : "bg-bakery");
+      gridEl.className =
+        "grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 relative select-none shadow-inner " +
+        defaultBgClass;
+      const groundSel = document.getElementById("select-ground-tile-theme");
+      if (groundSel && state.groundTileTheme) {
+        groundSel.value = state.groundTileTheme;
+      }
 
       // Active story node
       const activeNode =
@@ -3456,6 +3774,11 @@ export function renderVttAppHtml(
               : isReachableSq
               ? "vtt-cell-reachable"
               : "hover:bg-amber-500/15");
+          if (!isFogged && zone && zone.groundTileTheme && groundThemeTileUrlMap[zone.groundTileTheme] && groundThemeClassMap[zone.groundTileTheme] !== defaultBgClass) {
+            cell.style.backgroundImage = "url('" + groundThemeTileUrlMap[zone.groundTileTheme] + "')";
+            cell.style.backgroundSize = "200% 200%";
+            cell.style.backgroundPosition = (x % 2 === 0 ? "0%" : "100%") + " " + (y % 2 === 0 ? "0%" : "100%");
+          }
 
           if (x === zone?.gridX && y === 0) {
             const label = document.createElement("span");
@@ -3561,6 +3884,58 @@ export function renderVttAppHtml(
           gridEl.appendChild(cell);
         }
       }
+
+      // Render Layered Foundry Map Objects & Scenery Props (Ground Clutter, Furniture, Fires, Bones, Trees)
+      const propsLayerEl = document.getElementById("vtt-map-props-layer");
+      const canopyLayerEl = document.getElementById("vtt-map-canopy-layer");
+      if (propsLayerEl) propsLayerEl.innerHTML = "";
+      if (canopyLayerEl) canopyLayerEl.innerHTML = "";
+      const colsCount = state.gridCols || 10;
+      const rowsCount = state.gridRows || 6;
+      const canEditProps = Boolean(isCreatorPropStampMode && currentAccount && currentAccount.role === "ADMIN");
+      if (propsLayerEl) propsLayerEl.style.pointerEvents = canEditProps ? "auto" : "none";
+      if (canopyLayerEl) canopyLayerEl.style.pointerEvents = canEditProps ? "auto" : "none";
+      (state.mapProps || []).forEach((prop) => {
+        const pw = prop.widthSq || 1;
+        const ph = prop.heightSq || 1;
+        const cx = prop.gridX + pw * 0.5;
+        const cy = prop.gridY + ph * 0.5;
+        const propZone = (state.zones || []).find(
+          (z) => cx >= z.gridX && cx < z.gridX + z.width && cy >= z.gridY && cy < z.gridY + z.height
+        );
+        if (propZone && !propZone.isRevealed && displayMode !== "GM_COMMAND") return;
+
+        const targetContainer = prop.zLayer === "CANOPY" && canopyLayerEl ? canopyLayerEl : propsLayerEl;
+        if (!targetContainer) return;
+
+        const wrap = document.createElement("div");
+        wrap.className =
+          "vtt-map-prop-item flex items-center justify-center " +
+          (prop.zLayer === "CANOPY" ? "vtt-prop-canopy " : "") +
+          (canEditProps ? "cursor-crosshair ring-1 ring-amber-400/70 rounded-lg pointer-events-auto" : "pointer-events-none");
+        wrap.style.left = (prop.gridX / colsCount) * 100 + "%";
+        wrap.style.top = (prop.gridY / rowsCount) * 100 + "%";
+        wrap.style.width = (pw / colsCount) * 100 + "%";
+        wrap.style.height = (ph / rowsCount) * 100 + "%";
+        wrap.style.zIndex = prop.zLayer === "FLOOR" ? "1" : prop.zLayer === "CANOPY" ? "4" : "2";
+        if (prop.rotationDeg) {
+          wrap.style.transform = "rotate(" + prop.rotationDeg + "deg)";
+        }
+        wrap.title = prop.label + (canEditProps ? " (Click to Remove)" : "");
+        if (canEditProps) {
+          wrap.onclick = (e) => {
+            e.stopPropagation();
+            removeCreatorMapProp(prop.id);
+          };
+        }
+
+        const img = document.createElement("img");
+        img.src = prop.assetPath;
+        img.alt = prop.label;
+        img.className = "w-full h-full object-contain select-none";
+        wrap.appendChild(img);
+        targetContainer.appendChild(wrap);
+      });
 
       // Zone Reveal buttons
       const zBtns = document.getElementById("zone-buttons");

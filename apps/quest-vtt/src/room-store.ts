@@ -12,8 +12,10 @@ import {
   DiceRollResult,
   DieType,
   DifficultyPreset,
+  GroundTileTheme,
   LoreEntryType,
   LoreRegistryEntry,
+  MapPropPlacement,
   MapToken,
   RoomSessionState,
   RulesTier,
@@ -21,6 +23,7 @@ import {
   SkillId,
   SpellTemplate,
   WallSegment,
+  HEARTHQUEST_ASSETS,
   resolveArchetypeAsset,
   resolveAreaMapAsset,
   resolveSceneBackdropAsset,
@@ -899,6 +902,8 @@ export function regenerateRoomProceduralMap(params: {
   room.zones = layout.zones;
   room.tokens = layout.tokens;
   room.walls = createDefaultZoneWalls(layout.zones);
+  room.mapProps = layout.mapProps;
+  room.groundTileTheme = layout.groundTileTheme;
   autoPersistRooms();
   return room;
 }
@@ -1611,6 +1616,8 @@ export function generateOneShotInRoom(roomCode: string): {
   room.zones = generated.zones;
   room.tokens = generated.tokens;
   room.walls = generated.walls;
+  room.mapProps = generated.mapProps;
+  room.groundTileTheme = generated.groundTileTheme;
   room.storyNodes = generated.storyNodes;
   room.sceneBackdrop = generated.blueprint.backdrop;
   room.stageAreaMapUrl = resolveAreaMapAsset(generated.blueprint.backdrop);
@@ -1626,6 +1633,72 @@ export function generateOneShotInRoom(roomCode: string): {
     loreEntry: generated.loreEntry,
     partyLevel: generated.partyLevel,
   };
+}
+
+/**
+ * Creator/Admin tool: Stamps, removes, or swaps textured ground tiles and map objects (trees, branches,
+ * furniture, light fixtures, camp items, bones/skeletons) on the tactical battlemap.
+ */
+export function updateRoomMapProps(params: {
+  roomCode: string;
+  action: "STAMP" | "REMOVE" | "CLEAR" | "SET_GROUND_TILE";
+  propKey?: string;
+  propId?: string;
+  gridX?: number;
+  gridY?: number;
+  rotationDeg?: number;
+  groundTileTheme?: GroundTileTheme;
+  zoneId?: string;
+}): { room: RoomSessionState; addedProp?: MapPropPlacement } {
+  const room = getOrCreateRoom(params.roomCode);
+  if (!Array.isArray(room.mapProps)) {
+    room.mapProps = [];
+  }
+
+  let addedProp: MapPropPlacement | undefined;
+
+  if (params.action === "STAMP" && params.propKey) {
+    const catalogEntry = (HEARTHQUEST_ASSETS.mapProps as Record<string, any>)[params.propKey];
+    if (catalogEntry) {
+      const gx = Math.max(0, Math.min((room.gridCols || 10) - 0.5, Number(params.gridX ?? 1)));
+      const gy = Math.max(0, Math.min((room.gridRows || 6) - 0.5, Number(params.gridY ?? 1)));
+      addedProp = {
+        id: `mprop-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        propKey: params.propKey,
+        label: catalogEntry.name,
+        category: catalogEntry.category,
+        assetPath: catalogEntry.path,
+        gridX: gx,
+        gridY: gy,
+        widthSq: catalogEntry.defaultWidthSq ?? 1,
+        heightSq: catalogEntry.defaultHeightSq ?? 1,
+        rotationDeg: Number.isFinite(params.rotationDeg) ? Number(params.rotationDeg) : 0,
+        zLayer: catalogEntry.zLayer || "OBJECT",
+        lightRadius: catalogEntry.lightRadius,
+        lightColor: catalogEntry.lightColor,
+      };
+      room.mapProps.push(addedProp);
+    }
+  } else if (params.action === "REMOVE" && params.propId) {
+    room.mapProps = room.mapProps.filter((p) => p.id !== params.propId);
+  } else if (params.action === "CLEAR") {
+    room.mapProps = [];
+  } else if (params.action === "SET_GROUND_TILE" && params.groundTileTheme) {
+    if (params.zoneId) {
+      const targetZone = room.zones.find((z) => z.id === params.zoneId);
+      if (targetZone) {
+        targetZone.groundTileTheme = params.groundTileTheme;
+      }
+    } else {
+      room.groundTileTheme = params.groundTileTheme;
+      room.zones.forEach((z) => {
+        z.groundTileTheme = params.groundTileTheme;
+      });
+    }
+  }
+
+  autoPersistRooms();
+  return { room, addedProp };
 }
 
 export { FAMILY_CAMPAIGNS };

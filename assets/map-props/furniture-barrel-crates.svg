@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="clusterShadowFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.8" />
+    </filter>
+    <filter id="crateInnerShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1" />
+    </filter>
+
+    <radialGradient id="barrelHead" cx="42%" cy="40%" r="58%">
+      <stop offset="0%" stop-color="#a16207" />
+      <stop offset="55%" stop-color="#78350f" />
+      <stop offset="90%" stop-color="#451a03" />
+      <stop offset="100%" stop-color="#220d02" />
+    </radialGradient>
+
+    <linearGradient id="ironHoopGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="50%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <linearGradient id="cratePlank" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#854d0e" />
+      <stop offset="50%" stop-color="#a16207" />
+      <stop offset="100%" stop-color="#713f12" />
+    </linearGradient>
+
+    <linearGradient id="crateFrame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#592d07" />
+      <stop offset="100%" stop-color="#3f1e06" />
+    </linearGradient>
+
+    <linearGradient id="ropeGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d97706" />
+      <stop offset="50%" stop-color="#b45309" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Ground Shadow under cluster -->
+  <g id="groundShadow" fill="#09090b" opacity="0.4" filter="url(#clusterShadowFilter)">
+    <circle cx="48" cy="78" r="27" />
+    <rect x="58" y="28" width="50" height="50" rx="6" transform="rotate(12 83 53)" />
+    <circle cx="44" cy="38" r="16" />
+  </g>
+
+  <!-- 1. Coiled Hemp Climbing Rope (Top-Left) -->
+  <g id="ropeCoil" transform="translate(42, 38)">
+    <!-- Base Rope Pad -->
+    <circle cx="0" cy="0" r="14.5" fill="#78350f" stroke="#451a03" stroke-width="0.8" />
+    <!-- Concentric Twisted Rope Coils -->
+    <circle cx="0" cy="0" r="13" fill="none" stroke="#d97706" stroke-width="2.6" stroke-dasharray="3.2 1.2" />
+    <circle cx="0" cy="0" r="10.2" fill="none" stroke="#b45309" stroke-width="2.6" stroke-dasharray="3 1.2" />
+    <circle cx="0" cy="0" r="7.4" fill="none" stroke="#d97706" stroke-width="2.4" stroke-dasharray="2.8 1" />
+    <circle cx="0" cy="0" r="4.8" fill="none" stroke="#b45309" stroke-width="2.2" stroke-dasharray="2.5 1" />
+    <circle cx="0" cy="0" r="2.2" fill="#592d07" />
+    <!-- Loose Tail End Overhang -->
+    <path d="M 6 12 Q 12 16 16 13" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 1.2" />
+    <path d="M 16 13 L 18 12.5" stroke="#fde68a" stroke-width="1.2" stroke-linecap="round" />
+  </g>
+
+  <!-- 2. Nailed Supply Crate (Top-Right, Angled) -->
+  <g id="supplyCrate" transform="translate(83, 53) rotate(12)">
+    <!-- Main Crate Board Base -->
+    <rect x="-22" y="-22" width="44" height="44" rx="2" fill="url(#cratePlank)" stroke="#271003" stroke-width="1" />
+
+    <!-- 4 Interior Planks (Vertical Seams) -->
+    <path d="M -11 -22 L -11 22 M 0 -22 L 0 22 M 11 -22 L 11 22" stroke="#2a1204" stroke-width="1.1" />
+    <path d="M -10 -21 L -10 21 M 1 -21 L 1 21 M 12 -21 L 12 21" stroke="#f59e0b" stroke-width="0.5" opacity="0.35" />
+
+    <!-- Diagonal X-Braces across lid -->
+    <line x1="-19" y1="-19" x2="19" y2="19" stroke="url(#crateFrame)" stroke-width="4.5" stroke-linecap="square" />
+    <line x1="-19" y1="19" x2="19" y2="-19" stroke="url(#crateFrame)" stroke-width="4.5" stroke-linecap="square" />
+
+    <!-- Highlight on X-Brace Edges -->
+    <line x1="-18" y1="-20" x2="18" y2="18" stroke="#ca8a04" stroke-width="0.75" opacity="0.5" />
+    <line x1="-18" y1="18" x2="18" y2="-20" stroke="#ca8a04" stroke-width="0.75" opacity="0.5" />
+
+    <!-- Outer Timber Frame Border -->
+    <rect x="-22" y="-22" width="44" height="44" rx="1.5" fill="none" stroke="#3b1704" stroke-width="3" />
+    <rect x="-20.5" y="-20.5" width="41" height="41" fill="none" stroke="#d97706" stroke-width="0.6" opacity="0.4" />
+
+    <!-- 4 Corner Iron Brackets with Square Nails -->
+    <!-- Top-Left Bracket -->
+    <path d="M -22 -14 L -18 -14 L -18 -18 L -14 -18 L -14 -22 L -22 -22 Z" fill="url(#ironHoopGrad)" stroke="#09090b" stroke-width="0.6" />
+    <rect x="-20.5" y="-20.5" width="2" height="2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <!-- Top-Right Bracket -->
+    <path d="M 22 -14 L 18 -14 L 18 -18 L 14 -18 L 14 -22 L 22 -22 Z" fill="url(#ironHoopGrad)" stroke="#09090b" stroke-width="0.6" />
+    <rect x="18.5" y="-20.5" width="2" height="2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <!-- Bottom-Left Bracket -->
+    <path d="M -22 14 L -18 14 L -18 18 L -14 18 L -14 22 L -22 22 Z" fill="url(#ironHoopGrad)" stroke="#09090b" stroke-width="0.6" />
+    <rect x="-20.5" y="18.5" width="2" height="2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <!-- Bottom-Right Bracket -->
+    <path d="M 22 14 L 18 14 L 18 18 L 14 18 L 14 22 L 22 22 Z" fill="url(#ironHoopGrad)" stroke="#09090b" stroke-width="0.6" />
+    <rect x="18.5" y="18.5" width="2" height="2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+
+    <!-- Center Hub Rivet -->
+    <circle cx="0" cy="0" r="2" fill="url(#ironHoopGrad)" stroke="#09090b" stroke-width="0.5" />
+    <circle cx="-0.4" cy="-0.4" r="0.8" fill="#f8fafc" />
+  </g>
+
+  <!-- 3. Coopered Oak Barrel (Bottom-Left, Overlapping slightly) -->
+  <g id="oakBarrel" transform="translate(48, 76)">
+    <!-- Outer Barrel Belly Rim Cast Shadow -->
+    <circle cx="0" cy="0" r="25" fill="#1c0a01" />
+
+    <!-- Barrel Staves Lid (Circular Head) -->
+    <circle cx="0" cy="0" r="23" fill="url(#barrelHead)" stroke="#220c02" stroke-width="1.2" />
+
+    <!-- Barrel Staves Seam Grooves -->
+    <path d="M -9 -21.2 L -9 21.2" stroke="#220c02" stroke-width="1.1" />
+    <path d="M 0 -23 L 0 23" stroke="#220c02" stroke-width="1.1" />
+    <path d="M 9 -21.2 L 9 21.2" stroke="#220c02" stroke-width="1.1" />
+
+    <!-- Staves Wood Grain Highlights -->
+    <path d="M -15 -12 Q -13 0 -15 12" stroke="#d97706" stroke-width="0.5" fill="none" opacity="0.3" />
+    <path d="M -4 -16 Q -5 0 -4 16" stroke="#d97706" stroke-width="0.5" fill="none" opacity="0.3" />
+    <path d="M 4 -16 Q 5 0 4 16" stroke="#d97706" stroke-width="0.5" fill="none" opacity="0.3" />
+    <path d="M 15 -12 Q 13 0 15 12" stroke="#d97706" stroke-width="0.5" fill="none" opacity="0.3" />
+
+    <!-- Bung Hole with Cork Plug -->
+    <g transform="translate(4.5, -7)">
+      <circle cx="0" cy="0" r="3.2" fill="#240e02" />
+      <circle cx="0" cy="0" r="2.5" fill="#b45309" stroke="#1c0a01" stroke-width="0.5" />
+      <circle cx="-0.5" cy="-0.5" r="1" fill="#fde68a" opacity="0.5" />
+    </g>
+
+    <!-- Outer Iron Chime Ring / Hoop (Heavy Forged Iron Rim) -->
+    <circle cx="0" cy="0" r="24" fill="none" stroke="url(#ironHoopGrad)" stroke-width="2.5" />
+    <circle cx="0" cy="0" r="25.2" fill="none" stroke="#09090b" stroke-width="0.8" />
+    <circle cx="0" cy="0" r="22.8" fill="none" stroke="#f1f5f9" stroke-width="0.6" opacity="0.3" />
+
+    <!-- 6 Iron Rivets on Hoop -->
+    <circle cx="-16.5" cy="-16.5" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <circle cx="16.5" cy="-16.5" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <circle cx="23" cy="0" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <circle cx="16.5" cy="16.5" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <circle cx="-16.5" cy="16.5" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+    <circle cx="-23" cy="0" r="1.2" fill="#cbd5e1" stroke="#09090b" stroke-width="0.4" />
+  </g>
+</svg>
