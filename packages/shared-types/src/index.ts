@@ -16,6 +16,20 @@ export type DisplayMode = "GM_COMMAND" | "TABLE_TV_DISPLAY" | "PLAYER_CONTROLLER
 
 export type ThemeMode = "DARK_MIDNIGHT" | "LIGHT_PARCHMENT";
 
+export type AmbientLightingMode = "BRIGHT_DAYLIGHT" | "COZY_TWILIGHT" | "TORCHLIT_DUNGEON";
+
+export interface WallSegment {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  isDoor?: boolean;
+  isOpen?: boolean;
+  blocksVision: boolean;
+  zoneId?: string;
+}
+
 export type DiceInputMode = "HYBRID_PHYSICAL_PROMPT" | "DIGITAL_3D";
 
 export type DieType = "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
@@ -112,6 +126,8 @@ export interface MapToken {
   isLootChest?: boolean;
   isChestOpened?: boolean;
   lootRewardName?: string;
+  lightRadius?: number;
+  lightColor?: string;
 }
 
 export interface MapRoomZone {
@@ -164,6 +180,8 @@ export interface FamilyCampaignTemplate {
   zones: MapRoomZone[];
   tokens: MapToken[];
   storyNodes: StoryBranchNode[];
+  ambientLightMode?: AmbientLightingMode;
+  walls?: WallSegment[];
 }
 
 export interface PlayerSpotlightRecord {
@@ -254,4 +272,6 @@ export interface RoomSessionState {
   storyFlags: string[];
   rollHistory: DiceRollResult[];
   spotlightRecords: PlayerSpotlightRecord[];
+  ambientLightMode?: AmbientLightingMode;
+  walls?: WallSegment[];
 }

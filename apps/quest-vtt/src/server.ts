@@ -18,6 +18,7 @@ import {
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
+  updateRoomLighting,
   updateRoomSettings,
 } from "./room-store";
 import { renderVttAppHtml } from "./ui-template";
@@ -222,6 +223,19 @@ const server = http.createServer(async (req, res) => {
       rulesTier: body.rulesTier,
       contentRating: body.contentRating,
       diceInputMode: body.diceInputMode,
+    });
+    broadcastRoomUpdate(room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/lighting" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const room = updateRoomLighting({
+      roomCode: body.roomCode || "DRGN",
+      ambientLightMode: body.ambientLightMode,
+      toggleDoorId: body.toggleDoorId,
     });
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });

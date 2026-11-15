@@ -1,5 +1,6 @@
 import { RoomSessionState, getBuildMetadata } from "@hearthquest/shared-types";
 import { renderDice3DEngineScript, renderDice3DOverlayHtml } from "./dice-3d-engine";
+import { renderLighting2DEngineScript, renderLightingControlsHtml } from "./lighting-engine";
 
 export function renderVttAppHtml(initialState: RoomSessionState): string {
   const serialized = JSON.stringify(initialState).replace(/</g, "\\u003c");
@@ -244,25 +245,31 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           </div>
         </div>
 
-        <!-- 10x6 Interactive Tabletop Grid -->
-        <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative select-none shadow-inner"></div>
+        <!-- 10x6 Interactive Tabletop Grid + 2D Raycast Dynamic Lighting Overlay -->
+        <div id="vtt-grid-wrapper" class="relative w-full rounded-xl overflow-hidden shadow-inner">
+          <div id="vtt-grid" class="grid-board w-full rounded-xl overflow-hidden border-2 border-amber-500/50 bg-bakery relative select-none"></div>
+          <canvas id="vtt-lighting-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20 rounded-xl"></canvas>
+        </div>
 
         <!-- Zone Fog-of-War Controls (GM Only) -->
-        <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-wrap items-center justify-between gap-2">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold text-slate-400">🗺️ Fog of War Reveal:</span>
-            <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
+        <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold text-slate-400">🗺️ Fog of War Reveal:</span>
+              <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
+                <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
+                <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
+                <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
+              </select>
+              <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
+                🎲 New Procedural Map
+              </button>
+            </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
-              <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
-              <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
-              <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
-            </select>
-            <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
-              🎲 New Procedural Map
-            </button>
-          </div>
+          ${renderLightingControlsHtml()}
         </div>
       </div>
 
@@ -639,6 +646,8 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     ${renderDice3DEngineScript()}
 
+    ${renderLighting2DEngineScript()}
+
     /* ==========================================================
        3. API CALLS & HELPERS
        ========================================================== */
@@ -663,6 +672,20 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     function setDisplayMode(mode) {
       displayMode = mode;
       renderAll();
+    }
+
+    async function setAmbientLighting(ambientLightMode) {
+      await apiPost("/api/room/lighting", {
+        roomCode: state.roomCode,
+        ambientLightMode
+      });
+    }
+
+    async function toggleMapDoor(toggleDoorId) {
+      await apiPost("/api/room/lighting", {
+        roomCode: state.roomCode,
+        toggleDoorId
+      });
     }
 
     function setReadAloudTone(tone) {
@@ -1103,6 +1126,41 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
             : "bg-slate-800 border-slate-700 text-slate-400");
         b.innerText = (z.isRevealed ? "👁️ Revealed: " : "🌫️ Hidden: ") + z.name;
         zBtns.appendChild(b);
+      }
+
+      // Dynamic Lighting controls & Door buttons
+      Lighting2DEngine.init();
+      const lightModes = [
+        ["BRIGHT_DAYLIGHT", "btn-light-day"],
+        ["COZY_TWILIGHT", "btn-light-twilight"],
+        ["TORCHLIT_DUNGEON", "btn-light-dungeon"]
+      ];
+      const curLight = state.ambientLightMode || "COZY_TWILIGHT";
+      for (const [m, id] of lightModes) {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.className =
+            m === curLight
+              ? "px-2.5 py-1 rounded-lg font-bold border bg-amber-500 text-slate-950 border-amber-400 shadow-sm transition"
+              : "px-2.5 py-1 rounded-lg font-semibold border bg-slate-800 text-slate-300 border-slate-700 hover:border-amber-400/50 transition";
+        }
+      }
+
+      const doorBtns = document.getElementById("door-toggle-buttons");
+      if (doorBtns) {
+        doorBtns.innerHTML = "";
+        const doors = (state.walls || []).filter(w => w.isDoor);
+        doors.forEach((d, idx) => {
+          const db = document.createElement("button");
+          db.onclick = () => toggleMapDoor(d.id);
+          db.className =
+            "px-2.5 py-1 rounded-lg text-xs font-semibold border transition " +
+            (d.isOpen
+              ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-300"
+              : "bg-amber-950/70 border-amber-500/50 text-amber-300");
+          db.innerText = d.isOpen ? \`🚪 Door #\${idx + 1}: Open\` : \`🔒 Door #\${idx + 1}: Closed\`;
+          doorBtns.appendChild(db);
+        });
       }
 
       // Story Branch choices

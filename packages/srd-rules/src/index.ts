@@ -1,5 +1,6 @@
 import {
   ActionCard,
+  AmbientLightingMode,
   BedtimeFreezeSnapshot,
   CharacterSheet,
   ContentRating,
@@ -13,6 +14,7 @@ import {
   RulesTier,
   StoryBranchChoice,
   StoryBranchNode,
+  WallSegment,
   HEARTHQUEST_ASSETS,
   resolveTokenAsset,
 } from "@hearthquest/shared-types";
@@ -1087,6 +1089,172 @@ export const FAMILY_CAMPAIGNS: FamilyCampaignTemplate[] = [
 ];
 
 /**
+ * Generates Foundry-style shadow-casting wall & door segments for a 10x6 zone layout.
+ * Includes outer perimeter boundaries, partition walls with toggleable doorways between zones,
+ * and interior stone pillars that cast dynamic geometric shadows as heroes move.
+ */
+export function createDefaultZoneWalls(zones: MapRoomZone[]): WallSegment[] {
+  const z1 = zones[0] || { id: "z1", gridX: 0, width: 4, isRevealed: true };
+  const z2 = zones[1] || { id: "z2", gridX: 4, width: 3, isRevealed: false };
+  const z3 = zones[2] || { id: "z3", gridX: 7, width: 3, isRevealed: false };
+
+  const xSplit1 = z2.gridX;
+  const xSplit2 = z3.gridX;
+
+  return [
+    // Outer map boundaries
+    { id: "wall-border-top", x1: 0, y1: 0, x2: 10, y2: 0, blocksVision: true },
+    { id: "wall-border-right", x1: 10, y1: 0, x2: 10, y2: 6, blocksVision: true },
+    { id: "wall-border-bottom", x1: 10, y1: 6, x2: 0, y2: 6, blocksVision: true },
+    { id: "wall-border-left", x1: 0, y1: 6, x2: 0, y2: 0, blocksVision: true },
+
+    // Partition wall between Zone 1 and Zone 2
+    { id: "wall-z1-top", x1: xSplit1, y1: 0, x2: xSplit1, y2: 2.1, blocksVision: true },
+    {
+      id: "door-zone-2",
+      x1: xSplit1,
+      y1: 2.1,
+      x2: xSplit1,
+      y2: 3.9,
+      isDoor: true,
+      isOpen: Boolean(z2.isRevealed),
+      blocksVision: !z2.isRevealed,
+      zoneId: z2.id,
+    },
+    { id: "wall-z1-bottom", x1: xSplit1, y1: 3.9, x2: xSplit1, y2: 6, blocksVision: true },
+
+    // Partition wall between Zone 2 and Zone 3
+    { id: "wall-z2-top", x1: xSplit2, y1: 0, x2: xSplit2, y2: 2.1, blocksVision: true },
+    {
+      id: "door-zone-3",
+      x1: xSplit2,
+      y1: 2.1,
+      x2: xSplit2,
+      y2: 3.9,
+      isDoor: true,
+      isOpen: Boolean(z3.isRevealed),
+      blocksVision: !z3.isRevealed,
+      zoneId: z3.id,
+    },
+    { id: "wall-z2-bottom", x1: xSplit2, y1: 3.9, x2: xSplit2, y2: 6, blocksVision: true },
+
+    // Interior shadow-casting pillars & alcoves
+    { id: "pillar-z1-hearth", x1: 2.2, y1: 1.1, x2: 2.2, y2: 2.1, blocksVision: true },
+    {
+      id: "pillar-z2-alcove",
+      x1: xSplit1 + 1.5,
+      y1: 3.8,
+      x2: xSplit1 + 1.5,
+      y2: 4.8,
+      blocksVision: true,
+    },
+  ];
+}
+
+/**
+ * Assigns default torch/lantern point-light radii and colors to tokens.
+ */
+export function enrichTokensWithLighting(tokens: MapToken[]): MapToken[] {
+  return tokens.map((t) => {
+    if (t.type === "HERO") {
+      return {
+        ...t,
+        lightRadius: t.lightRadius ?? 3.8,
+        lightColor: t.lightColor ?? (t.color || "#fbbf24"),
+      };
+    }
+    if (t.type === "PROP" || t.isLootChest) {
+      return {
+        ...t,
+        lightRadius: t.lightRadius ?? 2.6,
+        lightColor: t.lightColor ?? "#f97316",
+      };
+    }
+    return t;
+  });
+}
+
+/**
+ * Pure 2D Ray-Segment Intersection:
+ * Computes intersection of ray P + t*D (t >= 0) with segment A -> B (0 <= u <= 1).
+ */
+export function computeRaySegmentIntersection(
+  ox: number,
+  oy: number,
+  dx: number,
+  dy: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { x: number; y: number; t: number } | null {
+  const sx = x2 - x1;
+  const sy = y2 - y1;
+  const denom = dx * sy - dy * sx;
+  if (Math.abs(denom) < 1e-9) return null;
+  const qpx = x1 - ox;
+  const qpy = y1 - oy;
+  const t = (qpx * sy - qpy * sx) / denom;
+  const u = (qpx * dy - qpy * dx) / denom;
+  if (t >= 0 && u >= -1e-6 && u <= 1 + 1e-6) {
+    return {
+      x: ox + t * dx,
+      y: oy + t * dy,
+      t,
+    };
+  }
+  return null;
+}
+
+/**
+ * Computes the sorted 2D Raycast Visibility Polygon from light origin (ox, oy)
+ * bounded by active shadow-casting walls and maxRadius.
+ */
+export function computeVisibilityPolygon(
+  ox: number,
+  oy: number,
+  maxRadius: number,
+  walls: WallSegment[],
+  radialSamples = 48
+): Array<{ x: number; y: number; angle: number }> {
+  const activeWalls = walls.filter((w) => w.blocksVision && !w.isOpen);
+  const angles: number[] = [];
+
+  for (let i = 0; i < radialSamples; i++) {
+    angles.push((i * 2 * Math.PI) / radialSamples - Math.PI);
+  }
+
+  for (const w of activeWalls) {
+    const a1 = Math.atan2(w.y1 - oy, w.x1 - ox);
+    const a2 = Math.atan2(w.y2 - oy, w.x2 - ox);
+    angles.push(a1 - 0.0002, a1, a1 + 0.0002);
+    angles.push(a2 - 0.0002, a2, a2 + 0.0002);
+  }
+
+  const pts: Array<{ x: number; y: number; angle: number }> = [];
+  for (const angle of angles) {
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    let minT = maxRadius;
+    let hitX = ox + dx * maxRadius;
+    let hitY = oy + dy * maxRadius;
+
+    for (const w of activeWalls) {
+      const hit = computeRaySegmentIntersection(ox, oy, dx, dy, w.x1, w.y1, w.x2, w.y2);
+      if (hit && hit.t < minT) {
+        minT = hit.t;
+        hitX = hit.x;
+        hitY = hit.y;
+      }
+    }
+    pts.push({ x: hitX, y: hitY, angle });
+  }
+
+  pts.sort((a, b) => a.angle - b.angle);
+  return pts;
+}
+
+/**
  * Creates a room session loaded with the requested campaign (defaulting to camp-goblin-bakery).
  */
 export function createCampaignSession(
@@ -1096,6 +1264,10 @@ export function createCampaignSession(
   const campaign =
     FAMILY_CAMPAIGNS.find((c) => c.id === campaignId) ?? FAMILY_CAMPAIGNS[0];
   const heroes = createDefaultStarterHeroes();
+  const clonedZones: MapRoomZone[] = JSON.parse(JSON.stringify(campaign.zones));
+  const clonedTokens: MapToken[] = enrichTokensWithLighting(
+    JSON.parse(JSON.stringify(campaign.tokens))
+  );
 
   return {
     roomCode,
@@ -1109,13 +1281,17 @@ export function createCampaignSession(
     activeNodeId: campaign.initialActiveNodeId,
     gridCols: 10,
     gridRows: 6,
-    zones: JSON.parse(JSON.stringify(campaign.zones)),
-    tokens: JSON.parse(JSON.stringify(campaign.tokens)),
+    zones: clonedZones,
+    tokens: clonedTokens,
     heroes,
     storyNodes: JSON.parse(JSON.stringify(campaign.storyNodes)),
     storyFlags: [],
     rollHistory: [],
     spotlightRecords: computeSiblingSpotlightFairness(heroes, []),
+    ambientLightMode: campaign.ambientLightMode ?? "COZY_TWILIGHT",
+    walls: campaign.walls
+      ? JSON.parse(JSON.stringify(campaign.walls))
+      : createDefaultZoneWalls(clonedZones),
   };
 }
 
@@ -1426,5 +1602,5 @@ export function generateProceduralMapLayout(
     t.assetPath = resolveTokenAsset({ name: t.name, type: t.type });
   });
 
-  return { zones, tokens };
+  return { zones, tokens: enrichTokensWithLighting(tokens) };
 }

@@ -23,6 +23,7 @@ import {
   switchRoomCampaign,
   toggleRoomBedtimeFreeze,
   toggleRoomZoneFog,
+  updateRoomLighting,
 } from "../apps/quest-vtt/src/room-store";
 import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
 import {
@@ -36,7 +37,9 @@ import {
 } from "../packages/shared-types/src/index";
 import {
   calculateEncounterAutoBalance,
+  computeRaySegmentIntersection,
   computeSiblingSpotlightFairness,
+  computeVisibilityPolygon,
   createStarterFamilySession,
   enforceAgeTieredGuardrails,
   evaluateActionCardRoll,
@@ -463,8 +466,51 @@ async function runVerification() {
   }
   console.log("✅ PASSED");
 
+  // Suite 17: Foundry 2D Raycast Dynamic Lighting, Shadow Walls & Vision Occlusion
+  process.stdout.write("[TEST] Suite 17: 2D Raycast Dynamic Lighting, Shadow Walls & Doors... ");
+  assert.ok(vttHtml.includes("vtt-lighting-canvas"), "VTT HTML must include #vtt-lighting-canvas");
+  assert.ok(vttHtml.includes("Lighting2DEngine"), "VTT HTML must embed Lighting2DEngine");
+  assert.ok(vttHtml.includes("computeVisibilityPolygon"), "Lighting2DEngine must compute 2D visibility polygons");
+  assert.ok(vttHtml.includes("intersectRaySegment"), "Lighting2DEngine must include ray-segment intersection");
+  assert.ok(vttHtml.includes("lighting-controls-bar"), "VTT HTML must include lighting & door control bar");
+
+  // Direct mathematical test of ray-segment intersection
+  const hit = computeRaySegmentIntersection(1.5, 3.0, 1, 0, 4.0, 2.1, 4.0, 3.9);
+  assert.ok(hit, "Ray pointing right from (1.5, 3.0) must intersect wall at x=4.0");
+  assert.ok(Math.abs(hit!.x - 4.0) < 1e-6, "Intersection X must be 4.0");
+  assert.ok(Math.abs(hit!.t - 2.5) < 1e-6, "Intersection distance t must be 2.5");
+
+  // Visibility polygon occlusion test with closed vs open door
+  const lightRoom = getOrCreateRoom("LITE");
+  assert.ok(lightRoom.walls && lightRoom.walls.length >= 10, "Room must have default shadow-casting walls & doors");
+  const polyClosed = computeVisibilityPolygon(1.5, 3.0, 5.0, lightRoom.walls!);
+  const maxClosedX = Math.max(...polyClosed.map((p) => p.x));
+  assert.ok(
+    maxClosedX <= 4.001,
+    `Closed door & partition wall at x=4.0 must block light rays (got maxX=${maxClosedX})`
+  );
+
+  // Open door-zone-2 and verify light rays pass through into Zone 2
+  const openedDoorRoom = updateRoomLighting({
+    roomCode: "LITE",
+    ambientLightMode: "TORCHLIT_DUNGEON",
+    toggleDoorId: "door-zone-2",
+  });
+  assert.strictEqual(openedDoorRoom.ambientLightMode, "TORCHLIT_DUNGEON");
+  const doorSeg = openedDoorRoom.walls?.find((w) => w.id === "door-zone-2");
+  assert.strictEqual(doorSeg?.isOpen, true, "Toggled door must be open");
+  assert.strictEqual(doorSeg?.blocksVision, false, "Open door must not block vision");
+
+  const polyOpen = computeVisibilityPolygon(1.5, 3.0, 5.0, openedDoorRoom.walls!);
+  const maxOpenX = Math.max(...polyOpen.map((p) => p.x));
+  assert.ok(
+    maxOpenX > 5.5,
+    `Open doorway at x=4.0 must allow light rays to penetrate into Zone 2 (got maxX=${maxOpenX})`
+  );
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 16/16 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 17/17 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

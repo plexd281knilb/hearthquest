@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+  AmbientLightingMode,
   CharacterSheet,
   ContentRating,
   DiceInputMode,
@@ -14,6 +15,7 @@ import {
   computeSiblingSpotlightFairness,
   createBedtimeFreezeSnapshot,
   createCampaignSession,
+  createDefaultZoneWalls,
   createStarterFamilySession,
   evaluateActionCardRoll,
   FAMILY_CAMPAIGNS,
@@ -150,6 +152,12 @@ export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
     rooms.set(normalized, room);
     autoPersistRooms();
   }
+  if (!room.ambientLightMode) {
+    room.ambientLightMode = "COZY_TWILIGHT";
+  }
+  if (!room.walls || room.walls.length === 0) {
+    room.walls = createDefaultZoneWalls(room.zones);
+  }
   return room;
 }
 
@@ -190,6 +198,14 @@ export function toggleRoomZoneFog(params: {
   const zone = room.zones.find((z) => z.id === params.zoneId);
   if (zone) {
     zone.isRevealed = !zone.isRevealed;
+    if (room.walls) {
+      for (const w of room.walls) {
+        if (w.isDoor && w.zoneId === zone.id) {
+          w.isOpen = zone.isRevealed;
+          w.blocksVision = !zone.isRevealed;
+        }
+      }
+    }
     // If revealing the oven vault, unhide Chef Snickerdoodle
     if (zone.id === "zone-oven-vault" && zone.isRevealed) {
       const boss = room.tokens.find((t) => t.id === "tok-chef-boss");
@@ -218,6 +234,14 @@ export function advanceRoomStoryNode(params: {
   const targetZone = room.zones.find((z) => z.id === node.sceneZoneId);
   if (targetZone) {
     targetZone.isRevealed = true;
+    if (room.walls) {
+      for (const w of room.walls) {
+        if (w.isDoor && w.zoneId === targetZone.id) {
+          w.isOpen = true;
+          w.blocksVision = false;
+        }
+      }
+    }
     if (targetZone.id === "zone-oven-vault") {
       const boss = room.tokens.find((t) => t.id === "tok-chef-boss");
       if (boss) boss.isHiddenFromPlayers = false;
@@ -384,6 +408,8 @@ export function addCustomHeroToRoom(params: {
     maxHp: 3,
     isHiddenFromPlayers: false,
     statusBadge: "INSPIRATION_STAR",
+    lightRadius: 3.8,
+    lightColor: newHero.tokenColor,
   });
 
   room.spotlightRecords = computeSiblingSpotlightFairness(
@@ -467,6 +493,30 @@ export function regenerateRoomProceduralMap(params: {
   const layout = generateProceduralMapLayout(theme);
   room.zones = layout.zones;
   room.tokens = layout.tokens;
+  room.walls = createDefaultZoneWalls(layout.zones);
+  autoPersistRooms();
+  return room;
+}
+
+/**
+ * Updates the room's Foundry-style dynamic lighting mode or toggles an interactive door segment.
+ */
+export function updateRoomLighting(params: {
+  roomCode: string;
+  ambientLightMode?: AmbientLightingMode;
+  toggleDoorId?: string;
+}): RoomSessionState {
+  const room = getOrCreateRoom(params.roomCode);
+  if (params.ambientLightMode) {
+    room.ambientLightMode = params.ambientLightMode;
+  }
+  if (params.toggleDoorId && room.walls) {
+    const door = room.walls.find((w) => w.id === params.toggleDoorId && w.isDoor);
+    if (door) {
+      door.isOpen = !door.isOpen;
+      door.blocksVision = !door.isOpen;
+    }
+  }
   autoPersistRooms();
   return room;
 }
