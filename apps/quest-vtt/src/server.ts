@@ -10,6 +10,7 @@ import {
   FAMILY_CAMPAIGNS,
   forgeActorAndTokenInRoom,
   generateJoinQrSvg,
+  generateOneShotInRoom,
   getCustomTokensDir,
   getOrCreateRoom,
   listCustomTokenAssets,
@@ -477,6 +478,22 @@ const server = http.createServer(async (req, res) => {
     broadcastRoomUpdate(room);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, room }));
+    return;
+  }
+
+  if (pathname === "/api/room/generate-oneshot" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    const generated = generateOneShotInRoom(body.roomCode || "DRGN");
+    broadcastRoomUpdate(generated.room);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        room: generated.room,
+        loreEntry: generated.loreEntry,
+        partyLevel: generated.partyLevel,
+      })
+    );
     return;
   }
 

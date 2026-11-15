@@ -9,9 +9,12 @@ import {
   advanceFulfillmentOrder,
   createCheckoutSession,
   generateLicenseKey,
+  getAdminDatabasePath,
   getAdminStoreSnapshot,
+  listLoreRegistry,
   PHYSICAL_PACKAGES,
   processPaymentWebhookEvent,
+  registerLoreEntry,
   resetAdminStoreForTesting,
   signStripeWebhookPayloadForTest,
   SUBSCRIPTION_PLANS,
@@ -26,8 +29,11 @@ export {
   advanceFulfillmentOrder,
   createCheckoutSession,
   generateLicenseKey,
+  getAdminDatabasePath,
   getAdminStoreSnapshot,
+  listLoreRegistry,
   processPaymentWebhookEvent,
+  registerLoreEntry,
   resetAdminStoreForTesting,
   signStripeWebhookPayloadForTest,
   verifyLicenseKey,
@@ -118,6 +124,9 @@ export function renderAdminHtml(
               : "bg-amber-950/90 text-amber-300 border border-amber-500/40"
           }">
             ${isLiveStripe ? "💳 STRIPE LIVE" : "🧪 SANDBOX PAYMENTS"}
+          </span>
+          <span id="sqlite-db-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full bg-sky-950/90 text-sky-300 border border-sky-500/40">
+            🗄️ SQLITE WAL
           </span>
         </div>
         <p class="text-xs text-slate-400">Subscriptions • Stripe Checkout & HMAC Webhooks • Print-on-Demand Queue • RTX 3080 Telemetry</p>
@@ -298,7 +307,21 @@ export function renderAdminHtml(
       </div>
     </section>
 
-    <!-- 5. 5-Minute Family Quick-Start Guides -->
+    <!-- 5. Lore & Map Continuity Ledger (Anti-Overlap Guard) -->
+    <section id="lore-registry-section" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 admin-card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-sm font-bold text-purple-300 uppercase tracking-wider">
+            🗺️ Lore &amp; Map Continuity Registry (Anti-Overlap Guard)
+          </h2>
+          <p class="text-xs text-slate-400">Tracks every created campaign plot, boss, and map zone in SQLite so procedural one-shots never repeat or overlap.</p>
+        </div>
+        <button onclick="refreshAdminState()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-purple-300 border border-slate-700">🔄 Sync Ledger</button>
+      </div>
+      <div id="lore-registry-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs"></div>
+    </section>
+
+    <!-- 6. 5-Minute Family Quick-Start Guides -->
     <section class="space-y-3">
       <h2 class="text-lg font-extrabold text-amber-300">📚 5-Minute Parent & Family Quick-Start Guides</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -437,6 +460,29 @@ export function renderAdminHtml(
             <div class="font-mono text-[11px] text-amber-300 bg-black/30 px-2 py-1 rounded border border-amber-500/20">🔑 \${h.licenseKey}</div>
           </div>
         \`).join("");
+      }
+
+      const loreListEl = document.getElementById("lore-registry-list");
+      if (loreListEl) {
+        loreListEl.innerHTML = (adminStore.loreEntries || []).map((l) => \`
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 admin-inner">
+            <div class="flex items-center justify-between gap-1">
+              <span class="font-bold text-amber-300 truncate">\${l.title}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 shrink-0">\${l.entryType} (Lv.\${l.levelRange})</span>
+            </div>
+            <div class="text-[11px] text-slate-400">Boss: \${l.mainAntagonist} • Biome: \${l.biome}</div>
+            <div class="text-[10px] text-slate-300">Zones: \${(l.keyLocations || []).join(", ")}</div>
+          </div>
+        \`).join("");
+      }
+    }
+
+    async function refreshAdminState() {
+      const res = await fetch("/api/admin/state");
+      const data = await res.json();
+      if (data && data.store) {
+        adminStore = data.store;
+        renderAdminQueues();
       }
     }
 
@@ -698,6 +744,34 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/admin/state" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, store: getAdminStoreSnapshot() }));
+    return;
+  }
+
+  if (pathname === "/api/admin/lore" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, loreEntries: listLoreRegistry() }));
+    return;
+  }
+
+  if (pathname === "/api/admin/lore" && req.method === "POST") {
+    const body = await readJsonBody(req);
+    if (!verifyOperatorPin(body.adminPin || "")) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid Operator PIN" }));
+      return;
+    }
+    const created = registerLoreEntry({
+      entryType: body.entryType || "CAMPAIGN_ARC",
+      title: body.title || "Untitled Plot",
+      biome: body.biome || "BAKERY",
+      plotPremise: body.plotPremise || "",
+      mainAntagonist: body.mainAntagonist || "",
+      keyLocations: Array.isArray(body.keyLocations) ? body.keyLocations : [],
+      levelRange: body.levelRange || "1-3",
+      roomCode: body.roomCode,
+    });
+    res.writeHead(created.ok ? 200 : 409, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ...created, loreEntries: listLoreRegistry() }));
     return;
   }
 

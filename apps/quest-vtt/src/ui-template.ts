@@ -287,6 +287,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
               <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
                 🎲 New Procedural Map
               </button>
+              <button id="btn-generate-oneshot" onclick="generateScaledOneShot()" title="Generate a fresh, non-overlapping One-Shot scaled to your party's average hero level" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm">
+                ⚡ Level-Scaled One-Shot
+              </button>
             </div>
           </div>
           ${renderLightingControlsHtml()}
@@ -937,6 +940,16 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     async function regenerateProceduralMap() {
       await apiPost("/api/room/procedural-map", { roomCode: state.roomCode });
+    }
+
+    async function generateScaledOneShot() {
+      const res = await apiPost("/api/room/generate-oneshot", { roomCode: state.roomCode });
+      if (res && res.room && res.loreEntry) {
+        const badge = document.getElementById("story-node-badge");
+        if (badge) {
+          badge.textContent = "ONE-SHOT L" + (res.partyLevel || 1) + ": " + res.loreEntry.title;
+        }
+      }
     }
 
     async function changeRoomSettings() {

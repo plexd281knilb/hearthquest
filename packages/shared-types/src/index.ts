@@ -350,6 +350,30 @@ export interface RoomSessionState {
   ambientSoundscape?: AmbientSoundscapeType;
   sceneBackdrop?: SceneBackdropType;
   combat?: CombatState;
+  partyLevel?: number;
+  isOneShot?: boolean;
+}
+
+export type LoreEntryType =
+  | "CAMPAIGN_ARC"
+  | "ONE_SHOT"
+  | "MAP_LAYOUT"
+  | "VILLAIN"
+  | "NPC"
+  | "ARTIFACT";
+
+export interface LoreRegistryEntry {
+  id: string;
+  entryType: LoreEntryType;
+  title: string;
+  slug: string;
+  biome: string;
+  plotPremise: string;
+  mainAntagonist: string;
+  keyLocations: string[];
+  levelRange: string;
+  roomCode?: string;
+  createdAt: string;
 }
 
 export type SubscriptionTier = "FREE_SELF_HOSTED" | "DIGITAL_PLUS" | "GAME_IN_A_BOX_PRO";

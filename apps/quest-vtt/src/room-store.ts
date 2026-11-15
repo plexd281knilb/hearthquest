@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import {
   AmbientLightingMode,
   AmbientSoundscapeType,
@@ -9,6 +10,8 @@ import {
   DiceInputMode,
   DiceRollResult,
   DieType,
+  LoreEntryType,
+  LoreRegistryEntry,
   RoomSessionState,
   RulesTier,
   SceneBackdropType,
@@ -17,6 +20,7 @@ import {
   resolveArchetypeAsset,
 } from "@hearthquest/shared-types";
 import {
+  buildCoreCampaignLoreSeeds,
   computeSiblingSpotlightFairness,
   createBedtimeFreezeSnapshot,
   createCampaignSession,
@@ -24,6 +28,7 @@ import {
   createStarterFamilySession,
   evaluateActionCardRoll,
   FAMILY_CAMPAIGNS,
+  generateLevelScaledOneShot,
   generateProceduralMapLayout,
   rollHeroSkillCheck,
   rollRoomCombatInitiative,
@@ -36,60 +41,156 @@ import {
 
 const rooms = new Map<string, RoomSessionState>();
 
-function getRoomsFilePath(): string {
+export function getVttDatabasePath(): string {
   if (process.env.NODE_ENV === "test") {
-    const testDir = path.join(process.cwd(), "data", ".test");
-    return path.join(testDir, "test-rooms.json");
+    return path.join(process.cwd(), "data", ".test", "test-hearthquest.db");
   }
+  const dataDir = process.env.HEARTHQUEST_DATA_DIR || path.join(process.cwd(), "data");
+  return path.join(dataDir, "hearthquest.db");
+}
+
+function getLegacyRoomsJsonPath(): string {
   const dataDir = process.env.HEARTHQUEST_DATA_DIR || path.join(process.cwd(), "data");
   return path.join(dataDir, "rooms.json");
 }
 
+function withRoomDb<T>(fn: (db: DatabaseSync) => T): T {
+  const dbPath = getVttDatabasePath();
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const db = new DatabaseSync(dbPath);
+  try {
+    db.exec("PRAGMA journal_mode = WAL;");
+    db.exec("PRAGMA busy_timeout = 5000;");
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS rooms (
+        room_code TEXT PRIMARY KEY,
+        state_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS lore_registry (
+        id TEXT PRIMARY KEY,
+        entry_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        biome TEXT NOT NULL,
+        plot_premise TEXT NOT NULL,
+        main_antagonist TEXT NOT NULL,
+        key_locations_json TEXT NOT NULL,
+        level_range TEXT NOT NULL,
+        room_code TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    const seedStmt = db.prepare(
+      `INSERT OR IGNORE INTO lore_registry (
+        id, entry_type, title, slug, biome, plot_premise, main_antagonist,
+        key_locations_json, level_range, room_code, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    for (const seed of buildCoreCampaignLoreSeeds()) {
+      seedStmt.run(
+        seed.id,
+        seed.entryType,
+        seed.title,
+        seed.slug,
+        seed.biome,
+        seed.plotPremise,
+        seed.mainAntagonist,
+        JSON.stringify(seed.keyLocations),
+        seed.levelRange,
+        seed.roomCode || null,
+        seed.createdAt
+      );
+    }
+
+    return fn(db);
+  } finally {
+    try {
+      db.close();
+    } catch {
+      // Ignore close error
+    }
+  }
+}
+
 export function resetRoomsForTesting(): void {
   rooms.clear();
+  try {
+    if (fs.existsSync(getVttDatabasePath())) {
+      withRoomDb((db) => {
+        db.exec("DELETE FROM rooms;");
+      });
+    }
+  } catch {
+    // Non-fatal in test cleanup
+  }
 }
 
 export function saveRoomsToDisk(): string {
-  const filePath = getRoomsFilePath();
+  const dbPath = getVttDatabasePath();
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    const serializedRooms: Record<string, RoomSessionState> = {};
-    for (const [code, state] of rooms.entries()) {
-      serializedRooms[code] = state;
-    }
-    fs.writeFileSync(
-      filePath,
-      JSON.stringify(
-        {
-          updatedAt: new Date().toISOString(),
-          rooms: serializedRooms,
-        },
-        null,
-        2
-      ),
-      "utf-8"
-    );
+    withRoomDb((db) => {
+      const now = new Date().toISOString();
+      const upsert = db.prepare(
+        `INSERT INTO rooms (room_code, state_json, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(room_code) DO UPDATE SET
+           state_json = excluded.state_json,
+           updated_at = excluded.updated_at`
+      );
+      for (const [code, state] of rooms.entries()) {
+        upsert.run(code.toUpperCase(), JSON.stringify(state), now);
+      }
+    });
   } catch {
     // Non-fatal in read-only environments
   }
-  return filePath;
+  return dbPath;
 }
 
 export function loadRoomsFromDisk(): number {
-  const filePath = getRoomsFilePath();
   try {
-    if (!fs.existsSync(filePath)) return 0;
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const parsed = JSON.parse(raw);
-    const mapObj: Record<string, RoomSessionState> = parsed?.rooms || parsed || {};
-    let count = 0;
-    for (const [code, roomState] of Object.entries(mapObj)) {
-      if (roomState && typeof roomState === "object" && roomState.roomCode) {
-        rooms.set(code.toUpperCase(), roomState);
-        count++;
+    return withRoomDb((db) => {
+      const rows = db
+        .prepare("SELECT room_code, state_json FROM rooms")
+        .all() as Array<{ room_code: string; state_json: string }>;
+      let count = 0;
+      for (const row of rows) {
+        const roomState = JSON.parse(String(row.state_json)) as RoomSessionState;
+        if (roomState && typeof roomState === "object" && roomState.roomCode) {
+          rooms.set(String(row.room_code).toUpperCase(), roomState);
+          count++;
+        }
       }
-    }
-    return count;
+
+      // One-time auto-migration from legacy rooms.json in production if SQLite table is empty
+      if (count === 0 && process.env.NODE_ENV !== "test") {
+        const legacyPath = getLegacyRoomsJsonPath();
+        if (fs.existsSync(legacyPath)) {
+          const parsed = JSON.parse(fs.readFileSync(legacyPath, "utf-8"));
+          const mapObj: Record<string, RoomSessionState> = parsed?.rooms || parsed || {};
+          const now = new Date().toISOString();
+          const upsert = db.prepare(
+            `INSERT INTO rooms (room_code, state_json, updated_at)
+             VALUES (?, ?, ?)
+             ON CONFLICT(room_code) DO UPDATE SET
+               state_json = excluded.state_json,
+               updated_at = excluded.updated_at`
+          );
+          for (const [code, roomState] of Object.entries(mapObj)) {
+            if (roomState && typeof roomState === "object" && roomState.roomCode) {
+              const upper = code.toUpperCase();
+              rooms.set(upper, roomState);
+              upsert.run(upper, JSON.stringify(roomState), now);
+              count++;
+            }
+          }
+        }
+      }
+      return count;
+    });
   } catch {
     return 0;
   }
@@ -907,6 +1008,85 @@ export function forgeActorAndTokenInRoom(params: {
 
   autoPersistRooms();
   return { room, tokenAssetUrl, tokenFilePath };
+}
+
+/**
+ * Generates a unique, party-level-scaled procedural One-Shot adventure for the table
+ * and logs it in SQLite `lore_registry` so plots, villains, and zones never overlap
+ * with core campaigns or prior One-Shots.
+ */
+export function generateOneShotInRoom(roomCode: string): {
+  room: RoomSessionState;
+  loreEntry: LoreRegistryEntry;
+  partyLevel: number;
+} {
+  const room = getOrCreateRoom(roomCode);
+  const generated = withRoomDb((db) => {
+    const existingRows = db
+      .prepare("SELECT * FROM lore_registry ORDER BY created_at DESC")
+      .all() as Array<Record<string, any>>;
+    const existingLore: LoreRegistryEntry[] = existingRows.map((r) => ({
+      id: String(r.id),
+      entryType: r.entry_type as LoreEntryType,
+      title: String(r.title),
+      slug: String(r.slug),
+      biome: String(r.biome),
+      plotPremise: String(r.plot_premise),
+      mainAntagonist: String(r.main_antagonist),
+      keyLocations: JSON.parse(String(r.key_locations_json || "[]")),
+      levelRange: String(r.level_range),
+      roomCode: r.room_code ? String(r.room_code) : undefined,
+      createdAt: String(r.created_at),
+    }));
+
+    const out = generateLevelScaledOneShot({
+      roomCode: room.roomCode,
+      heroes: room.heroes,
+      existingLore,
+    });
+
+    db.prepare(
+      `INSERT OR IGNORE INTO lore_registry (
+        id, entry_type, title, slug, biome, plot_premise, main_antagonist,
+        key_locations_json, level_range, room_code, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      out.loreEntry.id,
+      out.loreEntry.entryType,
+      out.loreEntry.title,
+      out.loreEntry.slug,
+      out.loreEntry.biome,
+      out.loreEntry.plotPremise,
+      out.loreEntry.mainAntagonist,
+      JSON.stringify(out.loreEntry.keyLocations),
+      out.loreEntry.levelRange,
+      out.loreEntry.roomCode || room.roomCode,
+      out.loreEntry.createdAt
+    );
+
+    return out;
+  });
+
+  room.campaignId = generated.campaignId;
+  room.campaignTitle = generated.campaignTitle;
+  room.partyLevel = generated.partyLevel;
+  room.isOneShot = true;
+  room.activeNodeId = generated.storyNodes[0]?.id || room.activeNodeId;
+  room.zones = generated.zones;
+  room.tokens = generated.tokens;
+  room.walls = generated.walls;
+  room.storyNodes = generated.storyNodes;
+  room.sceneBackdrop = generated.blueprint.backdrop;
+  room.ambientWeather = generated.blueprint.weather;
+  room.ambientSoundscape = generated.blueprint.soundscape;
+  room.combat = undefined;
+
+  autoPersistRooms();
+  return {
+    room,
+    loreEntry: generated.loreEntry,
+    partyLevel: generated.partyLevel,
+  };
 }
 
 export { FAMILY_CAMPAIGNS };

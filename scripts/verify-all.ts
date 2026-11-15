@@ -9,9 +9,12 @@ import {
   advanceFulfillmentOrder,
   createCheckoutSession,
   generateLicenseKey,
+  getAdminDatabasePath,
   getAdminStoreSnapshot,
+  listLoreRegistry,
   PHYSICAL_PACKAGES,
   processPaymentWebhookEvent,
+  registerLoreEntry,
   renderAdminHtml,
   renderPrintableKitHtml,
   resetAdminStoreForTesting,
@@ -27,7 +30,9 @@ import {
   FAMILY_CAMPAIGNS,
   forgeActorAndTokenInRoom,
   generateJoinQrSvg,
+  generateOneShotInRoom,
   getOrCreateRoom,
+  getVttDatabasePath,
   loadRoomsFromDisk,
   moveRoomToken,
   openRoomLootChest,
@@ -251,7 +256,11 @@ async function runVerification() {
   assert.ok(procRoom.tokens.length >= 4);
 
   const savedPath = saveRoomsToDisk();
-  assert.ok(savedPath.endsWith("test-rooms.json") || savedPath.endsWith("rooms.json"));
+  assert.ok(
+    savedPath.endsWith(".db") ||
+      savedPath.endsWith("test-rooms.json") ||
+      savedPath.endsWith("rooms.json")
+  );
   const loadedCount = loadRoomsFromDisk();
   assert.ok(loadedCount >= 1);
 
@@ -798,7 +807,7 @@ async function runVerification() {
   const firstRun = processPaymentWebhookEvent(webhookEvent);
   assert.strictEqual(firstRun.processed, true);
   assert.strictEqual(firstRun.duplicate, false);
-  assert.strictEqual(firstRun.order?.amountCents, 5900, "Deluxe keepsake kit must lock server price at $59.00");
+  assert.strictEqual(firstRun.order?.amountCents, 6900, "Deluxe keepsake kit must lock server price at $69.00");
   assert.strictEqual(firstRun.order?.status, "PAID_QUEUED");
   assert.strictEqual(firstRun.household?.subscriptionTier, "DIGITAL_PLUS");
 
@@ -822,7 +831,7 @@ async function runVerification() {
     shippingAddress: "42 Acorn Hollow",
   });
   assert.strictEqual(sandboxSession.mode, "SANDBOX_SIMULATED");
-  assert.strictEqual(sandboxSession.amountCents, 3400);
+  assert.strictEqual(sandboxSession.amountCents, 4900);
   assert.ok(sandboxSession.order?.id, "Sandbox checkout must queue a PrintFulfillmentOrder");
 
   assert.strictEqual(verifyOperatorPin("wrong-pin"), false, "Invalid Operator PIN must fail");
@@ -852,8 +861,74 @@ async function runVerification() {
   );
   console.log("✅ PASSED");
 
+  // Suite 22: SQLite (node:sqlite) Persistence, Lore Continuity Keeper & Level-Scaled One-Shots
+  process.stdout.write("[TEST] Suite 22: SQLite Backend, Lore Continuity Guard & Level-Scaled One-Shots... ");
+  assert.ok(getAdminDatabasePath().endsWith(".db"), "Admin backend must persist to SQLite .db file");
+  assert.ok(getVttDatabasePath().endsWith(".db"), "VTT room store must persist to SQLite .db file");
+  assert.ok(fs.existsSync(getAdminDatabasePath()), "SQLite database file must exist on disk");
+
+  assert.ok(adminHtml.includes("SQLITE WAL"), "Admin UI must show SQLite WAL indicator");
+  assert.ok(adminHtml.includes("Lore &amp; Map Continuity") || adminHtml.includes("Lore & Map Continuity"), "Admin UI must render Lore Continuity Keeper card");
+
+  const coreLore = listLoreRegistry();
+  assert.ok(coreLore.length >= 3, "SQLite lore_registry must be seeded with core campaigns");
+
+  const overlapCheck = registerLoreEntry({
+    entryType: "ONE_SHOT",
+    title: "The Great Goblin Bakery Heist",
+    biome: "BAKERY",
+    plotPremise: "Duplicate plot test",
+    mainAntagonist: "Mayor Bramblecrust",
+    keyLocations: ["Croissant Pantry"],
+    levelRange: "1-2",
+  });
+  assert.strictEqual(overlapCheck.ok, false, "Lore Continuity Keeper must reject duplicate campaign titles/bosses");
+
+  // Scale party heroes to level 4 and generate two back-to-back unique One-Shots
+  const oneShotRoom = getOrCreateRoom("ONSH");
+  for (const h of oneShotRoom.heroes) {
+    h.levelStars = 4;
+  }
+  const firstOneShot = generateOneShotInRoom("ONSH");
+  assert.strictEqual(firstOneShot.partyLevel, 4, "One-Shot must scale to party average level 4");
+  assert.strictEqual(firstOneShot.room.isOneShot, true);
+  assert.strictEqual(firstOneShot.room.zones.length, 3);
+  const monsterTokens1 = firstOneShot.room.tokens.filter((t) => t.type === "MONSTER");
+  assert.ok(
+    monsterTokens1.length >= 2 &&
+      Math.max(...monsterTokens1.map((m) => m.maxHp || 0)) >= 20 &&
+      monsterTokens1.every((m) => (m.maxHp || 0) >= 8),
+    "Level 4 One-Shot boss (>=20 HP) and minions (>=8 HP) must scale upward"
+  );
+
+  const secondOneShot = generateOneShotInRoom("ONSH");
+  assert.notStrictEqual(
+    secondOneShot.loreEntry.title,
+    firstOneShot.loreEntry.title,
+    "Second procedural One-Shot must not repeat the first One-Shot title"
+  );
+  assert.notStrictEqual(
+    secondOneShot.loreEntry.mainAntagonist,
+    firstOneShot.loreEntry.mainAntagonist,
+    "Second procedural One-Shot must select a distinct antagonist"
+  );
+  assert.ok(
+    listLoreRegistry().some((l) => l.id === firstOneShot.loreEntry.id) &&
+      listLoreRegistry().some((l) => l.id === secondOneShot.loreEntry.id),
+    "Generated One-Shots must persist in shared SQLite lore_registry"
+  );
+  assert.ok(vttHtml.includes("generateScaledOneShot()"), "VTT HTML must include Level-Scaled One-Shot button");
+
+  const loreSkillPath = path.join(rootDir, ".gemini", "skills", "lore-continuity-keeper", "SKILL.md");
+  assert.ok(fs.existsSync(loreSkillPath), "Lore Continuity Keeper skill must exist in .gemini/skills/");
+  const dockerfileText = fs.readFileSync(path.join(rootDir, "docker", "Dockerfile"), "utf-8");
+  assert.ok(dockerfileText.includes("node:24-alpine"), "Dockerfile must use Node 24 for unflagged node:sqlite");
+  const ciWorkflowText = fs.readFileSync(path.join(rootDir, ".github", "workflows", "docker-publish.yml"), "utf-8");
+  assert.ok(ciWorkflowText.includes("node-version: 24"), "CI workflow must use Node 24 for unflagged node:sqlite");
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 21/21 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 22/22 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

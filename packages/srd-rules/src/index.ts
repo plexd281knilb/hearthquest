@@ -11,6 +11,7 @@ import {
   DieType,
   FamilyCampaignTemplate,
   InitiativeEntry,
+  LoreRegistryEntry,
   MapRoomZone,
   MapToken,
   PlayerSpotlightRecord,
@@ -1853,5 +1854,416 @@ export function rollRoomCombatInitiative(
     round: 1,
     activeTurnIndex: 0,
     entries,
+  };
+}
+
+/**
+ * Authoritative Lore & Map Continuity Seed Registry for Flagship Campaigns.
+ * Prevents procedural one-shots or new chapters from duplicating main plots, bosses, or zones.
+ */
+export function buildCoreCampaignLoreSeeds(): LoreRegistryEntry[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "lore-camp-goblin-bakery",
+      entryType: "CAMPAIGN_ARC",
+      title: "The Great Goblin Bakery Heist",
+      slug: "camp-goblin-bakery",
+      biome: "BAKERY",
+      plotPremise: "Recover the stolen Royal Birthday Cake from a whimsical goblin patisserie.",
+      mainAntagonist: "Chef Snickerdoodle",
+      keyLocations: ["Cinnamon Courtyard", "Flour-Cloud Pantry", "Chef Snickerdoodle's Vault"],
+      levelRange: "1-2",
+      createdAt: now,
+    },
+    {
+      id: "lore-camp-clockwork-treehouse",
+      entryType: "CAMPAIGN_ARC",
+      title: "The Clockwork Treehouse Mystery",
+      slug: "camp-clockwork-treehouse",
+      biome: "FOREST_TREEHOUSE",
+      plotPremise: "Repair the jammed Giant Acorn Windmill Gear inside an enchanted redwood canopy.",
+      mainAntagonist: "Cogsworth Clockwork Squirrel",
+      keyLocations: ["Mossy Rope Bridge", "Tinkerer's Branch Lab", "Belfry of Golden Bells"],
+      levelRange: "2-3",
+      createdAt: now,
+    },
+    {
+      id: "lore-camp-starlight-otter",
+      entryType: "CAMPAIGN_ARC",
+      title: "Voyage of the Starlight Otter",
+      slug: "camp-starlight-otter",
+      biome: "STARLIGHT_SHIP",
+      plotPremise: "Navigate astral currents aboard a flying sky-galleon to recover lost constellation lanterns.",
+      mainAntagonist: "Queen Lumina Starlight Jelly",
+      keyLocations: ["Comet Foredeck", "Astrolabe Wheelhouse", "Nebula Crown Dock"],
+      levelRange: "3-5",
+      createdAt: now,
+    },
+  ];
+}
+
+export interface OneShotBlueprint {
+  slug: string;
+  title: string;
+  biome: "BAKERY" | "FOREST_TREEHOUSE" | "STARLIGHT_SHIP";
+  backdrop: SceneBackdropType;
+  weather: AmbientWeatherType;
+  soundscape: "COZY_TAVERN" | "WHISPERING_WOODS" | "GOBLIN_KITCHEN" | "CRYSTAL_CAVERN";
+  premise: string;
+  antagonist: string;
+  antagonistEmoji: string;
+  minionName: string;
+  zones: [string, string, string];
+  lootName: string;
+}
+
+export const ONE_SHOT_SIDEQUEST_CATALOG: OneShotBlueprint[] = [
+  {
+    slug: "oneshot-waffle-golem",
+    title: "Rise of the Runaway Waffle Golem",
+    biome: "BAKERY",
+    backdrop: "HEARTH_TAVERN",
+    weather: "HEARTH_EMBERS",
+    soundscape: "GOBLIN_KITCHEN",
+    premise: "An enchanted maple-syrup construct is bolting through the guild kitchen ovens!",
+    antagonist: "Sir Batterhorn the Waffle Golem",
+    antagonistEmoji: "🧇",
+    minionName: "Gingerbread Scout",
+    zones: ["Warm Maple Foyer", "Bubble-Butter Distillery", "Golden Iron Hearth"],
+    lootName: "Spool of Ever-Crisp Cinnamon",
+  },
+  {
+    slug: "oneshot-mushroom-relay",
+    title: "The Moonlit Mushroom Relay",
+    biome: "FOREST_TREEHOUSE",
+    backdrop: "ENCHANTED_WOODS",
+    weather: "FOREST_FIREFLIES",
+    soundscape: "WHISPERING_WOODS",
+    premise: "Help the woodland firefly couriers rescue the Dawn Dewdrop before moonrise ends.",
+    antagonist: "Grumblecap the Sleepy Badger Knight",
+    antagonistEmoji: "🦡",
+    minionName: "Polka-Dot Toadstool Sprite",
+    zones: ["Dewdrop Trailhead", "Hollow Log Bridge", "Emerald Lantern Glade"],
+    lootName: "Lantern of Unfading Glowmoss",
+  },
+  {
+    slug: "oneshot-crystal-echoes",
+    title: "The Singing Crystal Library",
+    biome: "STARLIGHT_SHIP",
+    backdrop: "STARLIGHT_OBSERVATORY",
+    weather: "STARLIGHT_DUST",
+    soundscape: "CRYSTAL_CAVERN",
+    premise: "Musical prism-owls mixed up the spellbooks and locked the astral observatory dome!",
+    antagonist: "Archivist Echo-Wing",
+    antagonistEmoji: "🦉",
+    minionName: "Prism Page Golem",
+    zones: ["Chime Mezzanine", "Floating Quill Vault", "Moon-Lens Rotunda"],
+    lootName: "Compass of Harmonious Chimes",
+  },
+  {
+    slug: "oneshot-cloudberry-regatta",
+    title: "Cloudberry Sky-Skiff Regatta",
+    biome: "STARLIGHT_SHIP",
+    backdrop: "STARLIGHT_OBSERVATORY",
+    weather: "STARLIGHT_DUST",
+    soundscape: "CRYSTAL_CAVERN",
+    premise: "Outsail playful nimbus sprites in a friendly sky-boat race through rainbow thunderheads.",
+    antagonist: "Captain Zephyr Fluffbeard",
+    antagonistEmoji: "⛵",
+    minionName: "Breeze Imp",
+    zones: ["Cloud Pier Alpha", "Tailwind Canyon", "Trophy Nimbus Arch"],
+    lootName: "Bottled Zephyr Gust",
+  },
+];
+
+export function computePartyAverageLevel(heroes: CharacterSheet[]): number {
+  if (!heroes || heroes.length === 0) return 1;
+  const total = heroes.reduce((sum, h) => sum + Math.max(1, h.levelStars || 1), 0);
+  return Math.max(1, Math.min(5, Math.round(total / heroes.length)));
+}
+
+/**
+ * Checks whether a candidate plot/villain/location overlaps existing Lore Registry entries.
+ */
+export function detectLoreOrMapOverlap(params: {
+  existingLore: LoreRegistryEntry[];
+  title: string;
+  mainAntagonist: string;
+  keyLocations: string[];
+}): { hasOverlap: boolean; reason?: string } {
+  const normTitle = params.title.trim().toLowerCase();
+  const normBoss = params.mainAntagonist.trim().toLowerCase();
+  const normLocs = new Set(params.keyLocations.map((l) => l.trim().toLowerCase()));
+
+  for (const entry of params.existingLore) {
+    if (entry.title.trim().toLowerCase() === normTitle) {
+      return { hasOverlap: true, reason: `Plot title already used: ${entry.title}` };
+    }
+    if (normBoss && entry.mainAntagonist.trim().toLowerCase() === normBoss) {
+      return {
+        hasOverlap: true,
+        reason: `Antagonist already exists in registry: ${entry.mainAntagonist}`,
+      };
+    }
+    for (const loc of entry.keyLocations || []) {
+      if (normLocs.has(loc.trim().toLowerCase())) {
+        return { hasOverlap: true, reason: `Map location overlaps existing zone: ${loc}` };
+      }
+    }
+  }
+  return { hasOverlap: false };
+}
+
+/**
+ * Generates a unique, non-overlapping Level-Scaled Procedural One-Shot session
+ * tuned specifically to the party's current average hero level and size.
+ */
+export function generateLevelScaledOneShot(params: {
+  roomCode: string;
+  heroes: CharacterSheet[];
+  existingLore: LoreRegistryEntry[];
+}): {
+  partyLevel: number;
+  blueprint: OneShotBlueprint;
+  loreEntry: LoreRegistryEntry;
+  zones: MapRoomZone[];
+  tokens: MapToken[];
+  walls: WallSegment[];
+  storyNodes: StoryBranchNode[];
+  campaignTitle: string;
+  campaignId: string;
+} {
+  const partyLevel = computePartyAverageLevel(params.heroes);
+  const partySize = Math.max(1, params.heroes.length);
+
+  // Choose the first catalog one-shot with ZERO plot/boss/zone overlap; fallback to numbered remix if all used
+  let chosen = ONE_SHOT_SIDEQUEST_CATALOG.find(
+    (bp) =>
+      !detectLoreOrMapOverlap({
+        existingLore: params.existingLore,
+        title: bp.title,
+        mainAntagonist: bp.antagonist,
+        keyLocations: bp.zones,
+      }).hasOverlap
+  );
+
+  let suffixIdx = 0;
+  if (!chosen) {
+    suffixIdx =
+      params.existingLore.filter((l) => l.entryType === "ONE_SHOT").length + 1;
+    const base =
+      ONE_SHOT_SIDEQUEST_CATALOG[suffixIdx % ONE_SHOT_SIDEQUEST_CATALOG.length];
+    chosen = {
+      ...base,
+      slug: `${base.slug}-remix-${suffixIdx}`,
+      title: `${base.title} (Chapter Remix #${suffixIdx})`,
+      antagonist: `${base.antagonist} Mk.${suffixIdx}`,
+      zones: [
+        `${base.zones[0]} Wing ${suffixIdx}`,
+        `${base.zones[1]} Wing ${suffixIdx}`,
+        `${base.zones[2]} Wing ${suffixIdx}`,
+      ],
+    };
+  }
+
+  const zones: MapRoomZone[] = [
+    {
+      id: `os-zone-1-${chosen.slug}`,
+      name: `1. ${chosen.zones[0]}`,
+      gridX: 0,
+      gridY: 0,
+      width: 4,
+      height: 6,
+      isRevealed: true,
+      ambientSoundscape: chosen.soundscape,
+    },
+    {
+      id: `os-zone-2-${chosen.slug}`,
+      name: `2. ${chosen.zones[1]}`,
+      gridX: 4,
+      gridY: 0,
+      width: 3,
+      height: 6,
+      isRevealed: false,
+      hasSecretTrap: true,
+      trapDescription: `Level ${partyLevel} Surprise Hazard (DC ${9 + partyLevel})`,
+      ambientSoundscape: chosen.soundscape,
+    },
+    {
+      id: `os-zone-3-${chosen.slug}`,
+      name: `3. ${chosen.zones[2]}`,
+      gridX: 7,
+      gridY: 0,
+      width: 3,
+      height: 6,
+      isRevealed: false,
+      ambientSoundscape: chosen.soundscape,
+    },
+  ];
+
+  // Level & party size scaled monster stats
+  const bossHp = Math.max(4, partyLevel * 4 + partySize * 2);
+  const minionHp = Math.max(2, partyLevel * 2 + 1);
+  const checkDcStory = Math.min(6, 3 + Math.floor(partyLevel / 2));
+  const checkDc5e = 10 + partyLevel;
+
+  const tokens: MapToken[] = [];
+  params.heroes.forEach((h, idx) => {
+    tokens.push({
+      id: `tok-${h.id}-os`,
+      characterId: h.id,
+      name: h.name,
+      type: "HERO",
+      avatarEmoji: h.avatarEmoji,
+      assetPath: h.assetPath || resolveTokenAsset({ name: h.archetype, type: "HERO" }),
+      color: h.tokenColor,
+      gridX: 1,
+      gridY: Math.min(5, 1 + idx * 2),
+      hp: h.attributes5e.hp,
+      maxHp: h.attributes5e.maxHp,
+      isHiddenFromPlayers: false,
+      lightRadius: 3.5,
+      lightColor: "#fbbf24",
+    });
+  });
+
+  tokens.push(
+    {
+      id: `tok-os-minion-${Date.now()}`,
+      name: `${chosen.minionName} (Lvl ${partyLevel})`,
+      type: "MONSTER",
+      avatarEmoji: "👾",
+      assetPath: HEARTHQUEST_ASSETS.monsters.brassSquirrel.path,
+      color: "#10b981",
+      gridX: 5,
+      gridY: 2,
+      hp: minionHp,
+      maxHp: minionHp,
+      isHiddenFromPlayers: true,
+    },
+    {
+      id: `tok-os-boss-${Date.now()}`,
+      name: `${chosen.antagonist} (Lvl ${partyLevel} Boss)`,
+      type: "MONSTER",
+      avatarEmoji: chosen.antagonistEmoji,
+      assetPath: HEARTHQUEST_ASSETS.monsters.dragonPuppy.path,
+      color: "#ef4444",
+      gridX: 8,
+      gridY: 3,
+      hp: bossHp,
+      maxHp: bossHp,
+      isHiddenFromPlayers: true,
+      lightRadius: 2.5,
+      lightColor: "#f97316",
+    },
+    {
+      id: `tok-os-chest-${Date.now()}`,
+      name: "One-Shot Victory Chest",
+      type: "PROP",
+      avatarEmoji: "🧰",
+      assetPath: HEARTHQUEST_ASSETS.props.chestClosed.path,
+      color: "#f59e0b",
+      gridX: 8,
+      gridY: 1,
+      hp: 1,
+      maxHp: 1,
+      isHiddenFromPlayers: true,
+      isLootChest: true,
+      isChestOpened: false,
+      lootRewardName: `${chosen.lootName} (+${partyLevel} Spark)`,
+    }
+  );
+
+  const node1Id = `node-os-1-${chosen.slug}`;
+  const node2Id = `node-os-2-${chosen.slug}`;
+  const node3Id = `node-os-3-${chosen.slug}`;
+
+  const storyNodes: StoryBranchNode[] = [
+    {
+      id: node1Id,
+      title: `Lv.${partyLevel} Intro: ${chosen.zones[0]}`,
+      sceneZoneId: zones[0].id,
+      readAloudByTone: {
+        COZY_SILLY: `Welcome to ${chosen.zones[0]}! ${chosen.premise} This Level ${partyLevel} side-quest is tuned right for your ${partySize}-hero team!`,
+        ACTION_HEROIC: `Heroes! ${chosen.zones[0]} needs aid! ${chosen.antagonist} is stirring up Level ${partyLevel} mischief just beyond the first archway!`,
+        MYSTERY_ATMOSPHERIC: `Strange echoes ripple out of ${chosen.zones[0]}. Footprints lead toward ${chosen.zones[1]}...`,
+      },
+      gmWhisperTips: [
+        `Scaled for Party Level ${partyLevel}: Storybook DC ${checkDcStory}+ / 5e DC ${checkDc5e}.`,
+        `This One-Shot is tracked in SQLite Lore Registry so it won't overlap your main campaign plots!`,
+      ],
+      choices: [
+        {
+          id: "ch-os-1",
+          label: `🚪 Advance into ${chosen.zones[1]}`,
+          targetNodeId: node2Id,
+          requiredCheck: `Perception or Investigation (DC ${checkDc5e})`,
+          consequenceTag: `OS_ENTERED_${chosen.slug.toUpperCase()}`,
+        },
+      ],
+    },
+    {
+      id: node2Id,
+      title: `Encounter: ${chosen.zones[1]}`,
+      sceneZoneId: zones[1].id,
+      readAloudByTone: {
+        COZY_SILLY: `A bouncy ${chosen.minionName} (${minionHp} HP) blocks the path across ${chosen.zones[1]}! Can you outwit or out-dance it?`,
+        ACTION_HEROIC: `Stepping into ${chosen.zones[1]}, a Level ${partyLevel} ${chosen.minionName} (${minionHp} HP) springs forward to test your mettle!`,
+        MYSTERY_ATMOSPHERIC: `Lanterns flicker across ${chosen.zones[1]} as a ${chosen.minionName} guards the inner chamber...`,
+      },
+      gmWhisperTips: [
+        `Roll Initiative or let kids try a creative Stealth / Persuasion skill check (DC ${checkDc5e}).`,
+      ],
+      choices: [
+        {
+          id: "ch-os-2",
+          label: `⚔️ Confront ${chosen.antagonist} in ${chosen.zones[2]}`,
+          targetNodeId: node3Id,
+          requiredCheck: `Athletics or Arcana (DC ${checkDc5e})`,
+          consequenceTag: `OS_BOSS_${chosen.slug.toUpperCase()}`,
+        },
+      ],
+    },
+    {
+      id: node3Id,
+      title: `Finale: ${chosen.zones[2]}`,
+      sceneZoneId: zones[2].id,
+      readAloudByTone: {
+        COZY_SILLY: `You reached ${chosen.zones[2]}! ${chosen.antagonist} (${bossHp} HP) awaits for a grand Level ${partyLevel} showdown—and don't miss the Victory Chest!`,
+        ACTION_HEROIC: `Victory awaits in ${chosen.zones[2]}! Face ${chosen.antagonist} (${bossHp} HP) and claim ${chosen.lootName}!`,
+        MYSTERY_ATMOSPHERIC: `At the heart of ${chosen.zones[2]}, ${chosen.antagonist} unveils the final riddle beside a shimmering chest.`,
+      },
+      gmWhisperTips: [
+        `Reward each hero +1 Level Star upon finishing this Level ${partyLevel} One-Shot!`,
+      ],
+      choices: [],
+    },
+  ];
+
+  const loreEntry: LoreRegistryEntry = {
+    id: `lore-${chosen.slug}-${Date.now().toString(36)}`,
+    entryType: "ONE_SHOT",
+    title: chosen.title,
+    slug: chosen.slug,
+    biome: chosen.biome,
+    plotPremise: chosen.premise,
+    mainAntagonist: chosen.antagonist,
+    keyLocations: chosen.zones,
+    levelRange: `${partyLevel}-${partyLevel}`,
+    roomCode: params.roomCode,
+    createdAt: new Date().toISOString(),
+  };
+
+  return {
+    partyLevel,
+    blueprint: chosen,
+    loreEntry,
+    zones,
+    tokens: enrichTokensWithLighting(tokens),
+    walls: createDefaultZoneWalls(zones),
+    storyNodes,
+    campaignTitle: `⚡ Lv.${partyLevel} One-Shot: ${chosen.title}`,
+    campaignId: chosen.slug,
   };
 }
