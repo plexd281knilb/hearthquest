@@ -91,7 +91,9 @@ export function renderVttLoginGateHtml(options?: {
     <form id="gate-form-register" onsubmit="submitGateRegister(event)" class="${isFirstSetup ? "" : "hidden "}space-y-2.5 text-xs">
       <input id="gate-reg-family" type="text" required placeholder="Family / Group Name (e.g., The Miller Family)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
       <input id="gate-reg-email" type="email" required placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
-      <input id="gate-reg-password" type="password" required minlength="6" placeholder="Password (6+ characters)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
+      <input id="gate-reg-password" type="password" required minlength="6" oninput="updateGatePasswordMatchHint()" placeholder="Password (6+ characters)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
+      <input id="gate-reg-password-confirm" type="password" required minlength="6" oninput="updateGatePasswordMatchHint()" placeholder="Re-enter Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100" />
+      <div id="gate-reg-pw-match" class="hidden text-[11px] font-semibold"></div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label class="block text-[10px] font-bold text-slate-400 mb-1">Game System</label>
@@ -174,16 +176,45 @@ export function renderVttLoginGateHtml(options?: {
       window.location.assign("/");
     }
 
+    function updateGatePasswordMatchHint() {
+      const pw = document.getElementById("gate-reg-password").value;
+      const confirmEl = document.getElementById("gate-reg-password-confirm");
+      const hint = document.getElementById("gate-reg-pw-match");
+      if (!confirmEl || !hint) return;
+      const confirmPw = confirmEl.value;
+      if (!confirmPw) {
+        hint.classList.add("hidden");
+        return;
+      }
+      hint.classList.remove("hidden");
+      if (pw === confirmPw) {
+        hint.className = "text-[11px] font-semibold text-emerald-400";
+        hint.innerText = "✅ Passwords match";
+      } else {
+        hint.className = "text-[11px] font-semibold text-rose-400";
+        hint.innerText = "⚠️ Passwords do not match";
+      }
+    }
+
     async function submitGateRegister(e) {
       e.preventDefault();
       const fb = document.getElementById("gate-feedback");
+      const password = document.getElementById("gate-reg-password").value;
+      const confirmPassword = document.getElementById("gate-reg-password-confirm").value;
+      if (password !== confirmPassword) {
+        fb.className = "text-xs font-semibold text-rose-400";
+        fb.innerText = "Passwords do not match. Please re-enter your password.";
+        document.getElementById("gate-reg-password-confirm").focus();
+        return;
+      }
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           familyName: document.getElementById("gate-reg-family").value.trim(),
           email: document.getElementById("gate-reg-email").value.trim(),
-          password: document.getElementById("gate-reg-password").value,
+          password,
+          confirmPassword,
           preferredRulesTier: document.getElementById("gate-reg-tier").value,
           preferredAgeGroup: document.getElementById("gate-reg-age").value,
         }),
@@ -390,6 +421,9 @@ export function renderVttAppHtml(
           </span>
           <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
             📲 QR Join
+          </button>
+          <button onclick="openSessionWalkthroughModal(0)" id="btn-session-walkthrough" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 transition">
+            🧭 Session 1 Guide
           </button>
           <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
             🛍️ Store
@@ -818,7 +852,9 @@ export function renderVttAppHtml(
         <p class="text-slate-400">Pick your game style and age group to auto-generate your Session 1 hook, scenario, NPCs, enemies &amp; boss!</p>
         <input id="reg-family-name" type="text" required placeholder="Family Name (e.g., The Miller Family)" class="w-full theme-input border rounded-xl px-3 py-2" />
         <input id="reg-email" type="email" required placeholder="Email Address" class="w-full theme-input border rounded-xl px-3 py-2" />
-        <input id="reg-password" type="password" required minlength="6" placeholder="Password (6+ characters)" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <input id="reg-password" type="password" required minlength="6" oninput="updateModalPasswordMatchHint()" placeholder="Password (6+ characters)" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <input id="reg-password-confirm" type="password" required minlength="6" oninput="updateModalPasswordMatchHint()" placeholder="Re-enter Password" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <div id="reg-pw-match" class="hidden text-[11px] font-semibold"></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
             <label class="block text-[10px] font-bold text-slate-400 mb-1">Game System</label>
@@ -967,6 +1003,141 @@ export function renderVttAppHtml(
         <button onclick="dismissRpPrompt()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs">
           Continue Adventure →
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DEMO SESSION 1 WALKTHROUGH & HOST SETUP GUIDE -->
+  <div id="session-walkthrough-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border-2 border-sky-400/80 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span class="px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/50">
+            Session 1 Free Demo • Host Quick-Start
+          </span>
+          <h3 class="text-lg font-extrabold text-amber-400 mt-1">🧭 First Session Setup &amp; Walkthrough</h3>
+          <p id="walkthrough-campaign-meta" class="text-xs text-slate-400">Tailored for your table</p>
+        </div>
+        <button onclick="closeSessionWalkthroughModal(false)" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+
+      <!-- 4-Step Tabs -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-bold">
+        <button type="button" id="wt-tab-0" onclick="setWalkthroughStep(0)" class="py-2 px-2 rounded-xl border transition">🛠️ 1. Set Up</button>
+        <button type="button" id="wt-tab-1" onclick="setWalkthroughStep(1)" class="py-2 px-2 rounded-xl border transition">📲 2. Join</button>
+        <button type="button" id="wt-tab-2" onclick="setWalkthroughStep(2)" class="py-2 px-2 rounded-xl border transition">🎮 3. Start</button>
+        <button type="button" id="wt-tab-3" onclick="setWalkthroughStep(3)" class="py-2 px-2 rounded-xl border transition">📖 4. Read Aloud</button>
+      </div>
+
+      <!-- STEP 1: HOW TO SET IT UP -->
+      <div id="walkthrough-step-0" class="space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-amber-400">Step 1 — Check Your Game Style, Age Group &amp; Heroes</div>
+          <p class="text-slate-300">
+            Your private Session 1 adventure was automatically generated for your account's <strong>Rules Tier</strong> and <strong>Age Group</strong>, complete with 3 map zones, locked/unlocked doors, NPCs, enemies, and a Session 1 boss.
+          </p>
+          <ul class="list-disc list-inside space-y-1 text-slate-300">
+            <li><strong>Game System &amp; Rating:</strong> Use the top header dropdowns (or click below) to switch between <em>Storybook D6</em>, <em>Apprentice 5e Lite</em>, or <em>Standard 5e</em> and <em>Cozy G</em> / <em>Adventure PG</em> / <em>PG-13</em>.</li>
+            <li><strong>Table Atmosphere:</strong> Set Ambient Lighting, Scene Backdrop, Weather, and Music right beneath the battlemap.</li>
+            <li><strong>Custom Heroes:</strong> Open <strong>+ New Hero</strong> or <strong>⚒️ Forge</strong> in the Kid Controller to create custom portraits &amp; character tokens for each player!</li>
+          </ul>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button type="button" onclick="closeSessionWalkthroughModal(false); toggleVttAuthModal(true);" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">
+              ⚙️ Change Game Style / Age Group
+            </button>
+            <button type="button" onclick="closeSessionWalkthroughModal(false); openTokenForgeModal();" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold">
+              ⚒️ Forge a Custom Hero
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: HOW OTHERS SHOULD JOIN IT -->
+      <div id="walkthrough-step-1" class="hidden space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2.5">
+          <div class="font-extrabold text-amber-400">Step 2 — Invite Players &amp; Living Room TV Screen</div>
+          <p class="text-slate-300">
+            Your room is completely isolated to your account (<strong id="walkthrough-room-code" class="font-mono text-amber-300">${initialState.roomCode}</strong>). Other players don't need separate accounts—they join strictly as table players using your signed invite!
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700/70 space-y-1">
+              <div class="font-bold text-emerald-300">📱 Kid Tablets &amp; Phones</div>
+              <p class="text-[11px] text-slate-300">Click <strong>📲 Open Scannable QR Code</strong> below and let players scan the QR with their camera—or copy &amp; text the Kid Controller link directly. They only see revealed rooms &amp; player controls!</p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700/70 space-y-1">
+              <div class="font-bold text-sky-300">📺 Shared Table / Living Room TV</div>
+              <p class="text-[11px] text-slate-300">Open the invite link with <code class="text-amber-300">&amp;mode=tv</code> on a TV browser (or switch tabs with <strong>📺 TV Display</strong>) to keep GM whispers and hidden fog zones secret.</p>
+            </div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Signed Kid Tablet Invite Link</div>
+            <div id="walkthrough-join-url" class="font-mono text-[11px] text-emerald-300 break-all"></div>
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button type="button" onclick="toggleQrJoinModal()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">
+                📲 Open Scannable QR Code
+              </button>
+              <button type="button" onclick="copyWalkthroughJoinUrl()" id="btn-copy-wt-link" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold border border-slate-600">
+                📋 Copy Invite Link
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: HOW TO START & PLAY IT -->
+      <div id="walkthrough-step-2" class="hidden space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
+          <div class="font-extrabold text-amber-400">Step 3 — How to Start &amp; Run the First Encounter</div>
+          <ol class="list-decimal list-inside space-y-1.5 text-slate-300">
+            <li><strong>Pick &amp; Move Heroes:</strong> Tap your hero tab, then use the static cross <strong>🕹️ Hero D-Pad</strong>, <strong>WASD / Arrow Keys</strong>, or click an adjacent map tile to move.</li>
+            <li><strong>Doors &amp; Lockpicking:</strong> Walls and closed doors block tokens automatically! Click any <strong>🔓 Unlocked Door</strong> to swing it open, or click a <strong>🔐 Locked Vault Door</strong> to roll a <em>Sleight of Hand</em> lockpick check (with digital 3D dice or real physical table dice).</li>
+            <li><strong>Reveal Fog &amp; Roll Action Cards:</strong> As heroes advance into new rooms, tap <strong>👁️ Reveal Zone</strong> beneath the map. Let kids roll Action Cards or trigger <strong>⚔️ Combat Initiative</strong>!</li>
+            <li><strong>Advance the Story:</strong> Click one of the <strong>🔀 Branching Story Choices</strong> under the teleprompter when ready. <em>Session 1 is 100% free to finish!</em></li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- STEP 4: WHAT TO READ ALOUD -->
+      <div id="walkthrough-step-3" class="hidden space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2.5">
+          <div class="font-extrabold text-amber-400">Step 4 — What to Read Out Loud to Your Group</div>
+          <p class="text-[11px] text-slate-400">Start your session by reading these generated lines aloud (or press the green Speak button to have the browser narrate them!):</p>
+          <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 space-y-1">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">1. Opening Hook</div>
+            <p id="walkthrough-read-hook" class="text-slate-100 font-medium"></p>
+          </div>
+          <div class="p-3 rounded-xl bg-purple-950/40 border border-purple-500/40 space-y-1">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-purple-300">2. Scene 1 Entrance Script</div>
+            <p id="walkthrough-read-scene" class="text-slate-100 font-medium"></p>
+          </div>
+          <div id="walkthrough-npc-box" class="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/40 space-y-1">
+            <div id="walkthrough-npc-title" class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300">3. First NPC / Group Question</div>
+            <p id="walkthrough-read-npc" class="text-slate-100 font-medium"></p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="speakWalkthroughReadout()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow">
+              🔊 Read Opening &amp; Scene 1 Aloud
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Navigation -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-700/50 text-xs">
+        <button type="button" id="btn-wt-prev" onclick="setWalkthroughStep(walkthroughStep - 1)" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
+          ← Back
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-wt-skip" onclick="closeSessionWalkthroughModal(false)" class="px-3 py-2 rounded-xl text-slate-400 hover:text-slate-200 font-semibold">
+            Skip for Now
+          </button>
+          <button type="button" id="btn-wt-next" onclick="setWalkthroughStep(walkthroughStep + 1)" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black">
+            Next Step →
+          </button>
+          <button type="button" id="btn-wt-start" onclick="closeSessionWalkthroughModal(true)" class="hidden px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-md">
+            🚀 Start Session 1 &amp; Open Readout!
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1302,6 +1473,146 @@ export function renderVttAppHtml(
       openVttAdminModal();
     }
 
+    let walkthroughStep = 0;
+
+    function syncWalkthroughModalData() {
+      const code = state.roomCode || "";
+      const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
+      const rating = state.contentRating || "COZY_G";
+      const readScript =
+        (activeNode.readAloudByRating && (activeNode.readAloudByRating[rating] || activeNode.readAloudByRating.COZY_G)) ||
+        (activeNode.readAloudByTone && (activeNode.readAloudByTone[activeTone] || activeNode.readAloudByTone.COZY_SILLY)) ||
+        "";
+      const firstPrompt = (activeNode.rpPrompts && activeNode.rpPrompts[0]) || state.activeRpPrompt || null;
+
+      const metaEl = document.getElementById("walkthrough-campaign-meta");
+      if (metaEl) {
+        const tierLabel = state.rulesTier === "STANDARD_5E"
+          ? "Standard 5e"
+          : state.rulesTier === "APPRENTICE_5E_LITE"
+          ? "Apprentice 5e Lite"
+          : "Storybook D6";
+        const ageLabel = state.ageGroup || "AGES_8_10";
+        metaEl.innerText = (state.campaignTitle || "Session 1") + " • " + tierLabel + " • " + ageLabel;
+      }
+
+      const codeEl = document.getElementById("walkthrough-room-code");
+      if (codeEl) codeEl.innerText = code;
+
+      const joinPath = "/?room=" + encodeURIComponent(code) + "&mode=kid" + (roomInviteSig ? "&invite=" + encodeURIComponent(roomInviteSig) : "");
+      const urlEl = document.getElementById("walkthrough-join-url");
+      if (urlEl) {
+        urlEl.innerText = window.location.origin + joinPath;
+      }
+
+      const hookEl = document.getElementById("walkthrough-read-hook");
+      if (hookEl) {
+        hookEl.innerText = state.sessionOpeningHook || ("Welcome to Room " + code + "! Tonight's adventure: " + (state.campaignTitle || "First Quest") + ".");
+      }
+
+      const sceneEl = document.getElementById("walkthrough-read-scene");
+      if (sceneEl) {
+        sceneEl.innerText = readScript || "Gather around the table—your heroes step into the first chamber!";
+      }
+
+      const npcBox = document.getElementById("walkthrough-npc-box");
+      const npcTitle = document.getElementById("walkthrough-npc-title");
+      const npcEl = document.getElementById("walkthrough-read-npc");
+      if (npcBox && npcEl) {
+        if (firstPrompt) {
+          npcBox.classList.remove("hidden");
+          if (npcTitle) {
+            npcTitle.innerText = "3. " + (firstPrompt.speakerEmoji || "🗣️") + " " + (firstPrompt.speakerName || "Group Prompt");
+          }
+          npcEl.innerText = '"' + (firstPrompt.spokenText || "") + '"' + (firstPrompt.playerPromptQuestion ? " — Ask your players: " + firstPrompt.playerPromptQuestion : "");
+        } else {
+          npcBox.classList.add("hidden");
+        }
+      }
+    }
+
+    function setWalkthroughStep(stepIdx) {
+      walkthroughStep = Math.max(0, Math.min(3, Number(stepIdx) || 0));
+      for (let i = 0; i < 4; i++) {
+        const panel = document.getElementById("walkthrough-step-" + i);
+        const tab = document.getElementById("wt-tab-" + i);
+        if (panel) panel.classList.toggle("hidden", i !== walkthroughStep);
+        if (tab) {
+          tab.className = i === walkthroughStep
+            ? "py-2 px-2 rounded-xl border bg-sky-500 text-slate-950 border-sky-300 font-black transition"
+            : "py-2 px-2 rounded-xl border bg-slate-900/70 text-slate-300 border-slate-700 hover:border-sky-400/50 transition";
+        }
+      }
+      const prevBtn = document.getElementById("btn-wt-prev");
+      const nextBtn = document.getElementById("btn-wt-next");
+      const startBtn = document.getElementById("btn-wt-start");
+      if (prevBtn) prevBtn.classList.toggle("hidden", walkthroughStep === 0);
+      if (nextBtn) nextBtn.classList.toggle("hidden", walkthroughStep === 3);
+      if (startBtn) startBtn.classList.toggle("hidden", walkthroughStep !== 3);
+      syncWalkthroughModalData();
+    }
+
+    function openSessionWalkthroughModal(stepIdx) {
+      syncWalkthroughModalData();
+      setWalkthroughStep(typeof stepIdx === "number" ? stepIdx : 0);
+      const modal = document.getElementById("session-walkthrough-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeSessionWalkthroughModal(openReadoutAfter) {
+      if (state && state.roomCode) {
+        try {
+          localStorage.setItem("hq_vtt_walkthrough_seen_" + state.roomCode, "1");
+        } catch {}
+      }
+      const modal = document.getElementById("session-walkthrough-modal");
+      if (modal) modal.classList.add("hidden");
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (openReadoutAfter) {
+        const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
+        const promptToOpen = state.activeRpPrompt || (activeNode.rpPrompts && activeNode.rpPrompts[0]) || null;
+        if (promptToOpen) {
+          openRpReadoutModal(promptToOpen);
+          return;
+        }
+      }
+      if (state.activeRpPrompt && state.activeRpPrompt.id !== lastSeenRpPromptId) {
+        openRpReadoutModal(state.activeRpPrompt);
+      }
+    }
+
+    function speakWalkthroughReadout() {
+      const hook = document.getElementById("walkthrough-read-hook")?.innerText || "";
+      const scene = document.getElementById("walkthrough-read-scene")?.innerText || "";
+      speakTextOutLoud([hook, scene].filter(Boolean).join(" "));
+    }
+
+    async function copyWalkthroughJoinUrl() {
+      const urlText = document.getElementById("walkthrough-join-url")?.innerText || "";
+      const btn = document.getElementById("btn-copy-wt-link");
+      if (navigator.clipboard && urlText) {
+        try {
+          await navigator.clipboard.writeText(urlText);
+          if (btn) btn.innerText = "✅ Copied!";
+          setTimeout(() => { if (btn) btn.innerText = "📋 Copy Invite Link"; }, 2200);
+        } catch {}
+      }
+    }
+
+    function maybeAutoOpenWalkthrough() {
+      if (displayMode !== "GM_COMMAND" || vttGuestToken) return;
+      const seenKey = "hq_vtt_walkthrough_seen_" + (state.roomCode || "DEFAULT");
+      let alreadySeen = false;
+      try {
+        alreadySeen = localStorage.getItem(seenKey) === "1";
+      } catch {}
+      if (!alreadySeen) {
+        openSessionWalkthroughModal(0);
+      }
+    }
+
     function applyAuthenticatedRoomSession(room, inviteSig) {
       if (!room || !room.roomCode) return;
       state = room;
@@ -1310,6 +1621,7 @@ export function renderVttAppHtml(
       selectedTokenId = (state.tokens && state.tokens.find(t => t.characterId === selectedHeroId)?.id) || "";
       lastSeenRpPromptId = "";
       connectRoomStream(state.roomCode);
+      maybeAutoOpenWalkthrough();
       renderAll();
     }
 
@@ -1337,16 +1649,45 @@ export function renderVttAppHtml(
       }
     }
 
+    function updateModalPasswordMatchHint() {
+      const pw = document.getElementById("reg-password").value;
+      const confirmEl = document.getElementById("reg-password-confirm");
+      const hint = document.getElementById("reg-pw-match");
+      if (!confirmEl || !hint) return;
+      const confirmPw = confirmEl.value;
+      if (!confirmPw) {
+        hint.classList.add("hidden");
+        return;
+      }
+      hint.classList.remove("hidden");
+      if (pw === confirmPw) {
+        hint.className = "text-[11px] font-semibold text-emerald-400";
+        hint.innerText = "✅ Passwords match";
+      } else {
+        hint.className = "text-[11px] font-semibold text-rose-400";
+        hint.innerText = "⚠️ Passwords do not match";
+      }
+    }
+
     async function submitVttRegister(e) {
       e.preventDefault();
       const feedback = document.getElementById("vtt-auth-feedback");
+      const password = document.getElementById("reg-password").value;
+      const confirmPassword = document.getElementById("reg-password-confirm").value;
+      if (password !== confirmPassword) {
+        feedback.className = "text-[11px] font-semibold text-rose-400";
+        feedback.innerText = "Passwords do not match. Please re-enter your password.";
+        document.getElementById("reg-password-confirm").focus();
+        return;
+      }
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           familyName: document.getElementById("reg-family-name").value.trim(),
           email: document.getElementById("reg-email").value.trim(),
-          password: document.getElementById("reg-password").value,
+          password,
+          confirmPassword,
           preferredRulesTier: document.getElementById("reg-rules-tier").value,
           preferredAgeGroup: document.getElementById("reg-age-group").value,
         }),
@@ -2345,7 +2686,9 @@ export function renderVttAppHtml(
         });
       }
 
-      if (state.activeRpPrompt && state.activeRpPrompt.id !== lastSeenRpPromptId) {
+      const wtModal = document.getElementById("session-walkthrough-modal");
+      const isWalkthroughOpen = Boolean(wtModal && !wtModal.classList.contains("hidden"));
+      if (!isWalkthroughOpen && state.activeRpPrompt && state.activeRpPrompt.id !== lastSeenRpPromptId) {
         openRpReadoutModal(state.activeRpPrompt);
       }
 
@@ -2780,6 +3123,7 @@ export function renderVttAppHtml(
       };
     }
 
+    maybeAutoOpenWalkthrough();
     renderAll();
     connectRoomStream(state.roomCode);
     refreshCustomTokens();

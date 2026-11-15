@@ -21,7 +21,8 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
 - **Tactical Tools & Combat (`tools-weather-engine.ts`, `combat-audio-engine.ts`)**: `5ft/sq` distance ruler, Spell AoE templates (`CIRCLE`, `CONE`, `LINE`), weather emitters, initiative tracker, and scenic SVG backdrops (`assets/backgrounds/`).
 
 ## 3. VTT Demo Accounts, Tailored Generation & Session 1 Free Paywall (`auth-store.ts`)
-- **Account Persistence (`vtt_accounts` in SQLite `hearthquest.db`)**: Scrypt salted password hashes (`scrypt$<salt>$<hash>`) + HMAC-SHA256 bearer/cookie session tokens (`/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/preferences`, `/api/auth/logout`, `/api/auth/activate-license`). Includes `preferredRulesTier` (`STORYBOOK_D6` | `APPRENTICE_5E_LITE` | `STANDARD_5E`) and `preferredAgeGroup` (`AGES_5_7`..`TEENS_13_PLUS`) with safe SQLite `ALTER TABLE` migration.
+- **Account Persistence (`vtt_accounts` in SQLite `hearthquest.db`)**: Scrypt salted password hashes (`scrypt$<salt>$<hash>`) + HMAC-SHA256 bearer/cookie session tokens (`/api/auth/register` requiring `confirmPassword` match, `/api/auth/login`, `/api/auth/me`, `/api/auth/preferences`, `/api/auth/logout`, `/api/auth/activate-license`). Includes `role` (`ADMIN` first user | `USER`), `authProvider` (`LOCAL` | `GOOGLE`), `preferredRulesTier`, and `preferredAgeGroup` with safe SQLite `ALTER TABLE` migrations.
+- **Session 1 Setup & Host Walkthrough Modal (`#session-walkthrough-modal`)**: Automatically greets a signed-in host on first launch in `GM_COMMAND` mode (re-openable anytime via `#btn-session-walkthrough`), walking through **1. Setup & Heroes**, **2. How Others Join** (QR Code / `&mode=kid` / `&mode=tv`), **3. How to Start & Play** (D-Pad/WASD, locked/unlocked doors, fog reveal, dice), and **4. What to Read Aloud** (live synced Hook, Scene 1 script, NPC question + TTS readout, before launching `#rp-readout-modal`).
 - **Per-User Isolated Sessions & Scannable ISO QR Codes (`qr-encoder.ts`)**: Opening `/` unauthenticated renders the standalone Login / Create Account Gate (`renderVttLoginGateHtml`); ALL `/api/room/*` endpoints enforce `authorizeRoomAccess` so each signed-in account can only open/modify its own `trialRoomCode` instance (`401`/`403` cross-user isolation). `/api/room/qr` generates an ISO/IEC 18004 EC-M Reed-Solomon QR SVG via `encodeQrMatrix()` pointing to `http(s)://<host>/?room=<CODE>&mode=kid&invite=<HMAC>`, allowing scanned kid tablets/TVs to receive a room-scoped `hq_vtt_guest` token restricted strictly to player actions in that host's room.
 - **Account-Tailored World & Spoken RP Modal (`POST /api/room/rp-prompt`, `#rp-readout-modal`)**: Registering or updating preferences regenerates the account's active room via `generateTailoredAccountSession()` and opens `#rp-readout-modal` whenever `activeRpPrompt` fires (Session 1 opening hook, NPC token click, story advance, or boss vault unlock).
 - **Storefront Entitlement Sync**: Automatically syncs paid tiers (`DIGITAL_UPDATES`, `DIGITAL_PLUS`, `GAME_IN_A_BOX_PRO`) from SQLite `households` matching user email OR activated `HQ-...` license keys.
@@ -31,6 +32,6 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.20` (Build `#21`)
-- **Updated At**: `2026-11-15T04:20:12.460Z`
+- **Last Verified Build**: `v0.1.21` (Build `#22`)
+- **Updated At**: `2026-11-15T18:30:38.825Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

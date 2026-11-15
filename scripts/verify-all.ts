@@ -1691,8 +1691,29 @@ async function runVerification() {
   assert.ok(
     firstSetupHtml.includes("first-admin-setup-banner") &&
       firstSetupHtml.includes("Continue with Google (Claim Admin)") &&
-      firstSetupHtml.includes("btn-google-signin"),
-    "First-run login gate must display Admin promotion notice & Google Sign-In CTA"
+      firstSetupHtml.includes("btn-google-signin") &&
+      firstSetupHtml.includes("gate-reg-password-confirm") &&
+      tailoredHtml.includes("reg-password-confirm") &&
+      tailoredHtml.includes("session-walkthrough-modal") &&
+      tailoredHtml.includes("btn-session-walkthrough") &&
+      tailoredHtml.includes("walkthrough-step-0") &&
+      tailoredHtml.includes("walkthrough-step-1") &&
+      tailoredHtml.includes("walkthrough-step-2") &&
+      tailoredHtml.includes("walkthrough-step-3") &&
+      tailoredHtml.includes("walkthrough-read-hook") &&
+      tailoredHtml.includes("walkthrough-read-scene") &&
+      tailoredHtml.includes("speakWalkthroughReadout"),
+    "First-run login gate and in-app VTT must display Admin/Google CTA, Re-enter Password fields, and the 4-step Session 1 Walkthrough Modal"
+  );
+  assert.throws(
+    () =>
+      registerVttAccount({
+        familyName: "Mismatch Test",
+        email: "mismatch-pw@hearthquest.local",
+        password: "secret-password-1",
+        confirmPassword: "secret-password-2",
+      }),
+    /Passwords do not match/
   );
 
   // 3. Test isolated fresh DB where the VERY FIRST sign-in comes through Google SSO -> must become ADMIN!
@@ -1870,6 +1891,32 @@ async function runVerification() {
         assert.strictEqual(statusRes.status, 200);
         assert.strictEqual(statusRes.body.ok, true);
         assert.ok(String(statusRes.body.redirectUri).endsWith("/api/auth/google/callback"));
+
+        // Confirm password enforcement on POST /api/auth/register
+        const regMismatch = await reqJson(`${base}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            familyName: "Confirm Fail",
+            email: "confirm-fail@hearthquest.local",
+            password: "password-one",
+            confirmPassword: "password-two",
+          }),
+        });
+        assert.strictEqual(regMismatch.status, 400, "Mismatched confirmPassword must fail with HTTP 400");
+        assert.ok(String(regMismatch.body.error || "").includes("Passwords do not match"));
+
+        const regMatch = await reqJson(`${base}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            familyName: "Confirm Ok",
+            email: "confirm-ok@hearthquest.local",
+            password: "password-one",
+            confirmPassword: "password-one",
+          }),
+        });
+        assert.strictEqual(regMatch.status, 200, "Matching confirmPassword must succeed");
 
         // Non-admin user blocked 403 from Admin Console API
         const userBlocked = await reqJson(`${base}/api/vtt-admin/accounts`, {

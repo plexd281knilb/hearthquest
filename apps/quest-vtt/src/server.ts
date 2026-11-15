@@ -439,6 +439,7 @@ const server = http.createServer(async (req, res) => {
         familyName: body.familyName || "Adventuring Family",
         email: body.email || "",
         password: body.password || "",
+        confirmPassword: body.confirmPassword !== undefined ? String(body.confirmPassword) : "",
         preferredRulesTier: body.preferredRulesTier,
         preferredAgeGroup: body.preferredAgeGroup,
       });

@@ -324,6 +324,7 @@ export function registerVttAccount(params: {
   familyName: string;
   email: string;
   password: string;
+  confirmPassword?: string;
   preferredRulesTier?: RulesTier;
   preferredAgeGroup?: AgeGroupPreset;
   roomCode?: string;
@@ -339,6 +340,9 @@ export function registerVttAccount(params: {
   }
   if (password.length < 6) {
     throw new Error("Password must be at least 6 characters.");
+  }
+  if (params.confirmPassword !== undefined && password !== String(params.confirmPassword)) {
+    throw new Error("Passwords do not match. Please re-enter your password.");
   }
 
   const account = withAuthDb((db) => {

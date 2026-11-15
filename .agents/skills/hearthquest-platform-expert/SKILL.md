@@ -30,6 +30,6 @@ description: Full-stack platform architecture guide for HearthQuest. Covers Node
 
 ## 5. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.20` (Build `#21`)
-- **Updated At**: `2026-11-15T04:20:12.460Z`
+- **Last Verified Build**: `v0.1.21` (Build `#22`)
+- **Updated At**: `2026-11-15T18:30:38.825Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->
