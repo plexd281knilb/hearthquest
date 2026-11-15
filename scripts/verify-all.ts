@@ -62,6 +62,13 @@ import {
   updateRoomLighting,
   updateRoomToolsAndWeather,
 } from "../apps/quest-vtt/src/room-store";
+import {
+  activateLicenseOnVttAccount,
+  evaluateVttSessionProgressionGate,
+  getVttAccountByToken,
+  loginVttAccount,
+  registerVttAccount,
+} from "../apps/quest-vtt/src/auth-store";
 import { renderVttAppHtml } from "../apps/quest-vtt/src/ui-template";
 import {
   APP_VERSION,
@@ -1046,8 +1053,99 @@ async function runVerification() {
   assert.ok(vttHtml.includes("btn-open-storefront"), "VTT header must include direct link to Public Storefront");
   console.log("✅ PASSED");
 
+  // Suite 24: VTT Account Registration, Scrypt Login, Session 1 Free Play -> Session 2+ Paywall Gate & Skill Sync
+  process.stdout.write("[TEST] Suite 24: VTT Account Auth, Session 1 Free Demo Paywall & Skill Sync... ");
+  assert.ok(vttHtml.includes("vtt-auth-modal"), "VTT HTML must render Demo Account Auth Modal");
+  assert.ok(vttHtml.includes("vtt-paywall-modal"), "VTT HTML must render Session 2+ Paywall Modal");
+  assert.ok(vttHtml.includes("submitVttRegister("), "VTT HTML must expose account registration handler");
+
+  // 1. Register new demo family account -> starts on TRIAL_PREVIEW with assigned personal Demo Room
+  const demoReg = registerVttAccount({
+    familyName: "The Cedar Family",
+    email: "cedar-demo@hearthquest.local",
+    password: "super-secret-password",
+  });
+  assert.strictEqual(demoReg.account.subscriptionTier, "TRIAL_PREVIEW");
+  assert.strictEqual(demoReg.room.roomCode, demoReg.account.trialRoomCode);
+  assert.ok(demoReg.room.storyNodes.length >= 2);
+  assert.ok(getVttAccountByToken(demoReg.token)?.email === "cedar-demo@hearthquest.local");
+
+  // Duplicate email & bad password must be rejected cleanly
+  assert.throws(
+    () =>
+      registerVttAccount({
+        familyName: "Dup",
+        email: "cedar-demo@hearthquest.local",
+        password: "anotherpassword",
+      }),
+    /already exists/
+  );
+  assert.throws(
+    () =>
+      loginVttAccount({
+        email: "cedar-demo@hearthquest.local",
+        password: "wrong-password",
+      }),
+    /Invalid email or password/
+  );
+  const demoLogin = loginVttAccount({
+    email: "cedar-demo@hearthquest.local",
+    password: "super-secret-password",
+  });
+  assert.strictEqual(demoLogin.account.id, demoReg.account.id);
+
+  // 2. Session 1 (Node 0) allowed free; Session 2 (Node 1) blocked until paid license activated
+  const session1Gate = evaluateVttSessionProgressionGate({
+    room: demoReg.room,
+    targetNodeId: demoReg.room.storyNodes[0].id,
+    account: demoReg.account,
+  });
+  assert.strictEqual(session1Gate.allowed, true, "Session 1 (Node 0) must be playable free on Demo Account");
+
+  const session2Blocked = evaluateVttSessionProgressionGate({
+    room: demoReg.room,
+    targetNodeId: demoReg.room.storyNodes[1].id,
+    account: demoReg.account,
+  });
+  assert.strictEqual(session2Blocked.allowed, false, "Session 2+ must require paid upgrade");
+  assert.strictEqual(session2Blocked.paywallRequired, true);
+
+  // 3. Activate paid HQ-UPD license key -> immediately unlocks Session 2+
+  const paidUpdatesKey = generateLicenseKey(demoReg.account.id, "DIGITAL_UPDATES");
+  const upgradedAcct = activateLicenseOnVttAccount({
+    accountId: demoReg.account.id,
+    licenseKey: paidUpdatesKey,
+  });
+  assert.strictEqual(upgradedAcct.subscriptionTier, "DIGITAL_UPDATES");
+
+  const session2Unlocked = evaluateVttSessionProgressionGate({
+    room: demoReg.room,
+    targetNodeId: demoReg.room.storyNodes[1].id,
+    account: upgradedAcct,
+  });
+  assert.strictEqual(session2Unlocked.allowed, true, "Activated HQ-UPD license must unlock Session 2+ in VTT");
+
+  // 4. Verify all 9 workspace SKILL.md files exist cleanly
+  const skillDirs = [
+    path.join(rootDir, ".agents", "skills", "character-token-designer", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "dnd-5e-srd-expert", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "family-gm-copilot", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "hearthquest-platform-expert", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "subagent-release-workflow", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "tabletop-audio-director", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "tabletop-theme-specialist", "SKILL.md"),
+    path.join(rootDir, ".agents", "skills", "vtt-canvas-architect", "SKILL.md"),
+    path.join(rootDir, ".gemini", "skills", "lore-continuity-keeper", "SKILL.md"),
+  ];
+  for (const sp of skillDirs) {
+    assert.ok(fs.existsSync(sp), `Skill missing: ${sp}`);
+    const txt = fs.readFileSync(sp, "utf8");
+    assert.ok(txt.includes("HEARTHQUEST_SKILL_BUILD_STAMP:START"), `Skill missing auto-stamp marker: ${sp}`);
+  }
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 23/23 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 24/24 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   process.exit(0);
 }

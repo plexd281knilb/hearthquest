@@ -1,29 +1,18 @@
 ---
 name: tabletop-theme-specialist
-description: Master of Light Mode (Storybook Parchment) and Dark Mode (Midnight Hearth) design, high-contrast kid-friendly accessibility, and responsive 3-screen theming for HearthQuest.
+description: Master of Light Mode (Storybook Parchment) and Dark Mode (Midnight Hearth) design, scenic SVG backdrops, favicons/Unraid icons, and responsive theming across VTT, Storefront (/store), and Admin portals.
 ---
 
 # Tabletop Theme Specialist Skill
 
-## 1. Visual Theme Philosophy
-HearthQuest supports two primary visual themes engineered for family play across bright daytime living rooms and evening theater sessions:
+## 1. Dual Theme System Across All 3 Surfaces
+- **Midnight Hearth (`data-theme="dark"`)** & **Storybook Parchment (`data-theme="light"`)** operate consistently across **Quest VTT** (`/`), **Public Storefront** (`/store`), and **Operator Admin** (`/`) using persisted `localStorage` toggles.
+- **Scenic SVG Backdrops (`assets/backgrounds/`)**: Layered vector backdrops (`HEARTH_TAVERN`, `ENCHANTED_WOODS`, `STARLIGHT_OBSERVATORY`) look rich behind tactical floor tiles (`backdrop-hearth-tavern.svg`, `backdrop-enchanted-woods.svg`, `backdrop-starlight-observatory.svg`).
+- **Branding Assets**: Unified shield-and-hearth SVG/PNG icons (`assets/hearthquest-icon.svg`, `assets/hearthquest-icon.png`) served with `#f59e0b` browser theme-color metadata across VTT, Storefront, and Admin.
+- **UI Accessibility Rules**: Minimum 48px+ touch targets on phone/tablet Kid Controllers, WCAG AAA text contrast in light parchment mode, and clear visual distinction between Free Preview, DIY Print-at-Home, and Shipped Hardware badges on `/store`.
 
-### 1.1 Dark Mode ("Midnight Hearth")
-- **Palette**: Deep slate and indigo (`#090d16` to `#1e1b4b`), luminous warm amber (`#f59e0b` / `#fbbf24`), rich emerald accents.
-- **Atmosphere**: Cozy fireside tavern, immersive nighttime tabletop, zero light pollution when projecting to living room TV.
-- **Token Rendering**: Glow borders, high contrast badges against dark grid tiles.
-
-### 1.2 Light Mode ("Storybook Parchment")
-- **Palette**: Warm ivory parchment (`#fdfbf7` to `#f4ede4`), warm saddle leather borders (`#b45309` / `#78350f`), deep espresso text (`#1c1917` / `#292524`), creamy gold badges (`#fef3c7`).
-- **Atmosphere**: Illustrated fairytale storybook, bright daylight family kitchen table, high-contrast sunlight readability for tablets.
-- **Token Rendering**: Soft drop shadows, distinct colored rings, crisp dark label text.
-
-## 2. Implementation Rules
-1. **Persistent Theme State**:
-   - Persist theme in `localStorage.getItem("hearthquest_theme")` (`"dark"` or `"light"`).
-   - Apply `data-theme="light"` or `data-theme="dark"` on the `<html>` or `<body>` element.
-   - Provide a persistent toggle button (`☀️ Light Mode` / `🌙 Dark Mode`) in the header of GM View, TV View, Kid Controller, and Admin portal.
-2. **Contrast & Touch Accessibility**:
-   - Ensure WCAG AAA contrast ratio for kids' readable text.
-   - Touch targets must remain 48px+ on phones and 64px+ on kids' tablets regardless of active theme.
-   - Grid lines must remain visible in both modes (semi-transparent white/amber in dark mode; warm saddle tan in light mode).
+## 2. Build Currency Stamp
+<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
+- **Last Verified Build**: `v0.1.15` (Build `#16`)
+- **Updated At**: `2026-11-15T03:18:57.842Z`
+<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

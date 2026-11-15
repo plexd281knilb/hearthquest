@@ -1,31 +1,31 @@
 ---
 name: hearthquest-platform-expert
-description: Full-stack platform architecture guide for HearthQuest. Covers Next.js, multi-container Docker topology on Unraid, local RTX 3080 AI bridge, Stripe billing, and Print-on-Demand (POD) fulfillment pipelines.
+description: Full-stack platform architecture guide for HearthQuest. Covers Node 24 TypeScript workspaces, native SQLite WAL persistence, Unraid Docker topology, Public Storefront (/store), Stripe HMAC webhooks, Print-on-Demand fulfillment, DIY pricing, and RTX 3080 AI bridge.
 ---
 
 # HearthQuest Platform & Infrastructure Guide
 
-## 1. Multi-Container Fleet on Unraid
+## 1. Monorepo Workspaces & Runtime Stack
+- **Runtime**: **Node 24** (`node:24-alpine` in `docker/Dockerfile` and `node-version: 24` in `.github/workflows/docker-publish.yml`) for unflagged built-in **`node:sqlite` (`DatabaseSync`)**.
+- **Single-File Shared SQLite (`hearthquest.db`)**:
+  - Location: `/app/data/hearthquest.db` (`data/.test/test-hearthquest.db` when `NODE_ENV=test`).
+  - Always set `PRAGMA journal_mode = WAL;` and `PRAGMA busy_timeout = 5000;` on every connection.
+  - **Cross-Process Test Safety**: In tests, `room-store.ts` & `auth-store.ts` use short-lived open/close `withRoomDb` / `withAuthDb` helpers so Windows test resets in `admin-store.ts` never hit `EBUSY` file locks.
+  - **Tables**: `rooms`, `vtt_accounts`, `households`, `orders`, `processed_webhooks`, `lore_registry`, `store_carts`, `promo_codes`.
 
-### Docker Fleet Topology:
-1. **`quest-vtt` (Port 3000):** Real-time interactive tabletop canvas (Next.js, Pixi.js, Socket.io, Howler.js).
-2. **`quest-admin` (Port 3001):** Storefront, user authentication, subscription billing, and physical order tracking.
-3. **`quest-ai-bridge` (Port 8000):** FastAPI / Node.js gateway routing between local LAN RTX 3080 (Ollama/vLLM) and cloud failover (Gemini 2.0 Flash).
-4. **`quest-redis` (Port 6379):** Distributed state store and WebSocket message broker.
-5. **`quest-db` (Port 5432):** PostgreSQL + Prisma (or local SQLite for single-node Unraid).
+## 2. Storefront (`/store`), Payments & Fulfillment (`apps/quest-admin`)
+- **Public Storefront (`store-frontend.ts` + `store-backend.ts`)**:
+  - Dedicated storefront at `GET /store` with interactive **Encounter 1 Free Preview -> Paywall Gate**, server-authoritative SQLite Carts (`/api/store/cart`, `/api/store/quote`, `/api/store/checkout`), promo codes (`HEARTH10`, `FAMILYFIRST`), and customer Order Lookup (`/api/store/orders/lookup`).
+  - **Pricing Model (No `$0` Free Self-Host Tier)**:
+    - **Subscriptions**: `$5/mo` *Digital Explorer & Creator Updates*, `$9/mo` *Print-at-Home Vault + Cloud AI*, `$19/mo` *Monthly Chapter Envelope + Digital*.
+    - **Starter & DIY Editions**: Cheaper **Print-at-Home DIY PDFs** (`$15` Starter DIY / `$4` Level-Scaled One-Shot DIY, `$0` shipping) vs **Shipped Boxes** (`$49` Starter Box / `$69` Deluxe Hardcover Box).
+- **Stripe Webhooks & POD Queue (`admin-store.ts`)**: HMAC-SHA256 signature verification (`verifyStripeWebhookSignature`), idempotency table (`processed_webhooks`), signed license keys (`HQ-<TIER>-<ID>-<HMAC>`), and Operator PIN-gated fulfillment workflow (`/printable-kit`).
 
----
+## 3. RTX 3080 Local AI Bridge (`apps/quest-ai-bridge`)
+- Connects on LAN to gaming PC Ollama host (`OLLAMA_HOST`) or fails over gracefully to Gemini Flash with zero disruption.
 
-## 2. Print-on-Demand (POD) Physical Fulfillment
-- **Pipeline:** Automated PDF generation via Puppeteer / PDFKit rendering:
-  - High-res folding battle maps with 1-inch grids.
-  - Cutout cardboard standees with printable bases.
-  - Laminated character and spell cards.
-- **Webhook Dispatch:** Integrates with fulfillment partners (Printful / Prodigi / Lulu) for direct mailing of boxed adventure kits.
-
----
-
-## 3. RTX 3080 Local AI Bridge Strategy
-- **Local Host:** LAN connection to gaming PC running Ollama / vLLM.
-- **Model Recommendation:** Qwen 2.5 14B or Llama 3.3 70B (4-bit quant) for high-speed dialogue and rules reasoning within 10GB/12GB VRAM.
-- **Health Check & Auto-Failover:** Pings gaming PC `/api/health`. If timeout > 800ms or connection refused (PC off), routes dynamically to Google Gemini 2.0 Flash API with zero user disruption.
+## 4. Build Currency Stamp
+<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
+- **Last Verified Build**: `v0.1.15` (Build `#16`)
+- **Updated At**: `2026-11-15T03:18:57.842Z`
+<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

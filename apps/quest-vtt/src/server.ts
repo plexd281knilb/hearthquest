@@ -30,7 +30,42 @@ import {
   updateRoomSettings,
   updateRoomToolsAndWeather,
 } from "./room-store";
+import {
+  activateLicenseOnVttAccount,
+  evaluateVttSessionProgressionGate,
+  getVttAccountByToken,
+  loginVttAccount,
+  registerVttAccount,
+  verifyVttLicenseKey,
+} from "./auth-store";
 import { renderVttAppHtml } from "./ui-template";
+
+export {
+  activateLicenseOnVttAccount,
+  evaluateVttSessionProgressionGate,
+  getVttAccountByToken,
+  loginVttAccount,
+  registerVttAccount,
+  verifyVttLicenseKey,
+};
+
+function extractSessionToken(req: http.IncomingMessage, body?: any): string {
+  const authHeader = String(req.headers.authorization || "");
+  if (authHeader.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length).trim();
+  }
+  if (body?.authToken) {
+    return String(body.authToken).trim();
+  }
+  const cookieHeader = String(req.headers.cookie || "");
+  for (const part of cookieHeader.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === "hq_vtt_session") {
+      return decodeURIComponent(rest.join("="));
+    }
+  }
+  return "";
+}
 
 const PORT = Number(process.env.PORT_VTT || process.env.PORT || 3000);
 
@@ -235,7 +270,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (pathname === "/api/room/toggle-zone" && req.method === "POST") {
+  if ((pathname === "/api/room/toggle-zone" || pathname === "/api/room/zone-fog") && req.method === "POST") {
     const body = await readJsonBody(req);
     const room = toggleRoomZoneFog({
       roomCode: body.roomCode || "DRGN",
@@ -247,10 +282,109 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (pathname === "/api/room/advance-story" && req.method === "POST") {
+  if (pathname === "/api/auth/me" && req.method === "GET") {
+    const account = getVttAccountByToken(extractSessionToken(req));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, account }));
+    return;
+  }
+
+  if (pathname === "/api/auth/register" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const { account, token, room } = registerVttAccount({
+        familyName: body.familyName || "Adventuring Family",
+        email: body.email || "",
+        password: body.password || "",
+      });
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
+      });
+      res.end(JSON.stringify({ ok: true, account, token, room }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Registration failed" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/auth/login" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const { account, token, room } = loginVttAccount({
+        email: body.email || "",
+        password: body.password || "",
+      });
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": `hq_vtt_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600`,
+      });
+      res.end(JSON.stringify({ ok: true, account, token, room }));
+    } catch (err: any) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Invalid login credentials" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/auth/logout" && req.method === "POST") {
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Set-Cookie": "hq_vtt_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+    });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (pathname === "/api/auth/activate-license" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const token = extractSessionToken(req, body);
+      const account = getVttAccountByToken(token);
+      if (!account) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Sign in or create a Demo Account first." }));
+        return;
+      }
+      const updated = activateLicenseOnVttAccount({
+        accountId: account.id,
+        licenseKey: body.licenseKey || "",
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, account: updated }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Activation failed" }));
+    }
+    return;
+  }
+
+  if ((pathname === "/api/room/advance-story" || pathname === "/api/room/story-branch") && req.method === "POST") {
     const body = await readJsonBody(req);
+    const roomCode = body.roomCode || "DRGN";
+    const existingRoom = getOrCreateRoom(roomCode);
+    const account = getVttAccountByToken(extractSessionToken(req, body));
+    const gate = evaluateVttSessionProgressionGate({
+      room: existingRoom,
+      targetNodeId: body.targetNodeId,
+      account,
+      overrideLicenseKey: body.licenseKey,
+    });
+    if (!gate.allowed) {
+      res.writeHead(402, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          paywallRequired: true,
+          activeTier: gate.activeTier,
+          error: gate.reason,
+        })
+      );
+      return;
+    }
     const room = advanceRoomStoryNode({
-      roomCode: body.roomCode || "DRGN",
+      roomCode,
       targetNodeId: body.targetNodeId,
       consequenceTag: body.consequenceTag,
     });

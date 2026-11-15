@@ -188,6 +188,9 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
           <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
             🛍️ Store
           </a>
+          <button onclick="toggleVttAuthModal(true)" id="btn-vtt-account" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-500/25 hover:bg-purple-500/40 text-purple-200 border border-purple-400/50 transition">
+            👤 Demo Account (Session 1 Free)
+          </button>
         </div>
         <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>
       </div>
@@ -521,6 +524,66 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     </div>
   </div>
 
+  <!-- Demo Account Creation, Login & License Key Modal -->
+  <div id="vtt-auth-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-extrabold text-amber-400">👤 HearthQuest Demo Account</h3>
+        <button onclick="toggleVttAuthModal(false)" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <div id="vtt-account-summary" class="hidden p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-2"></div>
+
+      <div class="flex gap-2 text-xs">
+        <button onclick="switchAuthTab('register')" id="tab-auth-register" class="flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 font-extrabold">✨ Create Free Account</button>
+        <button onclick="switchAuthTab('login')" id="tab-auth-login" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-200 font-bold">🔑 Sign In</button>
+      </div>
+
+      <form id="form-vtt-register" onsubmit="submitVttRegister(event)" class="space-y-2.5 text-xs">
+        <p class="text-slate-400">Create a free demo account to launch your own room and play <strong>Session 1</strong> right on the tabletop!</p>
+        <input id="reg-family-name" type="text" required placeholder="Family Name (e.g., The Miller Family)" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <input id="reg-email" type="email" required placeholder="Email Address" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <input id="reg-password" type="password" required minlength="6" placeholder="Password (6+ characters)" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black">🎮 Create Account & Play Session 1 Free</button>
+      </form>
+
+      <form id="form-vtt-login" onsubmit="submitVttLogin(event)" class="hidden space-y-2.5 text-xs">
+        <input id="login-email" type="email" required placeholder="Email Address" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <input id="login-password" type="password" required placeholder="Password" class="w-full theme-input border rounded-xl px-3 py-2" />
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">🔓 Sign In</button>
+      </form>
+
+      <div class="pt-3 border-t border-slate-700/60 space-y-2 text-xs">
+        <label class="font-bold text-amber-300 block">Have a Store License Key (HQ-...)? Unlock Session 2+:</label>
+        <div class="flex gap-2">
+          <input id="vtt-license-key-input" type="text" placeholder="HQ-UPD-..." class="flex-1 theme-input border rounded-xl px-3 py-1.5 font-mono uppercase" />
+          <button onclick="activateVttLicenseUi()" type="button" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold">Unlock</button>
+        </div>
+        <div id="vtt-auth-feedback" class="text-[11px] font-semibold"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session 2+ Paywall Upgrade Modal -->
+  <div id="vtt-paywall-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="theme-card border-2 border-amber-400/70 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-extrabold text-amber-400">🔒 Session 1 Complete — Unlock Full Adventure</h3>
+        <button onclick="document.getElementById('vtt-paywall-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+      <p id="vtt-paywall-reason" class="text-xs text-slate-300 leading-relaxed">
+        You completed the Free First Session Demo! Pick an affordable creator update plan ($5/mo), print-at-home DIY PDF ($15, zero shipping), or shipped Starter Box ($49) in the Storefront to unlock Session 2+!
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+        <a id="paywall-store-link" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="p-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-center">
+          🛍️ Upgrade in Storefront ($4–$49)
+        </a>
+        <button onclick="document.getElementById('vtt-paywall-modal').classList.add('hidden'); toggleVttAuthModal(true);" class="p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold">
+          🔑 Sign In / Enter License Key
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let state = ${serialized};
     const rawUrlMode = (new URLSearchParams(window.location.search).get("mode") || "").toUpperCase();
@@ -714,14 +777,163 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
     /* ==========================================================
        3. API CALLS & HELPERS
        ========================================================== */
+    let vttAuthToken = localStorage.getItem("hq_vtt_auth_token") || "";
+    let currentAccount = null;
+
+    function toggleVttAuthModal(open) {
+      document.getElementById("vtt-auth-modal").classList.toggle("hidden", !open);
+    }
+
+    function switchAuthTab(tab) {
+      const isReg = tab === "register";
+      document.getElementById("form-vtt-register").classList.toggle("hidden", !isReg);
+      document.getElementById("form-vtt-login").classList.toggle("hidden", isReg);
+      document.getElementById("tab-auth-register").className = isReg
+        ? "flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 font-extrabold"
+        : "flex-1 py-2 rounded-xl bg-slate-800 text-slate-200 font-bold";
+      document.getElementById("tab-auth-login").className = !isReg
+        ? "flex-1 py-2 rounded-xl bg-indigo-600 text-white font-extrabold"
+        : "flex-1 py-2 rounded-xl bg-slate-800 text-slate-200 font-bold";
+    }
+
+    function updateAccountUi() {
+      const btn = document.getElementById("btn-vtt-account");
+      const summary = document.getElementById("vtt-account-summary");
+      if (!currentAccount) {
+        if (btn) btn.innerText = "👤 Sign Up / Demo Account";
+        if (summary) summary.classList.add("hidden");
+        return;
+      }
+      const isPaid = currentAccount.subscriptionTier && currentAccount.subscriptionTier !== "TRIAL_PREVIEW";
+      if (btn) {
+        btn.innerText = (isPaid ? "🔓 " : "🟢 ") + currentAccount.familyName + (isPaid ? " (" + currentAccount.subscriptionTier + ")" : " • Session 1 Free");
+      }
+      if (summary) {
+        summary.classList.remove("hidden");
+        summary.innerHTML =
+          "<div class='flex justify-between items-center'><strong>" + currentAccount.familyName + " (" + currentAccount.subscriptionTier + ")</strong><button onclick='logoutVttAccountUi()' class='text-rose-400 underline font-bold'>Sign Out</button></div>" +
+          "<div>Personal Demo Room: <strong class='font-mono text-amber-300'>" + currentAccount.trialRoomCode + "</strong></div>";
+      }
+    }
+
+    async function loadVttAuthStatus() {
+      const headers = vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {};
+      const res = await fetch("/api/auth/me", { headers });
+      const data = await res.json();
+      if (data && data.account) {
+        currentAccount = data.account;
+        updateAccountUi();
+      }
+    }
+
+    async function submitVttRegister(e) {
+      e.preventDefault();
+      const feedback = document.getElementById("vtt-auth-feedback");
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          familyName: document.getElementById("reg-family-name").value.trim(),
+          email: document.getElementById("reg-email").value.trim(),
+          password: document.getElementById("reg-password").value,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        feedback.className = "text-[11px] font-semibold text-rose-400";
+        feedback.innerText = data.error || "Registration failed";
+        return;
+      }
+      vttAuthToken = data.token;
+      localStorage.setItem("hq_vtt_auth_token", vttAuthToken);
+      currentAccount = data.account;
+      updateAccountUi();
+      if (data.room) {
+        state = data.room;
+        document.getElementById("room-code-badge").innerText = "ROOM: " + state.roomCode;
+        renderAll();
+      }
+      feedback.className = "text-[11px] font-semibold text-emerald-400";
+      feedback.innerText = "🎉 Demo Account created! Your personal Session 1 Room (" + data.account.trialRoomCode + ") is ready!";
+    }
+
+    async function submitVttLogin(e) {
+      e.preventDefault();
+      const feedback = document.getElementById("vtt-auth-feedback");
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: document.getElementById("login-email").value.trim(),
+          password: document.getElementById("login-password").value,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        feedback.className = "text-[11px] font-semibold text-rose-400";
+        feedback.innerText = data.error || "Sign in failed";
+        return;
+      }
+      vttAuthToken = data.token;
+      localStorage.setItem("hq_vtt_auth_token", vttAuthToken);
+      currentAccount = data.account;
+      updateAccountUi();
+      if (data.room) {
+        state = data.room;
+        document.getElementById("room-code-badge").innerText = "ROOM: " + state.roomCode;
+        renderAll();
+      }
+      toggleVttAuthModal(false);
+    }
+
+    async function activateVttLicenseUi() {
+      const key = document.getElementById("vtt-license-key-input").value.trim();
+      const feedback = document.getElementById("vtt-auth-feedback");
+      const res = await fetch("/api/auth/activate-license", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify({ licenseKey: key }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        feedback.className = "text-[11px] font-semibold text-rose-400";
+        feedback.innerText = data.error || "Could not activate license key";
+        return;
+      }
+      currentAccount = data.account;
+      updateAccountUi();
+      feedback.className = "text-[11px] font-semibold text-emerald-400";
+      feedback.innerText = "🔓 Unlocked! Your account now has full access (" + data.account.subscriptionTier + ").";
+    }
+
+    async function logoutVttAccountUi() {
+      await fetch("/api/auth/logout", { method: "POST" });
+      vttAuthToken = "";
+      localStorage.removeItem("hq_vtt_auth_token");
+      currentAccount = null;
+      updateAccountUi();
+    }
+
     async function apiPost(url, data) {
       try {
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+          },
           body: JSON.stringify(data)
         });
         const json = await res.json();
+        if (json.paywallRequired) {
+          const reasonEl = document.getElementById("vtt-paywall-reason");
+          if (reasonEl && json.error) reasonEl.innerText = json.error;
+          document.getElementById("vtt-paywall-modal").classList.remove("hidden");
+          return json;
+        }
         if (json.ok && json.room) {
           state = json.room;
           renderAll();
@@ -1583,6 +1795,7 @@ export function renderVttAppHtml(initialState: RoomSessionState): string {
 
     renderAll();
     refreshCustomTokens();
+    loadVttAuthStatus();
   </script>
 </body>
 </html>`;

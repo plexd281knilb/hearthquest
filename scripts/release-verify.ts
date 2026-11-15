@@ -37,6 +37,44 @@ function bumpSemver(version: string, mode: "patch" | "minor" | "major"): string 
   return `${major}.${minor}.${patch + 1}`;
 }
 
+function collectHearthQuestSkillPaths(): string[] {
+  const skillPaths: string[] = [];
+  for (const baseDir of [
+    path.join(ROOT_DIR, ".agents", "skills"),
+    path.join(ROOT_DIR, ".gemini", "skills"),
+  ]) {
+    if (!fs.existsSync(baseDir)) continue;
+    for (const entry of fs.readdirSync(baseDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const skillMd = path.join(baseDir, entry.name, "SKILL.md");
+      if (fs.existsSync(skillMd)) {
+        skillPaths.push(skillMd);
+      }
+    }
+  }
+  return skillPaths.sort();
+}
+
+function syncSkillsBuildStamp(manifest: VersionManifest): number {
+  const stampBlock =
+    `<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->\n` +
+    `- **Last Verified Build**: \`v${manifest.version}\` (Build \`#${manifest.buildNumber}\`)\n` +
+    `- **Updated At**: \`${manifest.updatedAt}\`\n` +
+    `<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->`;
+  const skillPaths = collectHearthQuestSkillPaths();
+  for (const skillPath of skillPaths) {
+    let text = fs.readFileSync(skillPath, "utf8");
+    const regex = /<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->[\s\S]*?<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->/;
+    if (regex.test(text)) {
+      text = text.replace(regex, stampBlock);
+    } else {
+      text = text.trimEnd() + `\n\n## Build Currency Stamp\n${stampBlock}\n`;
+    }
+    fs.writeFileSync(skillPath, text, "utf8");
+  }
+  return skillPaths.length;
+}
+
 function syncVersionFiles(manifest: VersionManifest): void {
   fs.writeFileSync(VERSION_JSON_PATH, JSON.stringify(manifest, null, 2) + "\n", "utf8");
 
@@ -52,6 +90,9 @@ function syncVersionFiles(manifest: VersionManifest): void {
     .replace(/export const BUILD_NUMBER = \d+;/, `export const BUILD_NUMBER = ${manifest.buildNumber};`)
     .replace(/export const BUILD_UPDATED_AT = "[^"]+";/, `export const BUILD_UPDATED_AT = "${manifest.updatedAt}";`);
   fs.writeFileSync(SHARED_VERSION_TS_PATH, versionTs, "utf8");
+
+  const updatedSkillsCount = syncSkillsBuildStamp(manifest);
+  console.log(`[RELEASE] Synchronized ${updatedSkillsCount} workspace SKILL.md files to v${manifest.version} (#${manifest.buildNumber})`);
 }
 
 function verifyVersionConsistency(): VersionManifest {
@@ -72,6 +113,19 @@ function verifyVersionConsistency(): VersionManifest {
   }
   if (!versionTs.includes(`export const BUILD_NUMBER = ${manifest.buildNumber};`)) {
     throw new Error(`packages/shared-types/src/version.ts BUILD_NUMBER does not match ${manifest.buildNumber}`);
+  }
+
+  const skillPaths = collectHearthQuestSkillPaths();
+  if (skillPaths.length < 9) {
+    throw new Error(`Expected at least 9 HearthQuest SKILL.md files, found ${skillPaths.length}`);
+  }
+  for (const skillPath of skillPaths) {
+    const content = fs.readFileSync(skillPath, "utf8");
+    if (!content.includes(`\`v${manifest.version}\``) || !content.includes(`\`#${manifest.buildNumber}\``)) {
+      throw new Error(
+        `Skill file out of sync with build v${manifest.version} (#${manifest.buildNumber}): ${path.relative(ROOT_DIR, skillPath)}. Run npm run release:sync or npm run bump:patch.`
+      );
+    }
   }
 
   return manifest;
