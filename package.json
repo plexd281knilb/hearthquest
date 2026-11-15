@@ -1,6 +1,6 @@
 {
   "name": "hearthquest",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "private": true,
   "description": "Zero-Prep Family Tabletop 5e Engine with AI GM Co-Pilot & Physical Print-on-Demand Fulfillment",
   "workspaces": [

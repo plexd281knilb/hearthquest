@@ -425,6 +425,9 @@ export function renderVttAppHtml(
       color: #312e81 !important;
     }
     body[data-theme="light"] .bg-emerald-950,
+    body[data-theme="light"] .bg-emerald-950\/30,
+    body[data-theme="light"] .bg-emerald-950\/50,
+    body[data-theme="light"] .bg-emerald-950\/70,
     body[data-theme="light"] .bg-emerald-950\/80 {
       background-color: #d1fae5 !important;
       color: #065f46 !important;
@@ -534,8 +537,8 @@ export function renderVttAppHtml(
           <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
             📲 QR Join
           </button>
-          <button onclick="openSessionWalkthroughModal(0)" id="btn-session-walkthrough" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 transition">
-            🧭 Session 1 Guide
+          <button onclick="openSessionWalkthroughModal(0); toggleStartHereGuideBar(true);" id="btn-session-walkthrough" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 transition">
+            🧭 Start Here Guide
           </button>
           <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
             🛍️ Store
@@ -614,6 +617,57 @@ export function renderVttAppHtml(
 
   <!-- Main Workspace Container -->
   <main class="flex-1 p-4 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <!-- START HERE: Persistent Step-by-Step Interactive Quick-Start Strip (GM Command Mode) -->
+    <section id="start-here-guide-bar" class="lg:col-span-12 theme-card rounded-2xl p-3.5 border-2 border-amber-400/70 shadow-xl space-y-2.5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] uppercase tracking-wide">Start Here</span>
+          <h2 class="text-sm font-extrabold text-amber-300">How to Run Your First Session (In 4 Simple Steps)</h2>
+        </div>
+        <div class="flex items-center gap-2 text-[11px]">
+          <button type="button" onclick="openSessionWalkthroughModal(0)" class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 font-bold">
+            📖 Open Walkthrough
+          </button>
+          <button type="button" onclick="toggleStartHereGuideBar(false)" class="px-2 py-1 rounded-lg text-slate-400 hover:text-slate-200 font-semibold">
+            ✕ Hide Guide
+          </button>
+        </div>
+      </div>
+      <p id="start-here-next-hint" class="text-xs font-semibold text-emerald-300">
+        👉 Next Step: Click "1. Read Story Intro" to see the map &amp; read the opening hook to your table!
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <button id="sh-step-1" type="button" onclick="quickStartStep1ReadIntro()" class="p-2.5 rounded-xl border-2 border-emerald-400 bg-emerald-950/50 hover:bg-emerald-900/60 text-left transition flex items-start justify-between gap-2">
+          <div>
+            <div class="text-xs font-black text-amber-300">1. Read Story Intro</div>
+            <div class="text-[11px] text-slate-300">Open Hook, Area Map &amp; Read Aloud</div>
+          </div>
+          <span id="sh-badge-1" class="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-500 text-slate-950 shrink-0">START</span>
+        </button>
+        <button id="sh-step-2" type="button" onclick="quickStartStep2QrInvite()" class="p-2.5 rounded-xl border theme-inner-box hover:border-sky-400 text-left transition flex items-start justify-between gap-2">
+          <div>
+            <div class="text-xs font-black text-sky-300">2. Invite Kids / TV</div>
+            <div class="text-[11px] text-slate-300">Optional QR Code &amp; Room ${initialState.roomCode}</div>
+          </div>
+          <span id="sh-badge-2" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 shrink-0">QR</span>
+        </button>
+        <button id="sh-step-3" type="button" onclick="quickStartStep3MoveHero()" class="p-2.5 rounded-xl border theme-inner-box hover:border-amber-400 text-left transition flex items-start justify-between gap-2">
+          <div>
+            <div class="text-xs font-black text-amber-300">3. Move Hero &amp; Doors</div>
+            <div class="text-[11px] text-slate-300">Use D-Pad / Map Tiles &amp; Click Doors</div>
+          </div>
+          <span id="sh-badge-3" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 shrink-0">MOVE</span>
+        </button>
+        <button id="sh-step-4" type="button" onclick="quickStartStep4RollCheck()" class="p-2.5 rounded-xl border theme-inner-box hover:border-purple-400 text-left transition flex items-start justify-between gap-2">
+          <div>
+            <div class="text-xs font-black text-purple-300">4. Roll First Action</div>
+            <div class="text-[11px] text-slate-300">Tap an Action Card or Story Choice</div>
+          </div>
+          <span id="sh-badge-4" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 shrink-0">ROLL</span>
+        </button>
+      </div>
+    </section>
+
     <!-- Left / Center Column: Interactive Tabletop Grid Map -->
     <section id="map-column" class="lg:col-span-8 flex flex-col gap-4">
       ${renderCombatInitiativeBarHtml()}
@@ -644,43 +698,57 @@ export function renderVttAppHtml(
           <button id="move-blocked-action-btn" class="hidden px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px]">🚪 Open Door</button>
         </div>
 
-        <!-- Zone Fog-of-War, Dynamic Lighting, Ruler/Templates & Unraid Custom Tokens (GM Only) -->
+        <!-- Zone Fog-of-War, Interactive Doors & Collapsible Advanced GM Tools (GM Only) -->
         <div id="gm-zone-controls" class="mt-3 pt-3 border-t border-slate-700/50 flex flex-col gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-semibold text-slate-400">🗺️ Fog of War Reveal:</span>
+              <span class="text-xs font-semibold text-slate-400">🗺️ Reveal Rooms:</span>
               <div id="zone-buttons" class="flex flex-wrap gap-2"></div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
-                <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
-                <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
-                <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
-              </select>
-              <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
-                🎲 New Procedural Map
-              </button>
-              <button id="btn-generate-oneshot" onclick="generateScaledOneShot()" title="Generate a fresh, non-overlapping One-Shot scaled to your party's average hero level" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm">
-                ⚡ Level-Scaled One-Shot
-              </button>
-            </div>
+            <button type="button" onclick="document.getElementById('gm-advanced-tools-drawer').open = !document.getElementById('gm-advanced-tools-drawer').open" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
+              🛠️ Toggle Pro GM Tools
+            </button>
           </div>
-          ${renderLightingControlsHtml()}
-          ${renderTabletopToolsControlsHtml()}
-          ${renderAtmosphereControlsHtml()}
-          <!-- Custom Unraid Token Drop Folder Bar -->
-          <div id="custom-tokens-bar" class="mt-1 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="font-bold text-purple-400">📂 Unraid Custom Tokens:</span>
-              <select id="select-custom-token" class="theme-input border rounded-lg px-2 py-1 text-xs">
-                <option value="">Scanning /app/data/custom-tokens...</option>
-              </select>
-              <button onclick="spawnSelectedCustomToken()" class="px-2.5 py-1 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">➕ Spawn on Map</button>
-              <button onclick="openTokenForgeModal()" class="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm">⚒️ Foundry Token Forge</button>
-              <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
-            </div>
-            <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="font-bold text-amber-400">🚪 Doors &amp; Locks:</span>
+            <div id="door-buttons" class="flex flex-wrap gap-1.5"></div>
           </div>
+          <details id="gm-advanced-tools-drawer" class="rounded-xl theme-inner-box border p-2.5 space-y-2">
+            <summary class="cursor-pointer text-xs font-bold text-slate-300 select-none">
+              ⚙️ Advanced Tabletop Tools (Switch Campaign, Lighting, Ruler/AoE, Weather, Music &amp; Custom Tokens)
+            </summary>
+            <div class="pt-2 space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="campaign-select" onchange="switchCampaign(this.value)" class="theme-input border rounded-lg px-2 py-1 text-xs text-amber-300">
+                  <option value="camp-goblin-bakery">🧁 The Goblin Bakery Heist</option>
+                  <option value="camp-clockwork-treehouse">⚙️ The Clockwork Treehouse</option>
+                  <option value="camp-starlight-otter">🦦 Voyage of the Starlight Otter</option>
+                </select>
+                <button onclick="regenerateProceduralMap()" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm">
+                  🎲 New Procedural Map
+                </button>
+                <button id="btn-generate-oneshot" onclick="generateScaledOneShot()" title="Generate a fresh, non-overlapping One-Shot scaled to your party's average hero level" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm">
+                  ⚡ Level-Scaled One-Shot
+                </button>
+              </div>
+              ${renderLightingControlsHtml()}
+              ${renderTabletopToolsControlsHtml()}
+              ${renderAtmosphereControlsHtml()}
+              <!-- Custom Unraid Token Drop Folder Bar -->
+              <div id="custom-tokens-bar" class="mt-1 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-bold text-purple-400">📂 Unraid Custom Tokens:</span>
+                  <select id="select-custom-token" class="theme-input border rounded-lg px-2 py-1 text-xs">
+                    <option value="">Scanning /app/data/custom-tokens...</option>
+                  </select>
+                  <button onclick="spawnSelectedCustomToken()" class="px-2.5 py-1 rounded-lg font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">➕ Spawn on Map</button>
+                  <button onclick="openTokenForgeModal()" class="px-2.5 py-1 rounded-lg font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm">⚒️ Foundry Token Forge</button>
+                  <button onclick="refreshCustomTokens()" class="px-2 py-1 rounded-lg border border-slate-700 text-slate-300 hover:border-purple-400">🔄 Refresh</button>
+                </div>
+                <span class="text-[11px] text-slate-400">Drop PNG/SVG/WebP files into <code class="text-amber-300">/app/data/custom-tokens</code></span>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -1203,6 +1271,13 @@ export function renderVttAppHtml(
 
       <!-- STEP 1: HOW TO SET IT UP -->
       <div id="walkthrough-step-0" class="space-y-3 text-xs leading-relaxed">
+        <div class="p-3.5 rounded-2xl bg-emerald-950/50 border-2 border-emerald-400/70 space-y-2">
+          <div class="font-extrabold text-emerald-300">⚡ Want to Jump Straight In? Your Room is Ready!</div>
+          <p class="text-slate-200">You don't need to configure anything else to begin. Click the green button below to launch the opening scene &amp; read it aloud to your players:</p>
+          <button type="button" onclick="closeSessionWalkthroughModal(true)" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg">
+            🚀 Start Session 1 Now &amp; Read Opening Hook!
+          </button>
+        </div>
         <div class="p-3.5 rounded-2xl theme-inner-box border space-y-2">
           <div class="font-extrabold text-amber-400">Step 1 — Check Your Game Style, Age Group &amp; Heroes</div>
           <p class="text-slate-300">
@@ -1800,8 +1875,111 @@ export function renderVttAppHtml(
       }
     }
 
+    let quickStartProgress = { readIntro: false, qrOpened: false, movedHero: false, rolledAction: false, hidden: false };
+
+    function toggleStartHereGuideBar(show) {
+      quickStartProgress.hidden = !show;
+      if (show) {
+        try { localStorage.removeItem("hq_vtt_hide_guide_" + (state.roomCode || "DEFAULT")); } catch {}
+      } else {
+        try { localStorage.setItem("hq_vtt_hide_guide_" + (state.roomCode || "DEFAULT"), "1"); } catch {}
+      }
+      renderStartHereGuideBar();
+    }
+
+    function renderStartHereGuideBar() {
+      const bar = document.getElementById("start-here-guide-bar");
+      if (!bar) return;
+      if (displayMode !== "GM_COMMAND" || quickStartProgress.hidden) {
+        bar.classList.add("hidden");
+        return;
+      }
+      bar.classList.remove("hidden");
+      if (state.rollHistory && state.rollHistory.length > 0) quickStartProgress.rolledAction = true;
+
+      const steps = [
+        [1, quickStartProgress.readIntro, "START", "📖 Next: Click '1. Read Story Intro' to show the Town Map & read the Opening Hook!"],
+        [2, quickStartProgress.qrOpened, "QR", "📲 Optional: Click '2. Invite Kids / TV' if others are joining on phones/TV, or jump straight to '3. Move Hero'!"],
+        [3, quickStartProgress.movedHero, "MOVE", "🕹️ Next: Move your hero toward the middle door using the D-Pad or clicking a square, then click the Door!"],
+        [4, quickStartProgress.rolledAction, "ROLL", "🎲 Next: Roll an Action Card (right panel) or choose a Story Branch beneath the map!"],
+      ];
+
+      let nextHintText = "🎉 All 4 First-Session steps complete! Reveal rooms, pick locks, and follow the story choices below.";
+      let foundNext = false;
+      for (const [idx, done, idleTag, hint] of steps) {
+        const card = document.getElementById("sh-step-" + idx);
+        const badge = document.getElementById("sh-badge-" + idx);
+        if (!card || !badge) continue;
+        if (done) {
+          card.className = "p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-950/30 text-left transition flex items-start justify-between gap-2";
+          badge.className = "px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-500 text-slate-950 shrink-0";
+          badge.innerText = "DONE ✓";
+        } else if (!foundNext) {
+          foundNext = true;
+          nextHintText = hint;
+          card.className = "p-2.5 rounded-xl border-2 border-amber-400 bg-amber-950/40 hover:bg-amber-900/50 text-left transition flex items-start justify-between gap-2 shadow";
+          badge.className = "px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-400 text-slate-950 shrink-0";
+          badge.innerText = "NEXT";
+        } else {
+          card.className = "p-2.5 rounded-xl border theme-inner-box hover:border-slate-500 text-left transition flex items-start justify-between gap-2";
+          badge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 shrink-0";
+          badge.innerText = idleTag;
+        }
+      }
+      const hintEl = document.getElementById("start-here-next-hint");
+      if (hintEl) hintEl.innerText = nextHintText;
+    }
+
+    function quickStartStep1ReadIntro() {
+      quickStartProgress.readIntro = true;
+      renderStartHereGuideBar();
+      const activeNode = (state.storyNodes && (state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0])) || {};
+      const prompt = state.activeRpPrompt || (activeNode.rpPrompts && activeNode.rpPrompts[0]) || null;
+      if (prompt) {
+        openRpReadoutModal(prompt);
+      } else {
+        document.getElementById("gm-story-panel")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    function quickStartStep2QrInvite() {
+      quickStartProgress.qrOpened = true;
+      renderStartHereGuideBar();
+      if (typeof toggleQrJoinModal === "function") toggleQrJoinModal(true);
+    }
+
+    function quickStartStep3MoveHero() {
+      quickStartProgress.movedHero = true;
+      renderStartHereGuideBar();
+      const hero = (state.heroes && state.heroes[0]) || null;
+      if (hero) {
+        selectedHeroId = hero.id;
+        selectedTokenId = (state.tokens || []).find(t => t.characterId === hero.id)?.id || selectedTokenId;
+        renderAll();
+      }
+      document.getElementById("vtt-dpad-controller")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const dpad = document.getElementById("vtt-dpad-controller");
+      if (dpad) {
+        dpad.classList.add("ring-2", "ring-amber-400");
+        setTimeout(() => dpad.classList.remove("ring-2", "ring-amber-400"), 2500);
+      }
+    }
+
+    function quickStartStep4RollCheck() {
+      renderStartHereGuideBar();
+      const cardsEl = document.getElementById("hero-action-cards");
+      cardsEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (cardsEl) {
+        cardsEl.classList.add("ring-2", "ring-purple-400", "rounded-xl", "p-1");
+        setTimeout(() => cardsEl.classList.remove("ring-2", "ring-purple-400", "rounded-xl", "p-1"), 2500);
+      }
+    }
+
     function maybeAutoOpenWalkthrough() {
       if (displayMode !== "GM_COMMAND" || vttGuestToken) return;
+      try {
+        quickStartProgress.hidden = localStorage.getItem("hq_vtt_hide_guide_" + (state.roomCode || "DEFAULT")) === "1";
+      } catch {}
       const seenKey = "hq_vtt_walkthrough_seen_" + (state.roomCode || "DEFAULT");
       let alreadySeen = false;
       try {
@@ -2412,6 +2590,8 @@ export function renderVttAppHtml(
     }
 
     async function dismissRpPrompt(playerReply) {
+      quickStartProgress.readIntro = true;
+      renderStartHereGuideBar();
       document.getElementById("rp-readout-modal").classList.add("hidden");
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
@@ -2504,6 +2684,8 @@ export function renderVttAppHtml(
       }
 
       hideMoveBlockedBanner();
+      quickStartProgress.movedHero = true;
+      renderStartHereGuideBar();
       const chestTok = (state.tokens || []).find(
         t => t.gridX === x && t.gridY === y && t.isLootChest && !t.isChestOpened
       );
@@ -2958,6 +3140,7 @@ export function renderVttAppHtml(
       }
 
       // Panel visibility by DisplayMode
+      renderStartHereGuideBar();
       document.getElementById("gm-zone-controls").style.display =
         displayMode === "GM_COMMAND" ? "flex" : "none";
       document.getElementById("gm-story-panel").style.display =
@@ -3197,11 +3380,35 @@ export function renderVttAppHtml(
       if (doorHitboxes) {
         doorHitboxes.innerHTML = "";
       }
+      const quickDoorBtns = document.getElementById("door-buttons");
+      if (quickDoorBtns) quickDoorBtns.innerHTML = "";
       const doorBtns = document.getElementById("door-toggle-buttons");
       if (doorBtns) {
         doorBtns.innerHTML = "";
         const doors = (state.walls || []).filter(w => w.isDoor);
         doors.forEach((d, idx) => {
+          const dcTag = state.rulesTier === "STORYBOOK_D6"
+            ? Math.max(3, Math.min(6, Math.round((d.lockDc || 12) / 3)))
+            : (d.lockDc || 12);
+          if (quickDoorBtns) {
+            const qdb = document.createElement("button");
+            qdb.type = "button";
+            qdb.onclick = () => interactMapDoor(d.id);
+            qdb.className =
+              "px-2.5 py-1 rounded-lg text-xs font-semibold border transition " +
+              (d.isOpen
+                ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-300"
+                : d.isLocked
+                ? "bg-rose-950/80 border-rose-500/60 text-rose-200 hover:border-rose-400"
+                : "bg-amber-950/70 border-amber-500/50 text-amber-300 hover:border-amber-300");
+            qdb.innerText = d.isOpen
+              ? \`🚪 Door #\${idx + 1}: Open\`
+              : d.isLocked
+              ? \`🔐 Door #\${idx + 1}: Pick Lock (DC \${dcTag})\`
+              : \`🔓 Door #\${idx + 1}: Open Now\`;
+            quickDoorBtns.appendChild(qdb);
+          }
+
           // 1. Bottom bar door button (clicking acts as character opening/lockpicking)
           const wrap = document.createElement("div");
           wrap.className = "inline-flex items-center gap-1";
@@ -3215,9 +3422,6 @@ export function renderVttAppHtml(
               : d.isLocked
               ? "bg-rose-950/80 border-rose-500/60 text-rose-200 hover:border-rose-400"
               : "bg-amber-950/70 border-amber-500/50 text-amber-300 hover:border-amber-300");
-          const dcTag = state.rulesTier === "STORYBOOK_D6"
-            ? Math.max(3, Math.min(6, Math.round((d.lockDc || 12) / 3)))
-            : (d.lockDc || 12);
           db.innerText = d.isOpen
             ? \`🚪 Door #\${idx + 1}: Open\`
             : d.isLocked

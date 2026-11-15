@@ -2078,8 +2078,11 @@ async function runVerification() {
       vttUi.includes("walkthrough-art-strip") &&
       vttUi.includes("stage-art-lightbox") &&
       vttUi.includes("select-difficulty") &&
-      vttUi.includes("monster-statblock-card"),
-    "VTT HTML must render Light/Dark contrast CSS, stage art, difficulty selector & 5e statblock card"
+      vttUi.includes("monster-statblock-card") &&
+      vttUi.includes("start-here-guide-bar") &&
+      vttUi.includes("quickStartStep1ReadIntro") &&
+      vttUi.includes("gm-advanced-tools-drawer"),
+    "VTT HTML must render Light/Dark contrast CSS, stage art, difficulty selector, 5e statblock card & Start Here guide bar"
   );
   assert.ok(gateUi.includes('body[data-theme="light"]'), "Login gate must include Light mode styling");
   assert.ok(adminUi.includes('body[data-theme="light"] .text-amber-300'), "Admin HTML must include Light contrast CSS");
