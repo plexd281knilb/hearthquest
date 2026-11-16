@@ -3550,7 +3550,42 @@ export function renderVttAppHtml(
       }
     }
 
+    async function commitDraggedTokenMove(tokenId, targetX, targetY, pathSteps) {
+      const movedTok = (state.tokens || []).find(t => t.id === tokenId);
+      if (movedTok) {
+        selectedTokenId = movedTok.id;
+        if (movedTok.characterId) selectedHeroId = movedTok.characterId;
+      }
+      const res = await apiPost("/api/room/move-token", {
+        roomCode: state.roomCode,
+        tokenId,
+        targetX,
+        targetY,
+        path: Array.isArray(pathSteps) ? pathSteps : undefined,
+      });
+      if (res && res.moved === false) {
+        AudioEngine.playFailForwardBoing();
+        showMoveBlockedBanner(res.blockedMessage, res.blockedByDoorId, res.isLockedDoor);
+        if (res.blockedByDoorId && res.isLockedDoor) {
+          interactMapDoor(res.blockedByDoorId);
+        }
+        return;
+      }
+      hideMoveBlockedBanner();
+      quickStartProgress.movedHero = true;
+      renderStartHereGuideBar();
+      const chestTok = (state.tokens || []).find(
+        t => t.gridX === targetX && t.gridY === targetY && t.isLootChest && !t.isChestOpened
+      );
+      if (chestTok) {
+        await openLootChest(chestTok.id);
+      }
+    }
+
     async function moveTokenToCell(x, y) {
+      if (typeof ToolsWeatherEngine !== "undefined" && ToolsWeatherEngine.justDraggedUntil > Date.now()) {
+        return;
+      }
       if (isCreatorPropStampMode && currentAccount && currentAccount.role === "ADMIN") {
         await stampSelectedMapPropAt(x, y);
         return;
@@ -4241,9 +4276,19 @@ export function renderVttAppHtml(
                 <span class="absolute -bottom-2 text-[8px] font-bold bg-slate-900/90 text-white px-1 rounded shadow-sm leading-tight truncate max-w-[46px] pointer-events-none">\${tok.name.split(" ")[0]}</span>
               \`;
 
+              badge.style.touchAction = "none";
+              badge.onpointerdown = (e) => {
+                if (typeof ToolsWeatherEngine !== "undefined" && ToolsWeatherEngine.beginTokenDrag) {
+                  ToolsWeatherEngine.beginTokenDrag(tok, e);
+                }
+              };
+
               // Click to inspect hero, open chest, or trigger NPC/Boss RP speech modal
               badge.onclick = (e) => {
                 e.stopPropagation();
+                if (typeof ToolsWeatherEngine !== "undefined" && ToolsWeatherEngine.justDraggedUntil > Date.now()) {
+                  return;
+                }
                 if (tok.isLootChest && !tok.isChestOpened) {
                   openLootChest(tok.id);
                 } else if (tok.characterId || tok.type === "HERO") {

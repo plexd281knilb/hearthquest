@@ -1021,6 +1021,7 @@ const server = http.createServer(async (req, res) => {
       targetX: body.targetX,
       targetY: body.targetY,
       ignoreWalls: Boolean(body.ignoreWalls),
+      path: Array.isArray(body.path) ? body.path : undefined,
     });
     if (result.moved) {
       broadcastRoomUpdate(result.room);

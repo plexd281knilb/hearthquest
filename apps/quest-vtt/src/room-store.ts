@@ -487,6 +487,7 @@ export function attemptMoveRoomToken(params: {
   targetX?: number;
   targetY?: number;
   ignoreWalls?: boolean;
+  path?: Array<{ x: number; y: number }>;
 }): MoveTokenResult {
   const room = getOrCreateRoom(params.roomCode);
   if (room.isPausedForBedtime) {
@@ -525,7 +526,26 @@ export function attemptMoveRoomToken(params: {
 
   const nextX = Math.max(0, Math.min(room.gridCols - 1, rawNextX));
   const nextY = Math.max(0, Math.min(room.gridRows - 1, rawNextY));
-  const distSq = Math.max(Math.abs(nextX - token.gridX), Math.abs(nextY - token.gridY));
+
+  // Validate optional waypoint path from Foundry drag movement (each step must be contiguous Chebyshev dist 1)
+  let validSteps: Array<{ x: number; y: number }> | null = null;
+  if (Array.isArray(params.path) && params.path.length >= 2) {
+    const cleaned = params.path.map((pt) => ({ x: Math.round(Number(pt.x)), y: Math.round(Number(pt.y)) }));
+    const startsHere = cleaned[0].x === token.gridX && cleaned[0].y === token.gridY;
+    const endsTarget = cleaned[cleaned.length - 1].x === nextX && cleaned[cleaned.length - 1].y === nextY;
+    const allContiguous = cleaned.every((pt, idx) => {
+      if (pt.x < 0 || pt.x >= room.gridCols || pt.y < 0 || pt.y >= room.gridRows) return false;
+      if (idx === 0) return true;
+      return Math.max(Math.abs(pt.x - cleaned[idx - 1].x), Math.abs(pt.y - cleaned[idx - 1].y)) <= 1;
+    });
+    if (startsHere && endsTarget && allContiguous) {
+      validSteps = cleaned;
+    }
+  }
+
+  const distSq = validSteps
+    ? validSteps.length - 1
+    : Math.max(Math.abs(nextX - token.gridX), Math.abs(nextY - token.gridY));
   const speedFt = getTokenSpeedFt(room, token);
   const moveCostFt = distSq * 5;
 
@@ -570,14 +590,31 @@ export function attemptMoveRoomToken(params: {
       };
     }
 
-    // 2. Check Solid Masonry Walls & Closed/Locked Doors
-    const blocker = findBlockingWallAlongMove(
-      room.walls,
-      token.gridX,
-      token.gridY,
-      nextX,
-      nextY
-    );
+    // 2. Check Solid Masonry Walls & Closed/Locked Doors (step-by-step if drag path supplied)
+    let blocker: WallSegment | null = null;
+    if (validSteps && validSteps.length >= 2) {
+      for (let sIdx = 1; sIdx < validSteps.length; sIdx++) {
+        const hit = findBlockingWallAlongMove(
+          room.walls,
+          validSteps[sIdx - 1].x,
+          validSteps[sIdx - 1].y,
+          validSteps[sIdx].x,
+          validSteps[sIdx].y
+        );
+        if (hit) {
+          blocker = hit;
+          break;
+        }
+      }
+    } else {
+      blocker = findBlockingWallAlongMove(
+        room.walls,
+        token.gridX,
+        token.gridY,
+        nextX,
+        nextY
+      );
+    }
     if (blocker) {
       if (blocker.isDoor) {
         return {

@@ -2737,8 +2737,76 @@ async function runVerification() {
   resetTtsStateForTesting();
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // TEST 34: Foundry Click-and-Drag Token Movement, Curvature Path Around Walls & Speed Budget
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 34/34] Foundry Click-and-Drag Pathing, Speed Cap & Open-Door Waypoint Validation ... ");
+  const dragRoom = switchRoomCampaign({ roomCode: trCode, campaignId: "camp-goblin-bakery" });
+  const dragHero = dragRoom.tokens.find((t) => t.type === "HERO")!;
+  // Ensure combat is ended and open middle doorway (door-zone-2 at x=4, y=2..3)
+  updateRoomCombat({ roomCode: trCode, action: "END_COMBAT" });
+  moveRoomToken({ roomCode: trCode, tokenId: dragHero.id, targetX: 2, targetY: 1, ignoreWalls: true });
+  const midDoor = dragRoom.walls?.find((w) => w.id === "door-zone-2");
+  if (midDoor && !midDoor.isOpen) {
+    updateRoomLighting({ roomCode: trCode, toggleDoorId: midDoor.id });
+  }
+
+  // Curved path routing around the x=4 partition wall through open doorway (y=2): (2,1)->(3,1)->(3,2)->(4,2)->(5,2)->(5,1) = 5 sq (25 ft)
+  const curvedPass = attemptMoveRoomToken({
+    roomCode: trCode,
+    tokenId: dragHero.id,
+    targetX: 5,
+    targetY: 1,
+    path: [
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+      { x: 3, y: 2 },
+      { x: 4, y: 2 },
+      { x: 5, y: 2 },
+      { x: 5, y: 1 },
+    ],
+  });
+  assert.strictEqual(curvedPass.moved, true, "Foundry waypoint path through open doorway must succeed even around walls");
+  assert.strictEqual(dragHero.gridX, 5);
+  assert.strictEqual(dragHero.gridY, 1);
+
+  // Waypoint path exceeding hero speed (8 steps = 40 ft > 30 ft) must be blocked
+  const tooLongPath = attemptMoveRoomToken({
+    roomCode: trCode,
+    tokenId: dragHero.id,
+    targetX: 5,
+    targetY: 5,
+    path: [
+      { x: 5, y: 1 },
+      { x: 4, y: 1 },
+      { x: 4, y: 2 },
+      { x: 4, y: 3 },
+      { x: 4, y: 4 },
+      { x: 4, y: 5 },
+      { x: 5, y: 5 },
+      { x: 6, y: 5 },
+      { x: 5, y: 5 },
+    ],
+  });
+  assert.strictEqual(tooLongPath.moved, false, "Waypoint drag path exceeding speed budget must fail");
+
+  // Verify VTT UI bundles click-and-drag tile-locked arrow engine & valid JS
+  const dragUi = renderVttAppHtml(getOrCreateRoom(trCode));
+  assert.ok(
+    dragUi.includes("beginTokenDrag") &&
+      dragUi.includes("computeFoundryDragPath") &&
+      dragUi.includes("drawTokenDragPreview") &&
+      dragUi.includes("commitDraggedTokenMove") &&
+      dragUi.includes("onpointerdown"),
+    "VTT UI must embed Foundry click-and-drag token pathing with arrow preview"
+  );
+  [...dragUi.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].forEach((m) => {
+    if (m[1].trim()) new Function(m[1]);
+  });
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 33/33 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 34/34 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();
