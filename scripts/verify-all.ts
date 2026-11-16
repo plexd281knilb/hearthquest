@@ -68,6 +68,7 @@ import {
   updateRoomMapProps,
   updateRoomSettings,
   updateRoomToolsAndWeather,
+  upgradeLegacyRoomState,
 } from "../apps/quest-vtt/src/room-store";
 import {
   activateLicenseOnVttAccount,
@@ -2617,13 +2618,32 @@ async function runVerification() {
 
   // UI & HTTP RBAC check for /api/tts/status, /api/tts/speak, and /api/vtt-admin/tts-settings
   resetTtsStateForTesting();
+  const legacySnapshot = getOrCreateRoom(trCode);
+  legacySnapshot.ageGroup = "AGES_8_10";
+  legacySnapshot.rulesTier = "APPRENTICE_5E_LITE";
+  legacySnapshot.sessionOpeningHook =
+    "Welcome, Juliano! Playing Apprentice 5e Lite (Guided d20) for Ages 8–10. Bramble the Acorn Tinker waves you inside 1. Firefly Landing Deck: hands out warm snacks!";
+  legacySnapshot.mapProps = [];
+  const upgradedRoom = upgradeLegacyRoomState(legacySnapshot);
+  assert.ok(
+    !upgradedRoom.sessionOpeningHook?.includes("Playing ") &&
+      !upgradedRoom.sessionOpeningHook?.includes("Bramble") &&
+      Array.isArray(upgradedRoom.mapProps) &&
+      upgradedRoom.mapProps.length >= 10,
+    "Legacy persisted rooms must auto-upgrade stale robotic hooks & populate Foundry mapProps"
+  );
+
   const ttsUi = renderVttAppHtml(getOrCreateRoom(trCode));
   assert.ok(
     ttsUi.includes("select-tts-mode") &&
       ttsUi.includes("select-browser-tts-voice") &&
+      ttsUi.includes("story-tts-voice-select") &&
+      ttsUi.includes("modal-tts-voice-select") &&
+      ttsUi.includes("openTtsVoiceDrawer") &&
+      ttsUi.includes("onUserTtsVoicePicked") &&
       ttsUi.includes("speakBrowserSentenceChunked") &&
       ttsUi.includes("admin-tts-settings-box"),
-    "VTT UI must render multi-tier TTS controls, browser voice selector, and admin TTS settings panel"
+    "VTT UI must render inline voice selectors in Read-Aloud & RP Modal, multi-tier TTS controls, and admin TTS settings panel"
   );
   // Syntax-verify upgraded VTT client script after TTS engine changes
   const ttsScripts = [...ttsUi.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];

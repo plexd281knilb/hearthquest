@@ -951,6 +951,12 @@ export function renderVttAppHtml(
             <button onclick="speakReadAloudText()" id="btn-read-aloud-tts" class="px-2.5 py-1 rounded text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 transition">
               🔊 Read Aloud (Voice TTS)
             </button>
+            <select id="story-tts-voice-select" onchange="onUserTtsVoicePicked(this.value)" class="theme-input border rounded px-2 py-1 text-[11px] max-w-[165px]" title="Change Narrator Voice">
+              <option value="">🎙️ Auto Natural Voice</option>
+            </select>
+            <button type="button" onclick="openTtsVoiceDrawer()" id="btn-open-voice-settings" class="px-2 py-1 rounded text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 transition" title="Speed, Local GPU / Cloud / Browser TTS Settings">
+              🎙️ Voice Settings
+            </button>
             <button onclick="triggerSceneRpCue()" id="btn-open-rp-popup" class="px-2.5 py-1 rounded text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 transition">
               🗣️ Cue Speech Popup
             </button>
@@ -1511,10 +1517,13 @@ export function renderVttAppHtml(
       <div id="rp-modal-replies" class="flex flex-col gap-1.5"></div>
 
       <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-700/50">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button onclick="speakRpPromptText()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow">
             🔊 Read Aloud to Group
           </button>
+          <select id="modal-tts-voice-select" onchange="onUserTtsVoicePicked(this.value)" class="theme-input border rounded-lg px-2 py-1.5 text-[11px] max-w-[165px]" title="Change Narrator Voice">
+            <option value="">🎙️ Auto Natural Voice</option>
+          </select>
           <label class="inline-flex items-center gap-1 text-[11px] text-slate-300 cursor-pointer">
             <input id="rp-auto-tts-toggle" type="checkbox" class="rounded" />
             Auto-Speak
@@ -3095,8 +3104,6 @@ export function renderVttAppHtml(
     }
 
     function populateBrowserTtsVoices() {
-      const sel = document.getElementById("select-browser-tts-voice");
-      if (!sel) return;
       const savedVoice = (() => { try { return localStorage.getItem("hq_tts_browser_voice") || ""; } catch { return ""; } })();
       const voices = getSortedEnglishVoices();
       const firstOpt = '<option value="">Auto Best Natural Voice</option>';
@@ -3105,9 +3112,35 @@ export function renderVttAppHtml(
         const tag = scoreBrowserVoice(v) >= 80 ? "✨ " : "";
         return '<option value="' + safeName + '">' + tag + safeName + " (" + (v.lang || "en") + ")</option>";
       }).join("");
-      sel.innerHTML = firstOpt + items;
-      if (savedVoice && Array.from(sel.options).some((o) => o.value === savedVoice)) {
-        sel.value = savedVoice;
+      ["select-browser-tts-voice", "story-tts-voice-select", "modal-tts-voice-select"].forEach((selId) => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.innerHTML = firstOpt + items;
+        if (savedVoice && Array.from(sel.options).some((o) => o.value === savedVoice)) {
+          sel.value = savedVoice;
+        }
+      });
+    }
+
+    function onUserTtsVoicePicked(voiceName) {
+      ["select-browser-tts-voice", "story-tts-voice-select", "modal-tts-voice-select"].forEach((selId) => {
+        const sel = document.getElementById(selId);
+        if (sel && Array.from(sel.options).some((o) => o.value === voiceName)) {
+          sel.value = voiceName;
+        }
+      });
+      try { localStorage.setItem("hq_tts_browser_voice", voiceName || ""); } catch {}
+      onUserTtsPrefsChange();
+    }
+
+    function openTtsVoiceDrawer() {
+      const drawer = document.getElementById("gm-advanced-tools-drawer");
+      if (drawer) drawer.open = true;
+      const box = document.getElementById("tts-voice-controls-box");
+      if (box) {
+        box.scrollIntoView({ behavior: "smooth", block: "center" });
+        box.classList.add("ring-2", "ring-emerald-400", "rounded-xl", "p-2");
+        setTimeout(() => box.classList.remove("ring-2", "ring-emerald-400", "rounded-xl", "p-2"), 2800);
       }
     }
 

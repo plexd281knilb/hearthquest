@@ -42,6 +42,7 @@ import {
   findSrdMonsterStatBlock,
   generateLevelScaledOneShot,
   generateProceduralMapLayout,
+  generateTailoredAccountSession,
   parseTokenSpeedFt,
   rollHeroSkillCheck,
   rollRoomCombatInitiative,
@@ -174,8 +175,9 @@ export function loadRoomsFromDisk(): number {
         .all() as Array<{ room_code: string; state_json: string }>;
       let count = 0;
       for (const row of rows) {
-        const roomState = JSON.parse(String(row.state_json)) as RoomSessionState;
-        if (roomState && typeof roomState === "object" && roomState.roomCode) {
+        const parsedRoom = JSON.parse(String(row.state_json)) as RoomSessionState;
+        if (parsedRoom && typeof parsedRoom === "object" && parsedRoom.roomCode) {
+          const roomState = upgradeLegacyRoomState(parsedRoom);
           rooms.set(String(row.room_code).toUpperCase(), roomState);
           count++;
         }
@@ -289,9 +291,73 @@ export function generateJoinQrSvg(roomCode: string, joinUrl: string): string {
 
 export function replaceRoomSessionState(newState: RoomSessionState): RoomSessionState {
   const code = newState.roomCode.toUpperCase();
-  rooms.set(code, newState);
+  const clean = upgradeLegacyRoomState(newState);
+  rooms.set(code, clean);
   autoPersistRooms();
-  return newState;
+  return clean;
+}
+
+/**
+ * Automatically upgrades persisted pre-v0.1.28 rooms that still hold legacy robotic DM hooks
+ * ("Playing ...", "waves you inside", "hands out warm snacks", "Bramble", "Tinkertock") or lack
+ * Foundry mapProps/groundTileTheme, while preserving custom hero sheets, progress, and rolls.
+ */
+export function upgradeLegacyRoomState(room: RoomSessionState): RoomSessionState {
+  if (!room || !room.roomCode) return room;
+  const legacyTextRe = /Playing\s+(Storybook|Apprentice|Standard)|waves you inside|hands out warm snacks|Bramble the Acorn|Tinkertock the Clockwork|Commander Whiskers|get ready to pick the/i;
+  const firstNodeText = JSON.stringify(room.storyNodes?.[0] || {});
+  const hasLegacyHook = Boolean(
+    (room.sessionOpeningHook && legacyTextRe.test(room.sessionOpeningHook)) ||
+      (room.activeRpPrompt?.spokenText && legacyTextRe.test(room.activeRpPrompt.spokenText)) ||
+      legacyTextRe.test(firstNodeText)
+  );
+  const missingMapProps = !Array.isArray(room.mapProps) || room.mapProps.length === 0 || !room.groundTileTheme;
+  if (!hasLegacyHook && !missingMapProps) {
+    return room;
+  }
+
+  const fresh = room.ageGroup
+    ? generateTailoredAccountSession({
+        roomCode: room.roomCode,
+        rulesTier: room.rulesTier || "STORYBOOK_D6",
+        ageGroup: room.ageGroup,
+        householdId: room.householdId,
+        difficulty: room.difficulty,
+      })
+    : createCampaignSession(room.roomCode, room.campaignId || "camp-goblin-bakery");
+
+  if (missingMapProps) {
+    room.groundTileTheme = room.groundTileTheme || fresh.groundTileTheme;
+    if (!Array.isArray(room.mapProps) || room.mapProps.length === 0) {
+      room.mapProps = fresh.mapProps;
+    }
+    room.zones = (room.zones || []).map((z, idx) => ({
+      ...z,
+      groundTileTheme: z.groundTileTheme || fresh.zones[idx]?.groundTileTheme || room.groundTileTheme,
+    }));
+  }
+
+  if (hasLegacyHook) {
+    room.sessionOpeningHook = fresh.sessionOpeningHook;
+    room.stageAreaMapUrl = room.stageAreaMapUrl || fresh.stageAreaMapUrl;
+    room.stageMoodArtUrl = room.stageMoodArtUrl || fresh.stageMoodArtUrl;
+    room.storyNodes = fresh.storyNodes;
+    if (!room.storyNodes.some((n) => n.id === room.activeNodeId)) {
+      room.activeNodeId = fresh.activeNodeId;
+    }
+    if (room.activeRpPrompt && legacyTextRe.test(room.activeRpPrompt.spokenText || "")) {
+      room.activeRpPrompt = fresh.activeRpPrompt;
+    }
+    // Refresh non-hero NPC/boss tokens that came from legacy tailored templates
+    const legacyTokRe = /Bramble|Tinkertock|Commander Whiskers/i;
+    if (room.tokens.some((t) => legacyTokRe.test(t.name))) {
+      const heroTokens = room.tokens.filter((t) => t.type === "HERO");
+      const freshNonHeroes = fresh.tokens.filter((t) => t.type !== "HERO");
+      room.tokens = [...heroTokens, ...freshNonHeroes];
+    }
+  }
+
+  return room;
 }
 
 export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
@@ -301,6 +367,8 @@ export function getOrCreateRoom(roomCode = "DRGN"): RoomSessionState {
     room = createStarterFamilySession(normalized);
     rooms.set(normalized, room);
     autoPersistRooms();
+  } else {
+    room = upgradeLegacyRoomState(room);
   }
   if (!room.ambientLightMode) {
     room.ambientLightMode = "COZY_TWILIGHT";
