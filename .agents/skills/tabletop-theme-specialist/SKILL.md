@@ -13,6 +13,6 @@ description: Master of Light Mode (Storybook Parchment) and Dark Mode (Midnight 
 
 ## 2. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.26` (Build `#27`)
-- **Updated At**: `2026-11-15T19:23:12.609Z`
+- **Last Verified Build**: `v0.1.27` (Build `#28`)
+- **Updated At**: `2026-11-16T01:47:00.207Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

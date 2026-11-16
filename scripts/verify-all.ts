@@ -1306,7 +1306,15 @@ async function runVerification() {
   assert.strictEqual(cozyReg.room.rulesTier, "STORYBOOK_D6");
   assert.strictEqual(cozyReg.room.ageGroup, "AGES_5_7");
   assert.strictEqual(cozyReg.room.contentRating, "COZY_G");
-  assert.ok(cozyReg.room.sessionOpeningHook && cozyReg.room.sessionOpeningHook.length > 20);
+  assert.ok(cozyReg.room.sessionOpeningHook && cozyReg.room.sessionOpeningHook.length > 40);
+  assert.ok(
+    !cozyReg.room.sessionOpeningHook.includes("Playing ") &&
+      !/\b[1-3]\.\s/.test(cozyReg.room.sessionOpeningHook) &&
+      !cozyReg.room.sessionOpeningHook.includes("HP)"),
+    "DM opening hook must read like authentic tabletop narration without UI/system jargon or HP stats"
+  );
+  assert.ok(Array.isArray(cozyReg.room.mapProps) && cozyReg.room.mapProps.length >= 10, "Tailored room must populate Foundry mapProps");
+  assert.ok(cozyReg.room.groundTileTheme, "Tailored room must include groundTileTheme");
   assert.strictEqual(cozyReg.room.activeRpPrompt?.trigger, "SESSION_START");
   assert.ok(
     cozyReg.room.tokens.some((t) => t.name.includes("Milo Hearthbaker")) &&
