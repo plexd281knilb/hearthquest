@@ -35,6 +35,6 @@ HearthQuest connects three roles via real-time SSE (`/api/room/stream`):
 
 ## 4. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.27` (Build `#28`)
-- **Updated At**: `2026-11-16T01:47:00.207Z`
+- **Last Verified Build**: `v0.1.28` (Build `#29`)
+- **Updated At**: `2026-11-16T01:53:16.530Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

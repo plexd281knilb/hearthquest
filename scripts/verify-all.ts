@@ -90,6 +90,14 @@ import {
 } from "../apps/quest-vtt/src/google-auth";
 import { encodeQrMatrix } from "../apps/quest-vtt/src/qr-encoder";
 import { server as vttServer } from "../apps/quest-vtt/src/server";
+import {
+  clearTtsAudioCache,
+  getPublicTtsConfig,
+  probeLocalTtsHealth,
+  resetTtsStateForTesting,
+  saveTtsSettings,
+  synthesizeSpeechWithFallback,
+} from "../apps/quest-vtt/src/tts-engine";
 import { renderVttAppHtml, renderVttLoginGateHtml } from "../apps/quest-vtt/src/ui-template";
 import {
   APP_VERSION,
@@ -2501,8 +2509,216 @@ async function runVerification() {
   });
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // TEST 33: Multi-Tier Voice TTS Cascade (Local GPU -> Cloud AI -> Browser Fallback), Cache & RBAC
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 33/33] Multi-Tier Voice TTS Cascade (Local GPU -> Cloud AI -> Browser + Cache + RBAC) ... ");
+  resetTtsStateForTesting();
+
+  // Case A: Default offline / unconfigured cleanly signals Browser Natural fallback + distinct role profiles
+  const defRes = await synthesizeSpeechWithFallback({ text: "Shadows creep across Oakhaven.", speakerRole: "BOSS" });
+  assert.strictEqual(defRes.fallbackToBrowser, true);
+  assert.strictEqual(defRes.provider, "browser-natural");
+  assert.ok(defRes.voiceProfile.browserPitch < 0.9, "BOSS profile must lower pitch cleanly");
+
+  // Case B: Local GPU Neural online -> returns MP3 bytes AND second call hits Disk/Memory Cache
+  saveTtsSettings({ preferredMode: "AUTO", localTtsUrl: "http://mock-gpu:8880", cloudProvider: "NONE" });
+  let localCallCount = 0;
+  const fakeMp3 = Buffer.from("ID3\x03\x00\x00\x00\x00\x00\x21SYNTHETIC_LOCAL_GPU_MP3_PAYLOAD_DATA_OK");
+  const mockLocalOkFetch = async (url: string) => {
+    localCallCount++;
+    assert.ok(url.startsWith("http://mock-gpu:8880/v1/audio/speech"));
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "audio/mpeg" },
+      arrayBuffer: async () => fakeMp3.buffer.slice(fakeMp3.byteOffset, fakeMp3.byteOffset + fakeMp3.byteLength),
+    };
+  };
+  const gpuRes1 = await synthesizeSpeechWithFallback({
+    text: "Dusk settles over the Silverleaf Canopy bridge.",
+    speakerRole: "NARRATOR",
+    fetchImpl: mockLocalOkFetch,
+  });
+  assert.strictEqual(gpuRes1.provider, "local-neural");
+  assert.strictEqual(gpuRes1.fallbackToBrowser, false);
+  assert.strictEqual(gpuRes1.cacheHit, false);
+  assert.strictEqual(localCallCount, 1);
+
+  const gpuRes2 = await synthesizeSpeechWithFallback({
+    text: "Dusk settles over the Silverleaf Canopy bridge.",
+    speakerRole: "NARRATOR",
+    fetchImpl: mockLocalOkFetch,
+  });
+  assert.strictEqual(gpuRes2.provider, "disk-cache");
+  assert.strictEqual(gpuRes2.cacheHit, true);
+  assert.strictEqual(localCallCount, 1, "Repeat narration must serve straight from cache without hitting server again");
+
+  // Case C: Local GPU DOWN -> automatically falls back to OpenAI Cloud TTS without throwing
+  clearTtsAudioCache();
+  saveTtsSettings({
+    preferredMode: "AUTO",
+    localTtsUrl: "http://dead-gpu:8880",
+    cloudProvider: "OPENAI",
+    cloudApiKey: "sk-test-secret-key-9876",
+    cloudModel: "gpt-4o-mini-tts",
+  });
+  const pubCfg = getPublicTtsConfig();
+  assert.strictEqual(pubCfg.cloudConfigured, true);
+  assert.strictEqual(pubCfg.cloudKeyMasked, "sk-t...9876", "Cloud API key must be masked in public config");
+  assert.ok(!(JSON.stringify(pubCfg)).includes("sk-test-secret-key-9876"), "Raw API key must NEVER leak in public config");
+
+  const cloudMp3 = Buffer.from("ID3\x03\x00\x00\x00\x00\x00\x21SYNTHETIC_CLOUD_OPENAI_MP3_PAYLOAD_DATA");
+  const mockLocalDownCloudUp = async (url: string) => {
+    if (url.includes("dead-gpu")) throw new Error("connect ECONNREFUSED");
+    assert.ok(url.includes("api.openai.com/v1/audio/speech"));
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "audio/mpeg" },
+      arrayBuffer: async () => cloudMp3.buffer.slice(cloudMp3.byteOffset, cloudMp3.byteOffset + cloudMp3.byteLength),
+    };
+  };
+  const fallbackCloudRes = await synthesizeSpeechWithFallback({
+    text: "Who goes there beneath the elder boughs?",
+    speakerRole: "NPC",
+    fetchImpl: mockLocalDownCloudUp,
+  });
+  assert.strictEqual(fallbackCloudRes.provider, "cloud-openai");
+  assert.deepStrictEqual(fallbackCloudRes.attemptedProviders, ["local-neural", "cloud-openai"]);
+  assert.strictEqual(fallbackCloudRes.fallbackToBrowser, false);
+
+  // Case D: BOTH Local GPU DOWN & Cloud DOWN (ElevenLabs 503) -> smoothly falls back to Browser Natural!
+  saveTtsSettings({
+    preferredMode: "AUTO",
+    localTtsUrl: "http://dead-gpu:8880",
+    cloudProvider: "ELEVENLABS",
+    cloudApiKey: "xi-test-key-4321",
+  });
+  const mockAllDown = async () => ({
+    ok: false,
+    status: 503,
+    headers: { get: () => "application/json" },
+    arrayBuffer: async () => new ArrayBuffer(0),
+  });
+  const allDownRes = await synthesizeSpeechWithFallback({
+    text: "Brace yourselves, heroes—the eclipse is upon us!",
+    speakerRole: "BOSS",
+    fetchImpl: mockAllDown,
+  });
+  assert.strictEqual(allDownRes.provider, "browser-natural");
+  assert.strictEqual(allDownRes.fallbackToBrowser, true);
+  assert.deepStrictEqual(allDownRes.attemptedProviders, ["local-neural", "cloud-elevenlabs", "browser-natural"]);
+
+  const deadHealth = await probeLocalTtsHealth("http://dead-gpu:8880", async () => {
+    throw new Error("timeout");
+  });
+  assert.strictEqual(deadHealth.online, false);
+
+  // UI & HTTP RBAC check for /api/tts/status, /api/tts/speak, and /api/vtt-admin/tts-settings
+  resetTtsStateForTesting();
+  const ttsUi = renderVttAppHtml(getOrCreateRoom(trCode));
+  assert.ok(
+    ttsUi.includes("select-tts-mode") &&
+      ttsUi.includes("select-browser-tts-voice") &&
+      ttsUi.includes("speakBrowserSentenceChunked") &&
+      ttsUi.includes("admin-tts-settings-box"),
+    "VTT UI must render multi-tier TTS controls, browser voice selector, and admin TTS settings panel"
+  );
+  // Syntax-verify upgraded VTT client script after TTS engine changes
+  const ttsScripts = [...ttsUi.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
+  ttsScripts.forEach((m) => {
+    if (m[1].trim()) new Function(m[1]);
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const httpReq = (urlStr: string, method: string, headers: Record<string, string>, payload?: unknown) =>
+      new Promise<{ status: number; bodyText: string; headers: http.IncomingHttpHeaders }>((resP, rejP) => {
+        const raw = payload ? JSON.stringify(payload) : undefined;
+        const req = http.request(
+          urlStr,
+          {
+            method,
+            headers: {
+              ...headers,
+              ...(raw ? { "Content-Length": String(Buffer.byteLength(raw)) } : {}),
+            },
+          },
+          (resp) => {
+            let txt = "";
+            resp.on("data", (c) => (txt += c));
+            resp.on("end", () => resP({ status: resp.statusCode || 0, bodyText: txt, headers: resp.headers }));
+          }
+        );
+        req.on("error", rejP);
+        if (raw) req.write(raw);
+        req.end();
+      });
+
+    const runTtsHttp = async (port: number, shouldClose: boolean) => {
+      try {
+        const st = await httpReq(`http://127.0.0.1:${port}/api/tts/status`, "GET", {});
+        assert.strictEqual(st.status, 200);
+        const stJson = JSON.parse(st.bodyText);
+        assert.strictEqual(stJson.ok, true);
+        assert.ok(Array.isArray(stJson.config.fallbackChain));
+
+        const unauthSpeak = await httpReq(
+          `http://127.0.0.1:${port}/api/tts/speak`,
+          "POST",
+          { "Content-Type": "application/json" },
+          { text: "Hello world" }
+        );
+        assert.strictEqual(unauthSpeak.status, 401);
+
+        const userSpeak = await httpReq(
+          `http://127.0.0.1:${port}/api/tts/speak`,
+          "POST",
+          { "Content-Type": "application/json", Authorization: `Bearer ${turnReg.token}` },
+          { text: "A warm lantern flickers by the oak bar.", speakerRole: "NARRATOR" }
+        );
+        assert.strictEqual(userSpeak.status, 200);
+        const userSpeakJson = JSON.parse(userSpeak.bodyText);
+        assert.strictEqual(userSpeakJson.fallbackToBrowser, true);
+        assert.strictEqual(userSpeakJson.provider, "browser-natural");
+
+        const nonAdminGet = await httpReq(`http://127.0.0.1:${port}/api/vtt-admin/tts-settings`, "GET", {
+          Authorization: `Bearer ${turnReg.token}`,
+        });
+        assert.strictEqual(nonAdminGet.status, 403, "Non-admin user must receive 403 on GET /api/vtt-admin/tts-settings");
+
+        setVttAccountRoleByAdmin({ targetAccountId: turnReg.account.id, nextRole: "ADMIN" });
+        const adminPost = await httpReq(
+          `http://127.0.0.1:${port}/api/vtt-admin/tts-settings`,
+          "POST",
+          { "Content-Type": "application/json", Authorization: `Bearer ${turnReg.token}` },
+          { preferredMode: "AUTO", narratorSpeed: 1.05 }
+        );
+        setVttAccountRoleByAdmin({ targetAccountId: turnReg.account.id, nextRole: "USER" });
+        assert.strictEqual(adminPost.status, 200, "Admin must save TTS settings cleanly");
+        assert.strictEqual(JSON.parse(adminPost.bodyText).config.narratorSpeed, 1.05);
+
+        if (shouldClose) {
+          vttServer.closeAllConnections?.();
+          vttServer.close(() => resolve());
+        } else {
+          resolve();
+        }
+      } catch (e) {
+        reject(e);
+      }
+    };
+    if (vttServer.listening) {
+      runTtsHttp((vttServer.address() as { port: number }).port, false);
+    } else {
+      vttServer.listen(0, "127.0.0.1", () => runTtsHttp((vttServer.address() as { port: number }).port, true));
+    }
+  });
+  resetTtsStateForTesting();
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 32/32 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 33/33 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();

@@ -34,6 +34,10 @@ services:
       - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
       - HEARTHQUEST_DATA_DIR=/app/data
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
+      - TTS_HOST=${TTS_HOST:-}
+      - TTS_MODEL=${TTS_MODEL:-kokoro}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
@@ -42,6 +46,15 @@ services:
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png"
     restart: unless-stopped
+
+  # Optional Unraid / RTX 3080 Local Neural TTS Sidecar (OpenAI-compatible /v1/audio/speech)
+  # Uncomment and set TTS_HOST=http://kokoro-tts:8880 to run audiobook-quality local voices:
+  # kokoro-tts:
+  #   image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
+  #   container_name: hearthquest-kokoro-tts
+  #   ports:
+  #     - "8880:8880"
+  #   restart: unless-stopped
 
   quest-admin:
     image: ghcr.io/plexd281knilb/hearthquest:${HEARTHQUEST_CHANNEL:-beta}
@@ -61,3 +74,12 @@ services:
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png"
     restart: unless-stopped
+
+  # Optional Unraid / RTX 3080 Local Neural TTS Sidecar (OpenAI-compatible /v1/audio/speech)
+  # Uncomment and set TTS_HOST=http://kokoro-tts:8880 to run audiobook-quality local voices:
+  # kokoro-tts:
+  #   image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
+  #   container_name: hearthquest-kokoro-tts
+  #   ports:
+  #     - "8880:8880"
+  #   restart: unless-stopped

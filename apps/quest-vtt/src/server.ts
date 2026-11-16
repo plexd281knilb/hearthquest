@@ -61,6 +61,13 @@ import {
   verifyGoogleIdToken,
   verifyGoogleOAuthTransactionCookie,
 } from "./google-auth";
+import {
+  clearTtsAudioCache,
+  getPublicTtsConfig,
+  probeLocalTtsHealth,
+  saveTtsSettings,
+  synthesizeSpeechWithFallback,
+} from "./tts-engine";
 import { renderVttAppHtml, renderVttLoginGateHtml } from "./ui-template";
 
 export {
@@ -768,6 +775,122 @@ const server = http.createServer(async (req, res) => {
     } catch (err: any) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: err?.message || "Failed to send adventure" }));
+    }
+    return;
+  }
+
+  if (pathname === "/api/tts/status" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, config: getPublicTtsConfig() }));
+    return;
+  }
+
+  if (pathname === "/api/tts/speak" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const token = extractSessionToken(req, body);
+      const guestToken = extractGuestToken(req, body);
+      const account = getVttAccountByToken(token);
+      if (!account && !guestToken) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Sign in or join with a valid room invite to stream TTS audio." }));
+        return;
+      }
+      const result = await synthesizeSpeechWithFallback({
+        text: String(body.text || ""),
+        speakerRole: body.speakerRole,
+        modeOverride: body.modeOverride,
+      });
+      if (!result.fallbackToBrowser && result.audioBuffer) {
+        res.writeHead(200, {
+          "Content-Type": result.contentType || "audio/mpeg",
+          "Cache-Control": "private, max-age=300",
+          "X-HearthQuest-TTS-Provider": result.provider,
+          "X-HearthQuest-TTS-Cache-Hit": result.cacheHit ? "1" : "0",
+        });
+        res.end(result.audioBuffer);
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "X-HearthQuest-TTS-Provider": "browser-natural",
+      });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          provider: "browser-natural",
+          fallbackToBrowser: true,
+          attemptedProviders: result.attemptedProviders,
+          voiceProfile: result.voiceProfile,
+          fallbackReason: result.fallbackReason,
+        })
+      );
+    } catch (err: any) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          provider: "browser-natural",
+          fallbackToBrowser: true,
+          fallbackReason: err?.message || "Server TTS failed; falling back to browser speech.",
+        })
+      );
+    }
+    return;
+  }
+
+  if (pathname === "/api/vtt-admin/tts-settings" && req.method === "GET") {
+    const token = extractSessionToken(req);
+    const account = getVttAccountByToken(token);
+    if (!account || account.role !== "ADMIN") {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Admin role required to inspect TTS configuration." }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, config: getPublicTtsConfig() }));
+    return;
+  }
+
+  if (pathname === "/api/vtt-admin/tts-settings" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const token = extractSessionToken(req, body);
+      const account = getVttAccountByToken(token);
+      if (!account || account.role !== "ADMIN") {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Admin role required to modify TTS server settings." }));
+        return;
+      }
+      if (body.action === "TEST_LOCAL") {
+        const probe = await probeLocalTtsHealth(body.localTtsUrl);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, probe, config: getPublicTtsConfig() }));
+        return;
+      }
+      if (body.action === "CLEAR_CACHE") {
+        const cleared = clearTtsAudioCache();
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, cleared, config: getPublicTtsConfig() }));
+        return;
+      }
+      saveTtsSettings({
+        preferredMode: body.preferredMode,
+        localTtsUrl: body.localTtsUrl,
+        localTtsModel: body.localTtsModel,
+        cloudProvider: body.cloudProvider,
+        cloudApiKey: body.cloudApiKey,
+        clearCloudKey: Boolean(body.clearCloudKey),
+        cloudModel: body.cloudModel,
+        cacheEnabled: typeof body.cacheEnabled === "boolean" ? body.cacheEnabled : undefined,
+        narratorSpeed: typeof body.narratorSpeed === "number" ? body.narratorSpeed : undefined,
+        roleVoices: body.roleVoices,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, config: getPublicTtsConfig() }));
+    } catch (err: any) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err?.message || "Failed to save TTS settings" }));
     }
     return;
   }

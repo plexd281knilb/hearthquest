@@ -912,6 +912,29 @@ export function renderVttAppHtml(
               </div>
               ${renderLightingControlsHtml()}
               ${renderAtmosphereControlsHtml()}
+              <!-- Multi-Tier DM Voice TTS Controls (Local Neural GPU -> Cloud AI -> Browser Natural Fallback) -->
+              <div id="tts-voice-controls-box" class="mt-2 pt-2 border-t border-slate-700/40 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-bold text-emerald-300">🎙️ DM Voice TTS:</span>
+                  <select id="select-tts-mode" onchange="onUserTtsPrefsChange()" class="theme-input border rounded-lg px-2 py-1 text-xs" title="Choose preferred Voice Engine (falls back automatically if unavailable)">
+                    <option value="AUTO">✨ Auto Cascade (GPU → Cloud → Browser)</option>
+                    <option value="LOCAL_NEURAL">🖥️ Local GPU Neural (Kokoro / Unraid)</option>
+                    <option value="CLOUD_AI">☁️ Cloud AI Neural Voice</option>
+                    <option value="BROWSER_NATURAL">🌐 Browser Natural Voices Only</option>
+                  </select>
+                  <select id="select-browser-tts-voice" onchange="onUserTtsPrefsChange()" class="theme-input border rounded-lg px-2 py-1 text-xs max-w-[200px]" title="Fallback Browser Voice (prefers Natural/Online voices)">
+                    <option value="">Auto Best Natural Voice</option>
+                  </select>
+                  <label class="flex items-center gap-1 text-[11px] text-slate-300">
+                    Speed <input id="range-tts-speed" type="range" min="0.80" max="1.25" step="0.05" value="0.96" onchange="onUserTtsPrefsChange()" class="w-16 accent-emerald-400" />
+                  </label>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span id="tts-active-provider-pill" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-emerald-300 border border-emerald-500/40">✨ Auto Cascade Ready</span>
+                  <button type="button" onclick="speakTextOutLoud('Lantern light spills across the tavern doorway as your party gathers inside. What do you do?', 'NARRATOR')" class="px-2 py-1 rounded-lg font-bold bg-emerald-700 hover:bg-emerald-600 text-white">🔊 Test Voice</button>
+                  <button type="button" onclick="stopAllTtsSpeech()" class="px-2 py-1 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-slate-300">⏹️ Stop</button>
+                </div>
+              </div>
             </div>
           </details>
         </div>
@@ -1334,6 +1357,59 @@ export function renderVttAppHtml(
         <button type="button" onclick="sendAdventureFromAdminModal()" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-sm transition">
           📤 Send Static Adventure to User Room
         </button>
+      </div>
+      <!-- Admin Server TTS Engine & Fallback Configuration -->
+      <div id="admin-tts-settings-box" class="p-3.5 rounded-2xl theme-inner-box border border-emerald-500/40 space-y-2.5 text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="font-extrabold text-emerald-300 uppercase tracking-wider">🎙️ Voice TTS Server &amp; Fallback Cascade</div>
+          <span id="admin-tts-cache-count" class="text-[11px] font-mono text-slate-400">Cache: 0 clips</span>
+        </div>
+        <p class="text-[11px] text-slate-300">
+          Automatic cascade: <strong>1. Local GPU Neural (Kokoro/openedai-speech on Unraid)</strong> → <strong>2. Cloud AI (OpenAI / ElevenLabs)</strong> → <strong>3. Browser Natural Neural Voices</strong>. If any tier is offline, HearthQuest falls back cleanly without breaking narration.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Local GPU TTS URL (TTS_HOST)</label>
+            <div class="flex gap-1.5">
+              <input id="admin-tts-local-url" type="text" placeholder="http://192.168.1.100:8880" class="flex-1 theme-input border rounded-lg px-2 py-1.5 text-xs font-mono" />
+              <button type="button" onclick="testAdminLocalTts()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold border border-emerald-500/40">🔍 Test</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Default Cascade Mode</label>
+            <select id="admin-tts-mode" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs">
+              <option value="AUTO">✨ Auto Cascade (GPU → Cloud → Browser)</option>
+              <option value="LOCAL_NEURAL">🖥️ Prefer Local GPU Neural</option>
+              <option value="CLOUD_AI">☁️ Prefer Cloud AI Voice</option>
+              <option value="BROWSER_NATURAL">🌐 Browser Natural Voices Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Cloud Fallback Provider</label>
+            <select id="admin-tts-cloud-provider" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs">
+              <option value="NONE">None (Local + Browser Only)</option>
+              <option value="OPENAI">OpenAI (gpt-4o-mini-tts)</option>
+              <option value="ELEVENLABS">ElevenLabs (v2.5 Flash)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Cloud Model</label>
+            <input id="admin-tts-cloud-model" type="text" placeholder="gpt-4o-mini-tts" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs font-mono" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 mb-1">Cloud API Key (Masked on Read)</label>
+            <input id="admin-tts-cloud-key" type="password" placeholder="Leave blank to keep existing" class="w-full theme-input border rounded-lg px-2 py-1.5 text-xs font-mono" />
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div id="admin-tts-status-msg" class="text-[11px] font-semibold text-slate-300"></div>
+          <div class="flex gap-2">
+            <button type="button" onclick="clearAdminTtsCache()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">🧹 Clear Cache</button>
+            <button type="button" onclick="saveAdminTtsSettings()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black">💾 Save TTS Config</button>
+          </div>
+        </div>
       </div>
       <div class="space-y-2">
         <div class="flex items-center justify-between">
@@ -2116,6 +2192,96 @@ export function renderVttAppHtml(
           "</div>";
         }).join("");
       }
+      loadAdminTtsSettings();
+    }
+
+    async function loadAdminTtsSettings() {
+      try {
+        const res = await fetch("/api/vtt-admin/tts-settings", {
+          headers: vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {},
+        });
+        const data = await res.json();
+        if (!data.ok || !data.config) return;
+        const c = data.config;
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
+        setVal("admin-tts-local-url", c.localTtsUrl);
+        setVal("admin-tts-mode", c.preferredMode || "AUTO");
+        setVal("admin-tts-cloud-provider", c.cloudProvider || "NONE");
+        setVal("admin-tts-cloud-model", c.cloudModel || "gpt-4o-mini-tts");
+        const keyInput = document.getElementById("admin-tts-cloud-key");
+        if (keyInput) {
+          keyInput.value = "";
+          keyInput.placeholder = c.cloudKeyMasked ? "Saved (" + c.cloudKeyMasked + ")" : "Paste OpenAI or ElevenLabs key";
+        }
+        const cacheEl = document.getElementById("admin-tts-cache-count");
+        if (cacheEl) cacheEl.innerText = "Cache: " + (c.cacheEntries || 0) + " clips";
+        const msgEl = document.getElementById("admin-tts-status-msg");
+        if (msgEl) msgEl.innerText = "Active Cascade: " + (c.fallbackChain || []).join(" → ");
+      } catch {}
+    }
+
+    async function testAdminLocalTts() {
+      const msgEl = document.getElementById("admin-tts-status-msg");
+      const urlEl = document.getElementById("admin-tts-local-url");
+      if (msgEl) msgEl.innerText = "Testing Local GPU TTS...";
+      const res = await fetch("/api/vtt-admin/tts-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify({ action: "TEST_LOCAL", localTtsUrl: urlEl ? urlEl.value : "" }),
+      });
+      const data = await res.json();
+      if (msgEl && data.probe) {
+        msgEl.className = "text-[11px] font-bold " + (data.probe.online ? "text-emerald-300" : "text-amber-300");
+        msgEl.innerText = (data.probe.online ? "✅ " : "⚠️ ") + data.probe.detail;
+      }
+    }
+
+    async function saveAdminTtsSettings() {
+      const getVal = (id) => (document.getElementById(id) ? document.getElementById(id).value : "");
+      const payload = {
+        localTtsUrl: getVal("admin-tts-local-url"),
+        preferredMode: getVal("admin-tts-mode"),
+        cloudProvider: getVal("admin-tts-cloud-provider"),
+        cloudModel: getVal("admin-tts-cloud-model"),
+      };
+      const keyVal = getVal("admin-tts-cloud-key").trim();
+      if (keyVal) payload.cloudApiKey = keyVal;
+      const res = await fetch("/api/vtt-admin/tts-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      const msgEl = document.getElementById("admin-tts-status-msg");
+      if (data.ok && msgEl) {
+        msgEl.className = "text-[11px] font-bold text-emerald-300";
+        msgEl.innerText = "✅ Saved! Cascade: " + (data.config.fallbackChain || []).join(" → ");
+        loadAdminTtsSettings();
+      }
+    }
+
+    async function clearAdminTtsCache() {
+      const res = await fetch("/api/vtt-admin/tts-settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+        },
+        body: JSON.stringify({ action: "CLEAR_CACHE" }),
+      });
+      const data = await res.json();
+      const msgEl = document.getElementById("admin-tts-status-msg");
+      if (data.ok && msgEl) {
+        msgEl.className = "text-[11px] font-bold text-sky-300";
+        msgEl.innerText = "🧹 Cleared " + (data.cleared || 0) + " cached TTS clips.";
+        loadAdminTtsSettings();
+      }
     }
 
     async function toggleAccountRoleByAdmin(accountId, nextRole) {
@@ -2880,21 +3046,206 @@ export function renderVttAppHtml(
     }
 
     let lastSeenRpPromptId = "";
+    let activeTtsAudioEl = null;
+    let activeTtsBlobUrl = "";
+    let browserSpeechToken = 0;
 
-    function speakTextOutLoud(textToSpeak) {
-      if ("speechSynthesis" in window && textToSpeak) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.rate = 0.95;
-        utterance.pitch = 1.05;
-        window.speechSynthesis.speak(utterance);
+    function stopAllTtsSpeech() {
+      browserSpeechToken++;
+      if (activeTtsAudioEl) {
+        try {
+          activeTtsAudioEl.pause();
+          activeTtsAudioEl.src = "";
+        } catch {}
+        activeTtsAudioEl = null;
+      }
+      if (activeTtsBlobUrl) {
+        try { URL.revokeObjectURL(activeTtsBlobUrl); } catch {}
+        activeTtsBlobUrl = "";
+      }
+      if ("speechSynthesis" in window) {
+        try { window.speechSynthesis.cancel(); } catch {}
+      }
+    }
+
+    function setTtsProviderBadge(label, toneClass) {
+      const el = document.getElementById("tts-active-provider-pill");
+      if (!el) return;
+      el.innerText = label;
+      el.className = "px-2 py-0.5 rounded-full text-[10px] font-bold border " + (toneClass || "bg-slate-800 text-emerald-300 border-emerald-500/40");
+    }
+
+    function scoreBrowserVoice(v) {
+      const n = (v.name || "").toLowerCase();
+      let s = 0;
+      if (v.lang && v.lang.toLowerCase().startsWith("en")) s += 50;
+      if (n.includes("natural")) s += 45;
+      if (n.includes("online")) s += 35;
+      if (n.includes("neural")) s += 30;
+      if (n.includes("google")) s += 28;
+      if (n.includes("brian") || n.includes("andrew") || n.includes("ava") || n.includes("aria") || n.includes("guy") || n.includes("daniel") || n.includes("samantha")) s += 18;
+      if (n.includes("david") || n.includes("mark") || n.includes("zira")) s -= 15;
+      return s;
+    }
+
+    function getSortedEnglishVoices() {
+      if (!("speechSynthesis" in window) || !window.speechSynthesis.getVoices) return [];
+      const all = window.speechSynthesis.getVoices() || [];
+      return all.slice().sort((a, b) => scoreBrowserVoice(b) - scoreBrowserVoice(a));
+    }
+
+    function populateBrowserTtsVoices() {
+      const sel = document.getElementById("select-browser-tts-voice");
+      if (!sel) return;
+      const savedVoice = (() => { try { return localStorage.getItem("hq_tts_browser_voice") || ""; } catch { return ""; } })();
+      const voices = getSortedEnglishVoices();
+      const firstOpt = '<option value="">Auto Best Natural Voice</option>';
+      const items = voices.slice(0, 28).map((v) => {
+        const safeName = (v.name || "Voice").replace(/"/g, "&quot;");
+        const tag = scoreBrowserVoice(v) >= 80 ? "✨ " : "";
+        return '<option value="' + safeName + '">' + tag + safeName + " (" + (v.lang || "en") + ")</option>";
+      }).join("");
+      sel.innerHTML = firstOpt + items;
+      if (savedVoice && Array.from(sel.options).some((o) => o.value === savedVoice)) {
+        sel.value = savedVoice;
+      }
+    }
+
+    function onUserTtsPrefsChange() {
+      const modeEl = document.getElementById("select-tts-mode");
+      const voiceEl = document.getElementById("select-browser-tts-voice");
+      const speedEl = document.getElementById("range-tts-speed");
+      try {
+        if (modeEl) localStorage.setItem("hq_tts_mode", modeEl.value);
+        if (voiceEl) localStorage.setItem("hq_tts_browser_voice", voiceEl.value);
+        if (speedEl) localStorage.setItem("hq_tts_speed", speedEl.value);
+      } catch {}
+    }
+
+    async function initVoiceTtsControls() {
+      populateBrowserTtsVoices();
+      if ("speechSynthesis" in window && "onvoiceschanged" in window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = populateBrowserTtsVoices;
+      }
+      try {
+        const modeEl = document.getElementById("select-tts-mode");
+        const speedEl = document.getElementById("range-tts-speed");
+        const savedMode = localStorage.getItem("hq_tts_mode");
+        const savedSpeed = localStorage.getItem("hq_tts_speed");
+        if (modeEl && savedMode) modeEl.value = savedMode;
+        if (speedEl && savedSpeed) speedEl.value = savedSpeed;
+      } catch {}
+      try {
+        const stRes = await fetch("/api/tts/status");
+        const st = await stRes.json();
+        if (st && st.ok && st.config) {
+          if (st.config.localConfigured) {
+            setTtsProviderBadge("🖥️ GPU Neural + Fallbacks", "bg-emerald-950/80 text-emerald-300 border-emerald-400/50");
+          } else if (st.config.cloudConfigured) {
+            setTtsProviderBadge("☁️ Cloud Neural + Browser", "bg-sky-950/80 text-sky-300 border-sky-400/50");
+          } else {
+            setTtsProviderBadge("🌐 Browser Natural Ready", "bg-slate-800 text-amber-300 border-amber-500/40");
+          }
+        }
+      } catch {}
+    }
+
+    function speakBrowserSentenceChunked(textToSpeak, speakerRole, serverVoiceProfile) {
+      if (!("speechSynthesis" in window) || !textToSpeak) return;
+      window.speechSynthesis.cancel();
+      const myToken = ++browserSpeechToken;
+      const role = speakerRole === "BOSS" || speakerRole === "NPC" ? speakerRole : "NARRATOR";
+      const voiceSel = document.getElementById("select-browser-tts-voice");
+      const chosenName = voiceSel ? voiceSel.value : "";
+      const sorted = getSortedEnglishVoices();
+      const selectedVoice = (chosenName && sorted.find((v) => v.name === chosenName)) || sorted[0] || null;
+      const speedSlider = document.getElementById("range-tts-speed");
+      const userRate = speedSlider ? parseFloat(speedSlider.value) : 0.96;
+
+      const basePitch = serverVoiceProfile && typeof serverVoiceProfile.browserPitch === "number"
+        ? serverVoiceProfile.browserPitch
+        : role === "BOSS" ? 0.85 : role === "NPC" ? 1.1 : 0.94;
+      const roleRateMult = role === "BOSS" ? 0.93 : role === "NPC" ? 1.03 : 0.98;
+      const finalRate = Math.max(0.72, Math.min(1.35, userRate * roleRateMult));
+
+      const rawChunks = String(textToSpeak).match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [String(textToSpeak)];
+      const chunks = rawChunks.map((s) => s.trim()).filter(Boolean);
+      setTtsProviderBadge("🌐 Browser Natural" + (selectedVoice ? " (" + selectedVoice.name.split(" ").slice(0, 2).join(" ") + ")" : ""), "bg-indigo-950/80 text-indigo-200 border-indigo-400/50");
+
+      let idx = 0;
+      const speakNext = () => {
+        if (myToken !== browserSpeechToken || idx >= chunks.length) return;
+        const utter = new SpeechSynthesisUtterance(chunks[idx++]);
+        if (selectedVoice) utter.voice = selectedVoice;
+        utter.pitch = basePitch;
+        utter.rate = finalRate;
+        utter.onend = () => speakNext();
+        utter.onerror = () => speakNext();
+        window.speechSynthesis.speak(utter);
+      };
+      speakNext();
+    }
+
+    async function speakTextOutLoud(textToSpeak, speakerRole) {
+      const clean = String(textToSpeak || "").trim();
+      if (!clean) return;
+      stopAllTtsSpeech();
+
+      const modeSel = document.getElementById("select-tts-mode");
+      const modeOverride = modeSel ? modeSel.value : "AUTO";
+      if (modeOverride === "BROWSER_NATURAL") {
+        speakBrowserSentenceChunked(clean, speakerRole || "NARRATOR", null);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/tts/speak", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+            ...(vttGuestToken ? { "x-vtt-guest": vttGuestToken } : {}),
+          },
+          body: JSON.stringify({
+            text: clean,
+            speakerRole: speakerRole || "NARRATOR",
+            modeOverride,
+            token: vttAuthToken || undefined,
+            guestToken: vttGuestToken || undefined,
+          }),
+        });
+        const ctype = (res.headers.get("content-type") || "").toLowerCase();
+        const providerHdr = res.headers.get("x-hearthquest-tts-provider") || "";
+        if (res.ok && ctype.startsWith("audio/")) {
+          const blob = await res.blob();
+          activeTtsBlobUrl = URL.createObjectURL(blob);
+          const audio = new Audio(activeTtsBlobUrl);
+          activeTtsAudioEl = audio;
+          const badgeLabel =
+            providerHdr === "disk-cache" ? "💾 Cached Neural Audio" :
+            providerHdr === "local-neural" ? "🖥️ Local GPU Neural" :
+            providerHdr === "cloud-openai" ? "☁️ OpenAI Neural Voice" :
+            "☁️ ElevenLabs Voice";
+          setTtsProviderBadge(badgeLabel, "bg-emerald-950/90 text-emerald-300 border-emerald-400/60");
+          audio.onerror = () => {
+            speakBrowserSentenceChunked(clean, speakerRole || "NARRATOR", null);
+          };
+          audio.play().catch(() => {
+            speakBrowserSentenceChunked(clean, speakerRole || "NARRATOR", null);
+          });
+          return;
+        }
+        const json = await res.json().catch(() => ({}));
+        speakBrowserSentenceChunked(clean, speakerRole || "NARRATOR", json.voiceProfile || null);
+      } catch {
+        speakBrowserSentenceChunked(clean, speakerRole || "NARRATOR", null);
       }
     }
 
     function speakReadAloudText() {
       const activeNode = state.storyNodes.find(n => n.id === state.activeNodeId) || state.storyNodes[0];
       const textToSpeak = activeNode?.readAloudByTone[activeTone] || activeNode?.readAloudByTone.COZY_SILLY || "";
-      speakTextOutLoud(textToSpeak);
+      speakTextOutLoud(textToSpeak, "NARRATOR");
     }
 
     function resolveRoomStageUrls() {
@@ -3021,16 +3372,15 @@ export function renderVttAppHtml(
       const text = prompt
         ? (prompt.spokenText || "") + (prompt.playerPromptQuestion ? " " + prompt.playerPromptQuestion : "")
         : (document.getElementById("rp-modal-spoken-text").innerText || "");
-      speakTextOutLoud(text);
+      const role = prompt && (prompt.speakerRole === "BOSS" || prompt.speakerRole === "NPC") ? prompt.speakerRole : "NARRATOR";
+      speakTextOutLoud(text, role);
     }
 
     async function dismissRpPrompt(playerReply) {
       quickStartProgress.readIntro = true;
       renderStartHereGuideBar();
       document.getElementById("rp-readout-modal").classList.add("hidden");
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopAllTtsSpeech();
       await apiPost("/api/room/rp-prompt", {
         roomCode: state.roomCode,
         dismiss: true,
@@ -4281,6 +4631,7 @@ export function renderVttAppHtml(
     connectRoomStream(state.roomCode);
     refreshCustomTokens();
     loadVttAuthStatus();
+    initVoiceTtsControls();
   </script>
 </body>
 </html>`;
