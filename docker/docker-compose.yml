@@ -41,6 +41,8 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
+      - HEARTHQUEST_LICENSE_SECRET=${HEARTHQUEST_LICENSE_SECRET:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       - quest-ai-bridge
     labels:
@@ -65,21 +67,19 @@ services:
     command: ["npm", "run", "dev:admin"]
     ports:
       - "3001:3001"
+    volumes:
+      - ./data:/app/data
     environment:
       - PORT=3001
       - HEARTHQUEST_CHANNEL=${HEARTHQUEST_CHANNEL:-beta}
+      - HEARTHQUEST_DATA_DIR=/app/data
       - OLLAMA_HOST=${OLLAMA_HOST:-http://192.168.1.100:11434}
+      - HEARTHQUEST_ADMIN_PIN=${HEARTHQUEST_ADMIN_PIN:-}
+      - HEARTHQUEST_LICENSE_SECRET=${HEARTHQUEST_LICENSE_SECRET:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       - quest-ai-bridge
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/plexd281knilb/hearthquest/dev/assets/hearthquest-icon.png"
     restart: unless-stopped
-
-  # Optional Unraid / RTX 3080 Local Neural TTS Sidecar (OpenAI-compatible /v1/audio/speech)
-  # Uncomment and set TTS_HOST=http://kokoro-tts:8880 to run audiobook-quality local voices:
-  # kokoro-tts:
-  #   image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
-  #   container_name: hearthquest-kokoro-tts
-  #   ports:
-  #     - "8880:8880"
-  #   restart: unless-stopped

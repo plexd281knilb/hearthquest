@@ -3,7 +3,18 @@ import http from "node:http";
 import path from "node:path";
 import { URL } from "node:url";
 import { generateGmCoPilotWhisper } from "@hearthquest/quest-ai-bridge";
-import { AgeGroupPreset, HEARTHQUEST_ASSETS, RoomSessionState, RulesTier, getBuildMetadata } from "@hearthquest/shared-types";
+import {
+  AgeGroupPreset,
+  HEARTHQUEST_ASSETS,
+  RoomSessionState,
+  RulesTier,
+  canonicalizeIdentifier,
+  checkHearthQuestRateLimit,
+  getBuildMetadata,
+  getSafeRequestOrigin,
+  safeParseRequestUrl,
+  sanitizeSvgContent,
+} from "@hearthquest/shared-types";
 import {
   addCustomHeroToRoom,
   advanceRoomStoryNode,
@@ -50,6 +61,7 @@ import {
   setVttAccountRoleByAdmin,
   signRoomGuestToken,
   updateVttAccountPreferences,
+  verifyRoomGuestToken,
   verifyRoomInviteSig,
   verifyVttLicenseKey,
 } from "./auth-store";
@@ -90,15 +102,30 @@ export {
   updateVttAccountPreferences,
   verifyGoogleIdToken,
   verifyGoogleOAuthTransactionCookie,
+  verifyRoomGuestToken,
   verifyRoomInviteSig,
   verifyVttLicenseKey,
 };
 
 function getRequestOrigin(req: http.IncomingMessage): string {
-  const protoHeader = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
-  const proto = protoHeader === "https" ? "https" : "http";
-  const host = String(req.headers["x-forwarded-host"] || req.headers.host || `localhost:${PORT}`);
-  return `${proto}://${host}`;
+  return getSafeRequestOrigin(req.headers, PORT, process.env.HEARTHQUEST_PUBLIC_URL);
+}
+
+export function redactRoomForPlayer(room: RoomSessionState): RoomSessionState {
+  return {
+    ...room,
+    tokens: (room.tokens || []).filter((t) => !t.isHiddenFromPlayers),
+    zones: (room.zones || []).map((z) => ({
+      ...z,
+      name: z.isRevealed ? z.name : "Unexplored Fog Zone",
+      hasSecretTrap: false,
+      trapDescription: undefined,
+    })),
+    storyNodes: (room.storyNodes || []).map((n) => ({
+      ...n,
+      gmWhisperTips: [],
+    })),
+  };
 }
 
 function extractCookie(req: http.IncomingMessage, cookieName: string): string {
@@ -151,28 +178,59 @@ const PLAYER_ALLOWED_ROOM_POSTS = new Set([
 
 const PORT = Number(process.env.PORT_VTT || process.env.PORT || 3000);
 
-const sseSubscribers = new Map<string, Set<http.ServerResponse>>();
+interface SseSubscriber {
+  res: http.ServerResponse;
+  isPlayer: boolean;
+}
+
+const sseSubscribers = new Map<string, Set<SseSubscriber>>();
 
 function broadcastRoomUpdate(room: RoomSessionState): void {
   const subs = sseSubscribers.get(room.roomCode);
   if (!subs || subs.size === 0) return;
-  const payload = `data: ${JSON.stringify(room)}\n\n`;
+  const fullPayload = `data: ${JSON.stringify(room)}\n\n`;
+  let playerPayload: string | null = null;
   for (const client of subs) {
     try {
-      client.write(payload);
+      if (client.isPlayer) {
+        if (!playerPayload) {
+          playerPayload = `data: ${JSON.stringify(redactRoomForPlayer(room))}\n\n`;
+        }
+        client.res.write(playerPayload);
+      } else {
+        client.res.write(fullPayload);
+      }
     } catch {
       subs.delete(client);
     }
   }
 }
 
-function readJsonBody(req: http.IncomingMessage): Promise<any> {
+function readJsonBody(req: http.IncomingMessage, maxBytes = 2_097_152): Promise<any> {
   return new Promise((resolve, reject) => {
     let raw = "";
-    req.on("data", (chunk) => {
+    let totalBytes = 0;
+    let settled = false;
+    req.on("error", (err) => {
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    });
+    req.on("data", (chunk: Buffer | string) => {
+      if (settled) return;
+      totalBytes += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+      if (totalBytes > maxBytes) {
+        settled = true;
+        req.destroy();
+        reject(new Error("Request payload exceeds size limit"));
+        return;
+      }
       raw += chunk;
     });
     req.on("end", () => {
+      if (settled) return;
+      settled = true;
       try {
         resolve(JSON.parse(raw || "{}"));
       } catch (err) {
@@ -183,7 +241,7 @@ function readJsonBody(req: http.IncomingMessage): Promise<any> {
 }
 
 const server = http.createServer(async (req, res) => {
-  const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const parsedUrl = safeParseRequestUrl(req.url, req.headers.host, PORT);
   const pathname = parsedUrl.pathname;
 
   if (pathname === "/" && req.method === "GET") {
@@ -214,21 +272,28 @@ const server = http.createServer(async (req, res) => {
       const room = getOrCreateRoom(requestedRoom);
       res.writeHead(200, {
         "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "private, no-store",
         "Set-Cookie": `hq_vtt_guest=${encodeURIComponent(guestToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`,
       });
-      res.end(renderVttAppHtml(room, { guestToken }));
+      res.end(renderVttAppHtml(guestMode === "TABLE_TV_DISPLAY" || guestMode === "PLAYER_CONTROLLER" ? redactRoomForPlayer(room) : room, { guestToken }));
       return;
     }
 
     if (account) {
       const room = ensureAccountSessionRoom(account);
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "private, no-store",
+      });
       res.end(renderVttAppHtml(room));
       return;
     }
 
     const googleConfig = getGoogleAuthConfig(getRequestOrigin(req));
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "private, no-store",
+    });
     res.end(
       renderVttLoginGateHtml({
         isFirstAccountSetup: getVttAccountCount() === 0,
@@ -240,14 +305,29 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname.startsWith("/assets/") && req.method === "GET") {
-    const relativeAsset = pathname.replace(/^\/assets\//, "");
-    const safePath = path.normalize(relativeAsset).replace(/^(\.\.[\/\\])+/, "");
-    const candidatePaths = [
-      path.resolve(__dirname, "..", "..", "..", "assets", safePath),
-      path.resolve(process.cwd(), "assets", safePath),
+    let rawRelative = "";
+    try {
+      rawRelative = decodeURIComponent(pathname.slice("/assets/".length));
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid asset path encoding" }));
+      return;
+    }
+    if (!rawRelative || rawRelative.startsWith("/") || rawRelative.startsWith("\\") || rawRelative.includes("\0")) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid asset path" }));
+      return;
+    }
+    const baseDirs = [
+      path.resolve(__dirname, "..", "..", "..", "assets"),
+      path.resolve(process.cwd(), "assets"),
     ];
 
-    for (const filePath of candidatePaths) {
+    for (const baseDir of baseDirs) {
+      const filePath = path.resolve(baseDir, rawRelative);
+      if (!filePath.startsWith(baseDir + path.sep)) {
+        continue;
+      }
       if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
         const ext = path.extname(filePath).toLowerCase();
         const contentType =
@@ -260,14 +340,22 @@ const server = http.createServer(async (req, res) => {
             : ext === ".webp"
             ? "image/webp"
             : "application/octet-stream";
-        res.writeHead(200, {
+        const headers: Record<string, string> = {
           "Content-Type": contentType,
+          "X-Content-Type-Options": "nosniff",
           "Cache-Control": "public, max-age=86400",
-        });
+        };
+        if (ext === ".svg") {
+          headers["Content-Security-Policy"] = "sandbox; default-src 'none'; style-src 'unsafe-inline'";
+        }
+        res.writeHead(200, headers);
         res.end(fs.readFileSync(filePath));
         return;
       }
     }
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: "Asset not found" }));
+    return;
   }
 
   if (pathname === "/favicon.svg" && req.method === "GET") {
@@ -299,11 +387,18 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname.startsWith("/custom-tokens/") && req.method === "GET") {
-    const filename = decodeURIComponent(pathname.replace(/^\/custom-tokens\//, ""));
+    let filename = "";
+    try {
+      filename = decodeURIComponent(pathname.replace(/^\/custom-tokens\//, ""));
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid filename" }));
+      return;
+    }
     const safeName = path.basename(filename);
-    const customDir = getCustomTokensDir();
-    const filePath = path.join(customDir, safeName);
-    if (filePath.startsWith(customDir) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    const customDir = path.resolve(getCustomTokensDir());
+    const filePath = path.resolve(customDir, safeName);
+    if (filePath.startsWith(customDir + path.sep) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath).toLowerCase();
       const contentType =
         ext === ".svg"
@@ -315,18 +410,42 @@ const server = http.createServer(async (req, res) => {
           : ext === ".webp"
           ? "image/webp"
           : "application/octet-stream";
-      res.writeHead(200, { "Content-Type": contentType, "Cache-Control": "public, max-age=3600" });
+      if (ext === ".svg") {
+        const cleanSvg = sanitizeSvgContent(fs.readFileSync(filePath, "utf8"));
+        res.writeHead(200, {
+          "Content-Type": contentType,
+          "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'",
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "private, max-age=3600",
+        });
+        res.end(cleanSvg);
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, max-age=3600",
+      });
       res.end(fs.readFileSync(filePath));
       return;
     }
   }
 
   if (pathname === "/api/custom-tokens" && req.method === "GET") {
-    res.writeHead(200, { "Content-Type": "application/json" });
+    const auth = authorizeRoomAccess({
+      account: getVttAccountByToken(extractSessionToken(req)),
+      guestToken: extractGuestToken(req, undefined, parsedUrl),
+      requireGmOwner: false,
+    });
+    if (!auth.authorized) {
+      res.writeHead(auth.status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: auth.error }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "private, no-store" });
     res.end(
       JSON.stringify({
         ok: true,
-        directory: getCustomTokensDir(),
         tokens: listCustomTokenAssets(),
       })
     );
@@ -374,35 +493,62 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    const safeOrigin = getRequestOrigin(req);
     const explicitOrigin = (parsedUrl.searchParams.get("origin") || "").trim();
-    const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
-      .split(",")[0]
-      .trim();
-    const proto = forwardedProto || "http";
-    const hostHeader = String(req.headers.host || `127.0.0.1:${PORT}`).trim();
-    const origin =
-      explicitOrigin && /^https?:\/\/[^/\s]+$/i.test(explicitOrigin)
-        ? explicitOrigin
-        : `${proto}://${hostHeader}`;
+    let origin = safeOrigin;
+    if (explicitOrigin) {
+      try {
+        const expUrl = new URL(explicitOrigin);
+        const safeParsed = new URL(safeOrigin);
+        if (
+          (expUrl.protocol === "http:" || expUrl.protocol === "https:") &&
+          expUrl.host === safeParsed.host
+        ) {
+          origin = `${expUrl.protocol}//${expUrl.host}`;
+        }
+      } catch {
+        // ignore invalid origin override
+      }
+    }
     const inviteSig = computeRoomInviteSig(roomCode);
     const joinUrl = `${origin}/?room=${roomCode}&mode=kid&invite=${inviteSig}`;
     const svg = generateJoinQrSvg(roomCode, joinUrl);
     res.writeHead(200, {
       "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "no-store",
+      "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "private, no-store",
     });
     res.end(svg);
     return;
   }
 
   if (pathname === "/api/room/stream" && req.method === "GET") {
+    const reqOriginHdr = String(req.headers.origin || "").trim();
+    if (reqOriginHdr) {
+      try {
+        const parsedOrigin = new URL(reqOriginHdr);
+        const expectedHost = new URL(getRequestOrigin(req)).host;
+        if (parsedOrigin.host !== expectedHost) {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: false, error: "Cross-origin stream rejected." }));
+          return;
+        }
+      } catch {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Invalid Origin header." }));
+        return;
+      }
+    }
     const requestedRoom = (parsedUrl.searchParams.get("roomCode") || "")
       .toUpperCase()
       .slice(0, 4);
+    const guestTok = extractGuestToken(req, undefined, parsedUrl);
+    const sessionAcct = getVttAccountByToken(extractSessionToken(req));
     const auth = authorizeRoomAccess({
       requestedRoomCode: requestedRoom,
-      account: getVttAccountByToken(extractSessionToken(req)),
-      guestToken: extractGuestToken(req, undefined, parsedUrl),
+      account: sessionAcct,
+      guestToken: guestTok,
       requireGmOwner: false,
     });
     if (!auth.authorized) {
@@ -410,23 +556,28 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: false, error: auth.error }));
       return;
     }
+    const verifiedGuest = guestTok ? verifyRoomGuestToken(guestTok) : null;
+    const isPlayerStream = auth.isGuest || Boolean(verifiedGuest);
     const roomCode = auth.resolvedRoomCode;
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "private, no-cache, no-store",
+      "X-Accel-Buffering": "no",
       Connection: "keep-alive",
     });
 
     if (!sseSubscribers.has(roomCode)) {
       sseSubscribers.set(roomCode, new Set());
     }
-    sseSubscribers.get(roomCode)!.add(res);
+    const sub: SseSubscriber = { res, isPlayer: isPlayerStream };
+    sseSubscribers.get(roomCode)!.add(sub);
 
     const room = getOrCreateRoom(roomCode);
-    res.write(`data: ${JSON.stringify(room)}\n\n`);
+    const initialRoom = isPlayerStream ? redactRoomForPlayer(room) : room;
+    res.write(`data: ${JSON.stringify(initialRoom)}\n\n`);
 
     req.on("close", () => {
-      sseSubscribers.get(roomCode)?.delete(res);
+      sseSubscribers.get(roomCode)?.delete(sub);
     });
     return;
   }
@@ -435,13 +586,19 @@ const server = http.createServer(async (req, res) => {
     const account = getVttAccountByToken(extractSessionToken(req));
     const room = account ? ensureAccountSessionRoom(account) : null;
     const inviteSig = room ? computeRoomInviteSig(room.roomCode) : null;
-    res.writeHead(200, { "Content-Type": "application/json" });
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "private, no-store" });
     res.end(JSON.stringify({ ok: true, account, room, inviteSig }));
     return;
   }
 
   if (pathname === "/api/auth/register" && req.method === "POST") {
     try {
+      const clientKey = String(req.socket?.remoteAddress || "local");
+      if (!checkHearthQuestRateLimit("vtt-register", clientKey, 20, 60_000)) {
+        res.writeHead(429, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Too many registration attempts. Try again shortly." }));
+        return;
+      }
       const body = await readJsonBody(req);
       const { account, token, room } = registerVttAccount({
         familyName: body.familyName || "Adventuring Family",
@@ -467,6 +624,12 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/auth/login" && req.method === "POST") {
     try {
       const body = await readJsonBody(req);
+      const rateKey = `${req.socket?.remoteAddress || "local"}:${canonicalizeIdentifier(body.email || "")}`;
+      if (!checkHearthQuestRateLimit("vtt-login", rateKey, 15, 60_000)) {
+        res.writeHead(429, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Too many login attempts. Please wait a minute." }));
+        return;
+      }
       const { account, token, room } = loginVttAccount({
         email: body.email || "",
         password: body.password || "",
@@ -613,15 +776,15 @@ const server = http.createServer(async (req, res) => {
       res.end(
         JSON.stringify({
           ok: false,
-          error: "Local Google sandbox is disabled because live Google OAuth credentials are configured.",
+          error: "Local Google sandbox is disabled in this environment.",
         })
       );
       return;
     }
     try {
       const body = await readJsonBody(req);
-      const email = String(body.email || "").trim().toLowerCase();
-      if (!email || !email.includes("@")) {
+      const email = canonicalizeIdentifier(body.email || "");
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new Error("Please enter a valid Google email address.");
       }
       const sub = `sandbox_google_${Buffer.from(email, "utf8").toString("hex").slice(0, 24)}`;
@@ -631,6 +794,7 @@ const server = http.createServer(async (req, res) => {
         familyName: body.name || email.split("@")[0],
         preferredRulesTier: body.preferredRulesTier,
         preferredAgeGroup: body.preferredAgeGroup,
+        isSandbox: true,
       });
       const inviteSig = computeRoomInviteSig(room.roomCode);
       res.writeHead(200, {
@@ -657,7 +821,7 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: false, error: "Admin role required." }));
       return;
     }
-    res.writeHead(200, { "Content-Type": "application/json" });
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "private, no-store" });
     res.end(
       JSON.stringify({
         ok: true,
@@ -669,7 +833,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/vtt-admin/accounts/role" && req.method === "POST") {
-    const body = await readJsonBody(req);
+    let body: any;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid JSON payload." }));
+      return;
+    }
     const account = getVttAccountByToken(extractSessionToken(req, body));
     if (!account) {
       res.writeHead(401, { "Content-Type": "application/json" });
@@ -791,7 +962,8 @@ const server = http.createServer(async (req, res) => {
       const token = extractSessionToken(req, body);
       const guestToken = extractGuestToken(req, body);
       const account = getVttAccountByToken(token);
-      if (!account && !guestToken) {
+      const verifiedGuest = guestToken ? verifyRoomGuestToken(guestToken) : null;
+      if (!account && !verifiedGuest) {
         res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: false, error: "Sign in or join with a valid room invite to stream TTS audio." }));
         return;
@@ -971,8 +1143,15 @@ const server = http.createServer(async (req, res) => {
   // Enforce authentication & strict per-user room isolation across ALL /api/room/* mutations
   let authedBody: any = null;
   let requestAccountForRoomPost: ReturnType<typeof getVttAccountByToken> = null;
+  let isGuestRoomPost = false;
   if (pathname.startsWith("/api/room/") && req.method === "POST") {
-    authedBody = await readJsonBody(req);
+    try {
+      authedBody = await readJsonBody(req);
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid JSON payload." }));
+      return;
+    }
     requestAccountForRoomPost = getVttAccountByToken(extractSessionToken(req, authedBody));
     const auth = authorizeRoomAccess({
       requestedRoomCode: authedBody.roomCode,
@@ -991,6 +1170,7 @@ const server = http.createServer(async (req, res) => {
       );
       return;
     }
+    isGuestRoomPost = auth.isGuest;
     const CREATOR_ONLY_ROOM_POSTS = new Set([
       "/api/room/switch-campaign",
       "/api/room/procedural-map",
@@ -1013,6 +1193,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/api/room/move-token" && req.method === "POST") {
     const body = authedBody;
+    const canIgnoreWalls = !isGuestRoomPost && Boolean(requestAccountForRoomPost);
     const result = attemptMoveRoomToken({
       roomCode: body.roomCode,
       tokenId: body.tokenId,
@@ -1020,7 +1201,7 @@ const server = http.createServer(async (req, res) => {
       deltaY: body.deltaY,
       targetX: body.targetX,
       targetY: body.targetY,
-      ignoreWalls: Boolean(body.ignoreWalls),
+      ignoreWalls: canIgnoreWalls ? Boolean(body.ignoreWalls) : false,
       path: Array.isArray(body.path) ? body.path : undefined,
     });
     if (result.moved) {
@@ -1423,6 +1604,10 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ ok: false, error: "Route not found" }));
 });
+
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
 
 if (process.env.NODE_ENV !== "test") {
   server.listen(PORT, "0.0.0.0", () => {

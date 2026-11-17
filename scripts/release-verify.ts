@@ -64,7 +64,7 @@ function syncSkillsBuildStamp(manifest: VersionManifest): number {
   const skillPaths = collectHearthQuestSkillPaths();
   for (const skillPath of skillPaths) {
     let text = fs.readFileSync(skillPath, "utf8");
-    const regex = /<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->[\s\S]*?<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->/;
+    const regex = /<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->[\s\S]*?<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->/g;
     if (regex.test(text)) {
       text = text.replace(regex, stampBlock);
     } else {

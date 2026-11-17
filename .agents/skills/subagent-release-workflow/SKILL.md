@@ -7,10 +7,7 @@ description: Mandatory Subagent Orchestration, Model Selection Strategy, Semanti
 
 ## 1. Automated Skill Updates on Every New Build (Mandatory)
 - Every new build **MUST** keep all 9 HearthQuest skills (`.agents/skills/*/SKILL.md` and `.gemini/skills/*/SKILL.md`) accurate and current with newly learned patterns, endpoints, schemas, and architectural decisions.
-- Running `npm.cmd run bump:patch` / `npm.cmd run bump:minor` executes `scripts/release-verify.ts`, which **automatically stamps** every skill's `<!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.30` (Build `#31`)
-- **Updated At**: `2026-11-16T02:26:30.401Z`
-<!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->` block with the new version & build number, AND **Gate 1/3 enforces** that zero skill files lag behind the release manifest before any push succeeds.
+- Running `npm.cmd run bump:patch` / `npm.cmd run bump:minor` executes `scripts/release-verify.ts`, which **automatically stamps** every skill's `HEARTHQUEST_SKILL_BUILD_STAMP` block with the new version & build number, AND **Gate 1/3 enforces** that zero skill files lag behind the release manifest before any push succeeds.
 
 ## 2. Mandatory Versioning & Pre-Push Gate
 1. Update any skill bodies that gained new architecture, endpoints, or bug-fix lessons during the milestone.
@@ -22,6 +19,6 @@ description: Mandatory Subagent Orchestration, Model Selection Strategy, Semanti
 
 ## 3. Build Currency Stamp
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:START -->
-- **Last Verified Build**: `v0.1.14` (Build `#15`)
-- **Updated At**: `2026-11-15T03:15:00Z`
+- **Last Verified Build**: `v0.1.31` (Build `#32`)
+- **Updated At**: `2026-11-17T20:36:56.177Z`
 <!-- HEARTHQUEST_SKILL_BUILD_STAMP:END -->

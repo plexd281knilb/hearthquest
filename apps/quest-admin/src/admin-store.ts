@@ -18,6 +18,11 @@ import {
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
+  canonicalizeIdentifier,
+  constantTimeEquals,
+  getOrCreateRuntimeSecret,
+  secureRandomId,
+  validateDisplayName,
 } from "@hearthquest/shared-types";
 import {
   buildCoreCampaignLoreSeeds,
@@ -122,11 +127,10 @@ let cachedDb: DatabaseSync | null = null;
 let cachedDbPath = "";
 
 function getLicenseSigningSecret(): string {
-  return (
-    process.env.HEARTHQUEST_LICENSE_SECRET ||
-    process.env.STRIPE_WEBHOOK_SECRET ||
-    "hearthquest-default-unraid-signing-secret-2026"
-  );
+  return getOrCreateRuntimeSecret("signing", [
+    "HEARTHQUEST_LICENSE_SECRET",
+    "STRIPE_WEBHOOK_SECRET",
+  ]);
 }
 
 export function getAdminDatabasePath(): string {
@@ -388,7 +392,7 @@ export function registerLoreEntry(params: {
     "-" +
     Date.now().toString(36);
   const entry: LoreRegistryEntry = {
-    id: `lore_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 5)}`,
+    id: secureRandomId("lore"),
     entryType: params.entryType,
     title: params.title.trim(),
     slug,
@@ -494,11 +498,12 @@ export function verifyLicenseKey(licenseKey: string): {
 }
 
 export function verifyOperatorPin(pin: string): boolean {
-  const expected = process.env.HEARTHQUEST_ADMIN_PIN || "1234";
-  const a = Buffer.from(String(pin || ""), "utf-8");
-  const b = Buffer.from(expected, "utf-8");
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  const expected =
+    process.env.HEARTHQUEST_ADMIN_PIN ||
+    (process.env.NODE_ENV === "production"
+      ? getOrCreateRuntimeSecret("admin_pin", ["HEARTHQUEST_ADMIN_PIN"])
+      : "1234");
+  return constantTimeEquals(String(pin || ""), expected);
 }
 
 export function verifyStripeWebhookSignature(
@@ -513,6 +518,11 @@ export function verifyStripeWebhookSignature(
   if (!tPart || !v1Part) return false;
 
   const timestamp = tPart.slice(2);
+  const tsSeconds = Number(timestamp);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(tsSeconds) || Math.abs(nowSeconds - tsSeconds) > 300) {
+    return false;
+  }
   const providedSig = v1Part.slice(3);
   const signedPayload = `${timestamp}.${rawPayload}`;
   const expectedSig = crypto
@@ -520,10 +530,7 @@ export function verifyStripeWebhookSignature(
     .update(signedPayload)
     .digest("hex");
 
-  const a = Buffer.from(providedSig, "utf-8");
-  const b = Buffer.from(expectedSig, "utf-8");
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  return constantTimeEquals(providedSig, expectedSig);
 }
 
 export function signStripeWebhookPayloadForTest(
@@ -621,160 +628,172 @@ export function processPaymentWebhookEvent(event: StripeLikeWebhookEvent): {
     throw new Error("Webhook event missing id");
   }
 
-  const dup = db
-    .prepare("SELECT event_id FROM processed_webhooks WHERE event_id = ?")
-    .get(event.id);
-  if (dup) {
-    return { processed: false, duplicate: true };
-  }
+  db.exec("BEGIN IMMEDIATE;");
+  try {
+    const dup = db
+      .prepare("SELECT event_id FROM processed_webhooks WHERE event_id = ?")
+      .get(event.id);
+    if (dup) {
+      db.exec("COMMIT;");
+      return { processed: false, duplicate: true };
+    }
 
-  const now = new Date().toISOString();
-  const obj = event.data?.object || {};
-  const meta = obj.metadata || {};
-  const email = (meta.email || obj.customer_email || "family@hearthquest.local")
-    .trim()
-    .toLowerCase();
-  const familyName = (meta.familyName || "Adventuring Family").trim();
+    const now = new Date().toISOString();
+    const obj = event.data?.object || {};
+    const meta = obj.metadata || {};
+    const email = canonicalizeIdentifier(
+      meta.email || obj.customer_email || "family@hearthquest.local"
+    ) || "family@hearthquest.local";
+    const familyName = validateDisplayName(meta.familyName, "Adventuring Family", 64);
 
-  let householdRow = db
-    .prepare("SELECT * FROM households WHERE LOWER(email) = ?")
-    .get(email) as Record<string, any> | undefined;
+    let householdRow = db
+      .prepare("SELECT * FROM households WHERE LOWER(email) = ?")
+      .get(email) as Record<string, any> | undefined;
 
-  let household: HouseholdAccount;
-  if (!householdRow) {
-    const newId = `hh_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-    const initialTier: SubscriptionTier = meta.subscriptionTier || "TRIAL_PREVIEW";
-    const status: SubscriptionStatus =
-      meta.paymentMode === "STRIPE_LIVE" ? "ACTIVE" : "SANDBOX";
-    const licenseKey = generateLicenseKey(newId, initialTier);
-    db.prepare(
-      `INSERT INTO households (
-        id, family_name, email, subscription_tier, subscription_status,
-        stripe_customer_id, stripe_subscription_id, license_key,
-        ai_monthly_quota_used, default_rules_tier, default_content_rating,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      newId,
-      familyName,
-      email,
-      initialTier,
-      status,
-      obj.customer || null,
-      obj.subscription || null,
-      licenseKey,
-      0,
-      "STORYBOOK_D6",
-      "COZY_G",
-      now,
-      now
-    );
-    householdRow = db
-      .prepare("SELECT * FROM households WHERE id = ?")
-      .get(newId) as Record<string, any>;
-  }
-  household = mapHouseholdRow(householdRow);
-
-  let createdOrder: PrintFulfillmentOrder | undefined;
-
-  if (event.type === "checkout.session.completed") {
-    if (meta.subscriptionTier) {
-      household.subscriptionTier = meta.subscriptionTier;
-      household.subscriptionStatus =
+    let household: HouseholdAccount;
+    if (!householdRow) {
+      const newId = secureRandomId("hh");
+      const initialTier: SubscriptionTier = meta.subscriptionTier || "TRIAL_PREVIEW";
+      const status: SubscriptionStatus =
         meta.paymentMode === "STRIPE_LIVE" ? "ACTIVE" : "SANDBOX";
-      household.licenseKey = generateLicenseKey(household.id, meta.subscriptionTier);
+      const licenseKey = generateLicenseKey(newId, initialTier);
+      db.prepare(
+        `INSERT INTO households (
+          id, family_name, email, subscription_tier, subscription_status,
+          stripe_customer_id, stripe_subscription_id, license_key,
+          ai_monthly_quota_used, default_rules_tier, default_content_rating,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        newId,
+        familyName,
+        email,
+        initialTier,
+        status,
+        obj.customer || null,
+        obj.subscription || null,
+        licenseKey,
+        0,
+        "STORYBOOK_D6",
+        "COZY_G",
+        now,
+        now
+      );
+      householdRow = db
+        .prepare("SELECT * FROM households WHERE id = ?")
+        .get(newId) as Record<string, any>;
+    }
+    household = mapHouseholdRow(householdRow);
+
+    let createdOrder: PrintFulfillmentOrder | undefined;
+
+    if (event.type === "checkout.session.completed") {
+      if (meta.subscriptionTier) {
+        household.subscriptionTier = meta.subscriptionTier;
+        household.subscriptionStatus =
+          meta.paymentMode === "STRIPE_LIVE" ? "ACTIVE" : "SANDBOX";
+        household.licenseKey = generateLicenseKey(household.id, meta.subscriptionTier);
+        household.updatedAt = now;
+        db.prepare(
+          `UPDATE households SET subscription_tier = ?, subscription_status = ?, license_key = ?, updated_at = ? WHERE id = ?`
+        ).run(
+          household.subscriptionTier,
+          household.subscriptionStatus,
+          household.licenseKey,
+          now,
+          household.id
+        );
+      }
+
+      if (meta.checkoutKind === "PHYSICAL_KIT" || meta.packageId) {
+        const pkg =
+          PHYSICAL_PACKAGES.find((p) => p.id === meta.packageId) ?? PHYSICAL_PACKAGES[0];
+        const orderId = secureRandomId("ord");
+        createdOrder = {
+          id: orderId,
+          householdId: household.id,
+          familyName: household.familyName,
+          email: household.email,
+          packageId: pkg.id,
+          packageTitle: pkg.title,
+          campaignId: meta.campaignId || pkg.campaignId,
+          amountCents: pkg.priceUsd * 100,
+          paymentMode: meta.paymentMode || "SANDBOX_SIMULATED",
+          status: "PAID_QUEUED",
+          shippingName: validateDisplayName(meta.shippingName || household.familyName, household.familyName, 64),
+          shippingAddress: validateDisplayName(meta.shippingAddress, "123 Hearthstone Lane, Tabletop City", 180),
+          printableBundleUrl: `/printable-kit?orderId=${encodeURIComponent(orderId)}`,
+          createdAt: now,
+          updatedAt: now,
+        };
+        db.prepare(
+          `INSERT INTO orders (
+            id, household_id, family_name, email, package_id, package_title,
+            campaign_id, amount_cents, payment_mode, status, shipping_name,
+            shipping_address, tracking_number, printable_bundle_url, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          createdOrder.id,
+          createdOrder.householdId,
+          createdOrder.familyName,
+          createdOrder.email,
+          createdOrder.packageId,
+          createdOrder.packageTitle,
+          createdOrder.campaignId,
+          createdOrder.amountCents,
+          createdOrder.paymentMode,
+          createdOrder.status,
+          createdOrder.shippingName,
+          createdOrder.shippingAddress,
+          null,
+          createdOrder.printableBundleUrl,
+          createdOrder.createdAt,
+          createdOrder.updatedAt
+        );
+
+        if (
+          (pkg.includesHardcoverKeepsake || pkg.id === "pkg-starter-diy" || pkg.id === "pkg-starter-box") &&
+          household.subscriptionTier === "TRIAL_PREVIEW"
+        ) {
+          const upgradeTier: SubscriptionTier = pkg.includesHardcoverKeepsake
+            ? "DIGITAL_PLUS"
+            : "DIGITAL_UPDATES";
+          household.subscriptionTier = upgradeTier;
+          household.licenseKey = generateLicenseKey(household.id, upgradeTier);
+          db.prepare(
+            `UPDATE households SET subscription_tier = ?, license_key = ?, updated_at = ? WHERE id = ?`
+          ).run(upgradeTier, household.licenseKey, now, household.id);
+        }
+      }
+    } else if (event.type === "customer.subscription.deleted") {
+      household.subscriptionTier = "TRIAL_PREVIEW";
+      household.subscriptionStatus = "CANCELED";
+      household.licenseKey = generateLicenseKey(household.id, "TRIAL_PREVIEW");
       household.updatedAt = now;
       db.prepare(
         `UPDATE households SET subscription_tier = ?, subscription_status = ?, license_key = ?, updated_at = ? WHERE id = ?`
-      ).run(
-        household.subscriptionTier,
-        household.subscriptionStatus,
-        household.licenseKey,
-        now,
-        household.id
-      );
+      ).run("TRIAL_PREVIEW", "CANCELED", household.licenseKey, now, household.id);
     }
 
-    if (meta.checkoutKind === "PHYSICAL_KIT" || meta.packageId) {
-      const pkg =
-        PHYSICAL_PACKAGES.find((p) => p.id === meta.packageId) ?? PHYSICAL_PACKAGES[0];
-      const orderId = `ord_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
-      createdOrder = {
-        id: orderId,
-        householdId: household.id,
-        familyName: household.familyName,
-        email: household.email,
-        packageId: pkg.id,
-        packageTitle: pkg.title,
-        campaignId: meta.campaignId || pkg.campaignId,
-        amountCents: pkg.priceUsd * 100,
-        paymentMode: meta.paymentMode || "SANDBOX_SIMULATED",
-        status: "PAID_QUEUED",
-        shippingName: meta.shippingName || household.familyName,
-        shippingAddress: meta.shippingAddress || "123 Hearthstone Lane, Tabletop City",
-        printableBundleUrl: `/printable-kit?orderId=${encodeURIComponent(orderId)}`,
-        createdAt: now,
-        updatedAt: now,
-      };
-      db.prepare(
-        `INSERT INTO orders (
-          id, household_id, family_name, email, package_id, package_title,
-          campaign_id, amount_cents, payment_mode, status, shipping_name,
-          shipping_address, tracking_number, printable_bundle_url, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(
-        createdOrder.id,
-        createdOrder.householdId,
-        createdOrder.familyName,
-        createdOrder.email,
-        createdOrder.packageId,
-        createdOrder.packageTitle,
-        createdOrder.campaignId,
-        createdOrder.amountCents,
-        createdOrder.paymentMode,
-        createdOrder.status,
-        createdOrder.shippingName,
-        createdOrder.shippingAddress,
-        null,
-        createdOrder.printableBundleUrl,
-        createdOrder.createdAt,
-        createdOrder.updatedAt
-      );
-
-      if (
-        (pkg.includesHardcoverKeepsake || pkg.id === "pkg-starter-diy" || pkg.id === "pkg-starter-box") &&
-        household.subscriptionTier === "TRIAL_PREVIEW"
-      ) {
-        const upgradeTier: SubscriptionTier = pkg.includesHardcoverKeepsake
-          ? "DIGITAL_PLUS"
-          : "DIGITAL_UPDATES";
-        household.subscriptionTier = upgradeTier;
-        household.licenseKey = generateLicenseKey(household.id, upgradeTier);
-        db.prepare(
-          `UPDATE households SET subscription_tier = ?, license_key = ?, updated_at = ? WHERE id = ?`
-        ).run(upgradeTier, household.licenseKey, now, household.id);
-      }
-    }
-  } else if (event.type === "customer.subscription.deleted") {
-    household.subscriptionTier = "TRIAL_PREVIEW";
-    household.subscriptionStatus = "CANCELED";
-    household.licenseKey = generateLicenseKey(household.id, "TRIAL_PREVIEW");
-    household.updatedAt = now;
     db.prepare(
-      `UPDATE households SET subscription_tier = ?, subscription_status = ?, license_key = ?, updated_at = ? WHERE id = ?`
-    ).run("TRIAL_PREVIEW", "CANCELED", household.licenseKey, now, household.id);
+      `INSERT INTO processed_webhooks (event_id, event_type, processed_at) VALUES (?, ?, ?)`
+    ).run(event.id, event.type, now);
+
+    db.exec("COMMIT;");
+    return {
+      processed: true,
+      duplicate: false,
+      household,
+      order: createdOrder,
+    };
+  } catch (err) {
+    try {
+      db.exec("ROLLBACK;");
+    } catch {
+      // Ignore rollback error
+    }
+    throw err;
   }
-
-  db.prepare(
-    `INSERT INTO processed_webhooks (event_id, event_type, processed_at) VALUES (?, ?, ?)`
-  ).run(event.id, event.type, now);
-
-  return {
-    processed: true,
-    duplicate: false,
-    household,
-    order: createdOrder,
-  };
 }
 
 export async function createCheckoutSession(params: {
@@ -858,12 +877,16 @@ export async function createCheckoutSession(params: {
     };
   }
 
+  if (process.env.NODE_ENV === "production" && process.env.HEARTHQUEST_ALLOW_SANDBOX_CHECKOUT !== "true") {
+    throw new Error("Stripe live checkout is not configured on this production server.");
+  }
+
   const sandboxEvent: StripeLikeWebhookEvent = {
-    id: `evt_sandbox_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: secureRandomId("evt_sandbox"),
     type: "checkout.session.completed",
     data: {
       object: {
-        id: `cs_sandbox_${Date.now()}`,
+        id: secureRandomId("cs_sandbox"),
         customer_email: params.email,
         metadata: {
           checkoutKind: params.checkoutKind,

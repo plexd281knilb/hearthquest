@@ -26,13 +26,13 @@ export function renderCombatInitiativeBarHtml(): string {
       <button onclick="combatAction('ROLL_INITIATIVE')" class="text-xs px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-sm transition">
         🎲 Roll Initiative
       </button>
-      <button id="btn-prev-turn" onclick="combatAction('PREV_TURN')" class="hidden text-xs px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold transition" title="Previous Turn">
+      <button id="btn-prev-turn" onclick="combatAction('PREV_TURN')" class="hidden text-xs px-2.5 py-2 min-h-[36px] rounded-lg theme-inner-box border hover:opacity-90 font-bold transition" title="Previous Turn">
         ⏮️
       </button>
-      <button id="btn-next-turn" onclick="combatAction('NEXT_TURN')" class="hidden text-xs px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-sm transition">
+      <button id="btn-next-turn" onclick="combatAction('NEXT_TURN')" class="hidden text-xs px-3 py-2 min-h-[36px] rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-sm transition">
         ⏭️ Next Turn
       </button>
-      <button id="btn-end-combat" onclick="combatAction('END_COMBAT')" class="hidden text-xs px-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold transition">
+      <button id="btn-end-combat" onclick="combatAction('END_COMBAT')" class="hidden text-xs px-2.5 py-2 min-h-[36px] rounded-lg theme-inner-box border hover:opacity-90 font-bold transition">
         🏁 End
       </button>
     </div>
@@ -101,8 +101,8 @@ export function renderCombatAndAmbientAudioScript(): string {
     "    if (btn) {",
     "      btn.innerText = this.musicEnabled ? '🎵 Music: ON' : '🔇 Music: OFF';",
     "      btn.className = this.musicEnabled",
-    "        ? 'px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400 transition'",
-    "        : 'px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 transition';",
+    "        ? 'px-2.5 py-2 min-h-[36px] rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white border border-amber-400 transition'",
+    "        : 'px-2.5 py-2 min-h-[36px] rounded-lg text-xs font-bold theme-inner-box border hover:opacity-90 transition';",
     "    }",
     "  },",
     "  stop() {",
@@ -221,20 +221,22 @@ export function renderCombatAndAmbientAudioScript(): string {
     "  if (prevBtn) prevBtn.classList.remove('hidden');",
     "  if (nextBtn) nextBtn.classList.remove('hidden');",
     "  if (endBtn) endBtn.classList.remove('hidden');",
+    "  var esc = function(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'); };",
+    "  var safeSrc = function(u) { var s = String(u || '').trim(); var l = s.toLowerCase(); return ((s.startsWith('/') && !s.startsWith('//')) || l.startsWith('https://') || l.startsWith('http://') || /^data:image\\/(png|jpeg|webp);base64,/i.test(s)) ? s : ''; };",
     "  var html = '';",
     "  for (var i = 0; i < combat.entries.length; i++) {",
     "    var e = combat.entries[i];",
     "    var isActive = i === combat.activeTurnIndex;",
     "    var activeCls = isActive ? 'ring-2 ring-amber-400 bg-amber-500/20 border-amber-400 scale-105' : 'theme-inner-box opacity-85';",
-    "    var portrait = e.assetPath ? '<img src=\"' + e.assetPath + '\" class=\"w-5 h-5 rounded-full object-cover\" />' : '<span>' + e.avatarEmoji + '</span>';",
+    "    var assetUrl = safeSrc(e.assetPath);",
+    "    var portrait = assetUrl ? '<img src=\"' + esc(assetUrl) + '\" class=\"w-5 h-5 rounded-full object-cover\" alt=\"\" />' : '<span>' + esc(e.avatarEmoji) + '</span>';",
     "    var remFt = typeof e.movementRemainingFt === 'number' ? e.movementRemainingFt : (e.speedFt || 30);",
-    "    var moveTag = isActive ? '<span class=\"px-1 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-mono text-[9px]\">' + remFt + 'ft</span>' : '';",
-    "    var safeName = (e.name || '').replace(/['\"]/g, '');",
-    "    html += '<button type=\"button\" onclick=\"promptCombatEntryInitiative(\\'' + e.id + '\\', ' + e.initiative + ', \\'' + safeName + '\\')\" title=\"DM: Click to adjust table Initiative roll (Speed ' + (e.speedFt || 30) + 'ft)\" class=\"px-2.5 py-1 rounded-xl border text-xs flex items-center gap-1.5 shrink-0 transition cursor-pointer ' + activeCls + '\">' +",
+    "    var moveTag = isActive ? '<span class=\"px-1 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-mono text-[10px] tabular-nums\">' + Number(remFt) + 'ft</span>' : '';",
+    "    html += '<button type=\"button\" data-entry-id=\"' + esc(e.id) + '\" data-init=\"' + Number(e.initiative || 0) + '\" data-entry-name=\"' + esc(e.name || '') + '\" onclick=\"promptCombatEntryInitiative(this.dataset.entryId, Number(this.dataset.init), this.dataset.entryName)\" title=\"DM: Click to adjust table Initiative roll (Speed ' + Number(e.speedFt || 30) + 'ft)\" class=\"px-2.5 py-1.5 min-h-[36px] rounded-xl border text-xs flex items-center gap-1.5 shrink-0 transition cursor-pointer ' + activeCls + '\">' +",
     "      portrait +",
-    "      '<span class=\"font-bold\">' + e.name + '</span>' +",
+    "      '<span class=\"font-bold\">' + esc(e.name) + '</span>' +",
     "      moveTag +",
-    "      '<span class=\"px-1.5 py-0.5 rounded bg-black/25 font-mono text-[10px]\">' + e.initiative + '</span>' +",
+    "      '<span class=\"px-1.5 py-0.5 rounded theme-inner-box border font-mono text-[10px] tabular-nums\">' + Number(e.initiative || 0) + '</span>' +",
     "      '</button>';",
     "  }",
     "  listEl.innerHTML = html;",

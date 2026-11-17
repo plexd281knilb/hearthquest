@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -24,9 +25,13 @@ import {
   SpellTemplate,
   WallSegment,
   HEARTHQUEST_ASSETS,
+  canonicalizeIdentifier,
   resolveArchetypeAsset,
   resolveAreaMapAsset,
   resolveSceneBackdropAsset,
+  sanitizeSvgContent,
+  secureRandomId,
+  validateDisplayName,
 } from "@hearthquest/shared-types";
 import {
   applyRoomDifficulty,
@@ -843,16 +848,21 @@ export function addCustomHeroToRoom(params: {
   avatarEmoji: string;
 }): RoomSessionState {
   const room = getOrCreateRoom(params.roomCode);
-  const id = `hero_${Date.now()}`;
-  const archetypeAsset = resolveArchetypeAsset(params.archetype || "Forest Ranger");
+  const id = secureRandomId("hero");
+  const cleanName = validateDisplayName(params.name, "Captain Sparkle", 64);
+  const cleanPlayer = validateDisplayName(params.playerName, "Adventurer", 52);
+  const cleanArchetype = validateDisplayName(params.archetype, "Forest Ranger", 64);
+  const cleanPet = validateDisplayName(params.companionPet, "Bramble the Hedgehog", 64);
+  const cleanEmoji = validateDisplayName(params.avatarEmoji, "🏹", 8);
+  const archetypeAsset = resolveArchetypeAsset(cleanArchetype);
   const newHero: CharacterSheet = {
     id,
-    name: params.name || "Captain Sparkle",
-    playerName: `${params.playerName || "Adventurer"} (Age ${params.playerAge || 8})`,
-    playerAge: params.playerAge || 8,
-    archetype: params.archetype || "Forest Ranger",
-    companionPet: params.companionPet || "Bramble the Hedgehog",
-    avatarEmoji: params.avatarEmoji || "🏹",
+    name: cleanName,
+    playerName: `${cleanPlayer} (Age ${Number(params.playerAge) || 8})`,
+    playerAge: Number(params.playerAge) || 8,
+    archetype: cleanArchetype,
+    companionPet: cleanPet,
+    avatarEmoji: cleanEmoji,
     assetPath: archetypeAsset,
     tokenColor: "#14b8a6",
     rulesTier: room.rulesTier,
@@ -982,6 +992,7 @@ export function switchRoomCampaign(params: {
   const existing = rooms.get(code);
   const nextSession = createCampaignSession(code, params.campaignId);
   if (existing) {
+    nextSession.householdId = existing.householdId;
     nextSession.rulesTier = existing.rulesTier;
     nextSession.contentRating = existing.contentRating;
     nextSession.diceInputMode = existing.diceInputMode;
@@ -1188,13 +1199,13 @@ export function submitQuickPolyhedralRoll(params: {
     d12: 12,
     d20: 20,
   };
-  const dieType: DieType = DIE_MAX[params.dieType] ? params.dieType : "d20";
+  const dieType: DieType = Object.hasOwn(DIE_MAX, params.dieType) ? params.dieType : "d20";
   const maxFace = DIE_MAX[dieType];
-  const rawRoll = Math.floor(Math.random() * maxFace) + 1;
+  const rawRoll = crypto.randomInt(1, maxFace + 1);
   const isCrit = rawRoll === maxFace;
 
   const roll: DiceRollResult = {
-    id: `qroll_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: secureRandomId("qroll"),
     characterId: hero?.id || "gm",
     playerName: hero?.playerName || "Game Master",
     characterName: hero?.name || "Tabletop Dice",
@@ -1236,9 +1247,14 @@ export function updateRoomToolsAndWeather(params: {
   }
   if (params.addTemplate) {
     const existing = room.spellTemplates || [];
+    const safeAdd = Object.fromEntries(
+      Object.entries(params.addTemplate as Record<string, unknown>).filter(
+        ([k]) => k !== "__proto__" && k !== "constructor" && k !== "prototype" && k !== "id"
+      )
+    ) as unknown as Omit<SpellTemplate, "id">;
     const template: SpellTemplate = {
-      id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      ...params.addTemplate,
+      id: secureRandomId("tpl"),
+      ...safeAdd,
     };
     room.spellTemplates = [...existing.slice(-7), template];
   }
@@ -1292,9 +1308,14 @@ export function spawnCustomTokenInRoom(params: {
   gridY?: number;
 }): RoomSessionState {
   const room = getOrCreateRoom(params.roomCode);
+  const rawAsset = String(params.assetUrl || "").trim();
+  const safeAssetUrl =
+    rawAsset.startsWith("/assets/") || rawAsset.startsWith("/custom-tokens/")
+      ? rawAsset
+      : "";
   room.tokens.push({
-    id: `tok_custom_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
-    name: params.name || "Custom Companion",
+    id: secureRandomId("tok_custom"),
+    name: validateDisplayName(params.name, "Custom Companion", 64),
     type: params.type || "NPC",
     avatarEmoji: "🖼️",
     assetPath: params.assetUrl,
@@ -1534,14 +1555,17 @@ export function forgeActorAndTokenInRoom(params: {
   });
   fs.writeFileSync(tokenFilePath, svgContent, "utf-8");
 
-  const validDataImg =
-    typeof params.customImageDataUrl === "string" &&
-    /^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/i.test(
-      params.customImageDataUrl.trim()
-    ) &&
-    params.customImageDataUrl.length <= 750_000
-      ? params.customImageDataUrl.trim()
-      : "";
+  const rawImg = typeof params.customImageDataUrl === "string" ? params.customImageDataUrl.trim() : "";
+  let validDataImg = "";
+  if (rawImg && rawImg.length <= 750_000) {
+    if (/^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/i.test(rawImg)) {
+      validDataImg = rawImg;
+    } else if (/^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/i.test(rawImg)) {
+      const b64 = rawImg.slice(rawImg.indexOf(",") + 1);
+      const cleanSvg = sanitizeSvgContent(Buffer.from(b64, "base64").toString("utf8"));
+      validDataImg = `data:image/svg+xml;base64,${Buffer.from(cleanSvg, "utf8").toString("base64")}`;
+    }
+  }
 
   const tokenAssetUrl = validDataImg || `/custom-tokens/${encodeURIComponent(filename)}`;
 
@@ -1578,7 +1602,7 @@ export function forgeActorAndTokenInRoom(params: {
 
   let characterId: string | undefined;
   if (params.actorType === "HERO") {
-    characterId = `hero_forged_${Date.now()}`;
+    characterId = secureRandomId("hero_forged");
     const str = Number(params.str || 14);
     const dex = Number(params.dex || 12);
     const con = Number(params.con || 14);
@@ -1633,7 +1657,7 @@ export function forgeActorAndTokenInRoom(params: {
   }
 
   room.tokens.push({
-    id: `tok_forge_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+    id: secureRandomId("tok_forge"),
     characterId,
     name: safeName,
     type: params.actorType === "MONSTER" ? "MONSTER" : "HERO",
@@ -1763,12 +1787,14 @@ export function updateRoomMapProps(params: {
   let addedProp: MapPropPlacement | undefined;
 
   if (params.action === "STAMP" && params.propKey) {
-    const catalogEntry = (HEARTHQUEST_ASSETS.mapProps as Record<string, any>)[params.propKey];
+    const catalogEntry = Object.hasOwn(HEARTHQUEST_ASSETS.mapProps, params.propKey)
+      ? (HEARTHQUEST_ASSETS.mapProps as Record<string, any>)[params.propKey]
+      : undefined;
     if (catalogEntry) {
       const gx = Math.max(0, Math.min((room.gridCols || 10) - 0.5, Number(params.gridX ?? 1)));
       const gy = Math.max(0, Math.min((room.gridRows || 6) - 0.5, Number(params.gridY ?? 1)));
       addedProp = {
-        id: `mprop-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        id: secureRandomId("mprop"),
         propKey: params.propKey,
         label: catalogEntry.name,
         category: catalogEntry.category,

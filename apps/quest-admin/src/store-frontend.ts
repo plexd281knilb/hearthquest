@@ -19,18 +19,29 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#f59e0b" />
   <title>HearthQuest Store — Starter Boxes, Monthly Chapter Envelopes & Level-Scaled One-Shots</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="alternate icon" type="image/png" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    :root { color-scheme: light; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; min-height: 100vh; min-height: 100dvh; }
+    .min-h-screen, .min-h-dvh { min-height: 100vh; min-height: 100dvh; }
+    .hidden { display: none !important; }
+    .backdrop-blur, .backdrop-blur-sm { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    @media (max-width: 640px) {
+      input, select { font-size: 16px !important; }
+    }
     body[data-theme="light"] {
+      color-scheme: light;
       background: radial-gradient(circle at top, #fffdf9 0%, #f5efe6 100%);
       color: #1c1917;
     }
     body[data-theme="dark"] {
+      color-scheme: dark;
       background: radial-gradient(circle at top, #0f172a 0%, #020617 100%);
       color: #f8fafc;
     }
@@ -60,7 +71,8 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
     body[data-theme="dark"] .store-card .text-stone-900,
     body[data-theme="dark"] .store-card .text-stone-800,
     body[data-theme="dark"] .store-drawer .text-stone-900,
-    body[data-theme="dark"] .store-drawer .text-stone-800 {
+    body[data-theme="dark"] .store-drawer .text-stone-800,
+    body[data-theme="dark"] .store-drawer .text-stone-700 {
       color: #f8fafc !important;
     }
     body[data-theme="dark"] .store-card .text-stone-700,
@@ -69,32 +81,43 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
       color: #cbd5e1 !important;
     }
     body[data-theme="dark"] .store-card .text-stone-500,
-    body[data-theme="dark"] .store-header .text-stone-500 {
+    body[data-theme="dark"] .store-header .text-stone-500,
+    body[data-theme="dark"] .store-drawer .text-stone-500 {
       color: #94a3b8 !important;
     }
     body[data-theme="dark"] .store-header .text-amber-800,
     body[data-theme="dark"] .store-card .text-amber-900,
     body[data-theme="dark"] .store-card .text-amber-800,
-    body[data-theme="dark"] .store-card .text-amber-700 {
+    body[data-theme="dark"] .store-card .text-amber-700,
+    body[data-theme="dark"] .store-drawer .text-amber-800 {
       color: #fcd34d !important;
     }
     body[data-theme="dark"] .store-card .text-emerald-900,
-    body[data-theme="dark"] .store-card .text-emerald-800 {
-      color: #6ee7b7 !important;
+    body[data-theme="dark"] .store-card .text-emerald-950,
+    body[data-theme="dark"] .store-card .text-emerald-800,
+    body[data-theme="dark"] .store-drawer .text-emerald-950,
+    body[data-theme="dark"] .store-drawer .text-emerald-700 {
+      color: #a7f3d0 !important;
     }
     body[data-theme="dark"] .store-card .bg-stone-50,
     body[data-theme="dark"] .store-card .bg-stone-100,
-    body[data-theme="dark"] .store-drawer .bg-stone-50 {
+    body[data-theme="dark"] .store-card .bg-stone-200,
+    body[data-theme="dark"] .store-drawer .bg-stone-50,
+    body[data-theme="dark"] .store-drawer .bg-stone-100,
+    body[data-theme="dark"] .store-drawer .bg-stone-200 {
       background-color: #1e293b !important;
       border-color: #334155 !important;
+      color: #f8fafc !important;
     }
     body[data-theme="dark"] .store-card .bg-amber-50,
     body[data-theme="dark"] .store-card .bg-amber-100 {
       background-color: rgba(180, 83, 9, 0.25) !important;
     }
     body[data-theme="dark"] .store-card .bg-emerald-50,
-    body[data-theme="dark"] .store-card .bg-emerald-100 {
+    body[data-theme="dark"] .store-card .bg-emerald-100,
+    body[data-theme="dark"] .store-drawer .bg-emerald-50 {
       background-color: rgba(6, 95, 70, 0.35) !important;
+      color: #ecfdf5 !important;
     }
   </style>
 </head>
@@ -112,7 +135,7 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
             </span>
             <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full ${
               isLiveStripe
-                ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                ? "bg-sky-100 text-sky-900 border border-sky-300"
                 : "bg-emerald-100 text-emerald-800 border border-emerald-300"
             }">
               ${isLiveStripe ? "STRIPE SECURE" : "SANDBOX STORE"}
@@ -142,7 +165,7 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
 
   <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-8 space-y-12">
     <!-- Hero Showcase -->
-    <section class="rounded-3xl bg-gradient-to-br from-amber-900 via-stone-900 to-indigo-950 text-white p-8 md:p-10 shadow-xl border border-amber-500/30 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+    <section class="rounded-3xl bg-gradient-to-br from-amber-900 via-stone-900 to-stone-950 text-white p-8 md:p-10 shadow-xl border border-amber-500/30 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
       <div class="lg:col-span-8 space-y-4">
         <span class="inline-block px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-extrabold uppercase tracking-wider border border-amber-400/30">
           Hybrid Physical + Digital Tabletop
@@ -232,7 +255,7 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
       </div>
 
       <!-- Paywall Gate Panel shown when user clicks Continue without paid license -->
-      <div id="trial-paywall-panel" class="hidden p-5 rounded-2xl bg-gradient-to-br from-indigo-950 to-slate-900 text-white border border-amber-400/50 space-y-4">
+      <div id="trial-paywall-panel" class="hidden p-5 rounded-2xl bg-gradient-to-br from-amber-950 to-slate-900 text-white border border-amber-400/50 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div class="text-xs font-extrabold uppercase tracking-wider text-amber-300">🔒 Paywall Checkpoint — Encounter 2 &amp; Full Campaign</div>
@@ -262,10 +285,10 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
       </div>
 
       <!-- Unlocked Encounter 2 Preview -->
-      <div id="trial-encounter2-unlocked" class="hidden p-5 rounded-2xl bg-indigo-50 border border-indigo-300 text-indigo-950 space-y-2 text-xs">
-        <div class="font-black text-sm text-indigo-800" id="trial-enc2-title"></div>
+      <div id="trial-encounter2-unlocked" class="hidden p-5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 space-y-2 text-xs store-card">
+        <div class="font-black text-sm text-amber-800" id="trial-enc2-title"></div>
         <p id="trial-enc2-readaloud" class="text-sm"></p>
-        <div id="trial-enc2-boss" class="font-bold text-purple-800"></div>
+        <div id="trial-enc2-boss" class="font-bold text-emerald-700"></div>
       </div>
     </section>
 
@@ -276,7 +299,7 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
           <h2 class="text-2xl font-black text-amber-900">1. Print-at-Home DIY ($15) &amp; Shipped Starter Boxes ($49–$69)</h2>
           <p class="text-sm text-stone-600 store-muted">Print your own maps &amp; paper minis for $15 ($0 shipping!), or let us print &amp; mail engraved dice, plastic bases &amp; laminated dry-erase maps starting at $49.</p>
         </div>
-        <a href="/printable-kit" target="_blank" class="text-xs font-bold text-indigo-600 hover:underline">
+        <a href="/printable-kit" target="_blank" class="text-xs font-bold text-amber-700 hover:underline">
           🖨️ Preview Sample Print-at-Home Layout →
         </a>
       </div>
@@ -296,11 +319,10 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
     <!-- 3. Dynamic Party-Level-Scaled One-Shot Store Shelf -->
     <section id="one-shots" class="store-card rounded-3xl bg-white border border-amber-200 p-6 md:p-8 shadow-sm space-y-5">
       <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <span class="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider">Lore Continuity Verified</span>
-          <h2 class="text-2xl font-black text-amber-900 mt-1">3. Print-at-Home Party-Level-Scaled One-Shots ($4 — Zero Shipping)</h2>
-          <p class="text-xs text-stone-600 store-muted">Slide your family party's level below to preview boss HP/DC scaling. Digital + Print-at-Home packs cost just $4 since nothing needs to be shipped.</p>
-        </div>
+      <div>
+        <h2 class="text-2xl font-black text-amber-900 mt-1">3. Print-at-Home Party-Level-Scaled One-Shots ($4 — Zero Shipping)</h2>
+        <p class="text-xs text-stone-600 store-muted">Slide your family party's level below to preview boss HP/DC scaling. Digital + Print-at-Home packs cost just $4 since nothing needs to be shipped.</p>
+      </div>
         <div class="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-amber-50 border border-amber-200 store-card">
           <label for="store-party-level" class="text-xs font-extrabold">Party Level:</label>
           <input id="store-party-level" type="range" min="1" max="5" value="${initialPartyLevel}" oninput="onPartyLevelSlider(this.value)" class="accent-amber-600" />
@@ -422,10 +444,26 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
       await attemptContinueEncounter2(key);
     }
 
+    function escStoreHtml(val) {
+      return String(val == null ? "" : val)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function getCartSessionId() {
       let sid = localStorage.getItem("hq_store_session_id");
       if (!sid) {
-        sid = "sess_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+        const bytes = new Uint8Array(12);
+        if (window.crypto && window.crypto.getRandomValues) {
+          window.crypto.getRandomValues(bytes);
+        } else {
+          for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+        }
+        const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+        sid = "sess_" + Date.now().toString(36) + "_" + hex;
         localStorage.setItem("hq_store_session_id", sid);
       }
       return sid;
@@ -450,7 +488,7 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
       starterGrid.innerHTML = catalog.packages.map((pkg) => {
         const defaultCamp = selectedStarterCampaigns[pkg.id] || pkg.campaignId;
         const campOptions = catalog.campaigns.map((c) =>
-          "<option value='" + c.id + "' " + (c.id === defaultCamp ? "selected" : "") + ">" + c.title + "</option>"
+          "<option value='" + escStoreHtml(c.id) + "' " + (c.id === defaultCamp ? "selected" : "") + ">" + escStoreHtml(c.title) + "</option>"
         ).join("");
         const isDiy = !pkg.includesPhysicalDiceSet && !pkg.includesDryEraseGrid;
         return \`
@@ -458,25 +496,25 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
             <div class="space-y-3">
               <div class="flex items-center justify-between gap-2">
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase \${isDiy ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'}">\${isDiy ? '🖨️ Print-at-Home ($0 Shipping)' : '📦 Shipped Box'}</span>
-                <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-sm shrink-0">$\${pkg.priceUsd}</span>
+                <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-sm shrink-0 tabular-nums">$\${Number(pkg.priceUsd)}</span>
               </div>
-              <h3 class="font-black text-base leading-snug">\${pkg.title}</h3>
+              <h3 class="font-black text-base leading-snug">\${escStoreHtml(pkg.title)}</h3>
               <ul class="space-y-1.5 text-xs text-stone-600 store-muted">
-                <li>🗺️ <strong>\${pkg.includedMapsCount} \${isDiy ? 'Printable DIY Battle Maps' : 'Laminated Dry-Erase Maps'}</strong></li>
-                <li>🧝 <strong>\${pkg.includedStandeesCount} \${isDiy ? 'Paper Fold-Out Standees (PDF)' : 'Punch-Out Standees'}</strong> \${pkg.includesPhysicalDiceSet ? '+ Engraved Polyhedral Dice' : ''}</li>
-                <li>🃏 <strong>\${pkg.includedActionCardsCount} Action Cards</strong></li>
+                <li>🗺️ <strong>\${Number(pkg.includedMapsCount)} \${isDiy ? 'Printable DIY Battle Maps' : 'Laminated Dry-Erase Maps'}</strong></li>
+                <li>🧝 <strong>\${Number(pkg.includedStandeesCount)} \${isDiy ? 'Paper Fold-Out Standees (PDF)' : 'Punch-Out Standees'}</strong> \${pkg.includesPhysicalDiceSet ? '+ Engraved Polyhedral Dice' : ''}</li>
+                <li>🃏 <strong>\${Number(pkg.includedActionCardsCount)} Action Cards</strong></li>
                 <li>🏕️ Unplugged Camping Flowchart Included</li>
                 \${pkg.includesHardcoverKeepsake ? '<li class="text-amber-700 font-bold">📖 Custom Printed Hardcover Family Storybook!</li>' : ''}
               </ul>
               <div class="pt-1">
                 <label class="text-[11px] font-bold text-stone-500 block mb-1">Included Story Arc:</label>
-                <select onchange="selectedStarterCampaigns['\${pkg.id}'] = this.value" class="w-full store-input border border-stone-300 rounded-xl px-2.5 py-1.5 text-xs">
+                <select data-pkg-id="\${escStoreHtml(pkg.id)}" onchange="selectedStarterCampaigns[this.dataset.pkgId] = this.value" class="w-full store-input border border-stone-300 rounded-xl px-2.5 py-2 text-xs">
                   \${campOptions}
                 </select>
               </div>
             </div>
-            <button onclick="addPhysicalToCart('\${pkg.id}')" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition shadow-sm">
-              + Add to Cart ($\${pkg.priceUsd})
+            <button data-pkg-id="\${escStoreHtml(pkg.id)}" onclick="addPhysicalToCart(this.dataset.pkgId)" class="w-full py-2.5 min-h-[40px] rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition shadow-sm">
+              + Add to Cart ($\${Number(pkg.priceUsd)})
             </button>
           </div>
         \`;
@@ -484,19 +522,19 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
 
       const subGrid = document.getElementById("subscriptions-grid");
       subGrid.innerHTML = catalog.subscriptions.map((plan) => \`
-        <div class="store-card rounded-3xl bg-white border \${plan.tier === 'GAME_IN_A_BOX_PRO' ? 'border-indigo-400 shadow-md' : 'border-stone-200 shadow-sm'} p-6 flex flex-col justify-between gap-4">
+        <div class="store-card rounded-3xl bg-white border \${plan.tier === 'GAME_IN_A_BOX_PRO' ? 'border-amber-400 shadow-md' : 'border-stone-200 shadow-sm'} p-6 flex flex-col justify-between gap-4">
           <div class="space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase">\${plan.badge}</span>
-              <span class="text-xl font-black text-emerald-600">$\${plan.priceMonthlyUsd}<span class="text-xs font-normal text-stone-500">/mo</span></span>
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase">\${escStoreHtml(plan.badge)}</span>
+              <span class="text-xl font-black text-emerald-600 tabular-nums">$\${Number(plan.priceMonthlyUsd)}<span class="text-xs font-normal text-stone-500">/mo</span></span>
             </div>
-            <h3 class="font-black text-base">\${plan.name}</h3>
+            <h3 class="font-black text-base">\${escStoreHtml(plan.name)}</h3>
             <ul class="space-y-1.5 text-xs text-stone-600 store-muted">
-              \${plan.features.map((f) => '<li>✅ ' + f + '</li>').join('')}
+              \${plan.features.map((f) => '<li>✅ ' + escStoreHtml(f) + '</li>').join('')}
             </ul>
           </div>
-          <button onclick="addSubscriptionToCart('\${plan.tier}')" class="w-full py-2.5 rounded-xl \${plan.priceMonthlyUsd > 0 ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-stone-800 hover:bg-stone-700 text-white'} font-extrabold text-xs transition">
-            + Select Plan ($\${plan.priceMonthlyUsd}/mo)
+          <button data-tier="\${escStoreHtml(plan.tier)}" onclick="addSubscriptionToCart(this.dataset.tier)" class="w-full py-2.5 min-h-[40px] rounded-xl \${plan.priceMonthlyUsd > 0 ? 'bg-amber-500 hover:bg-amber-400 text-stone-950' : 'bg-stone-800 hover:bg-stone-700 text-white'} font-extrabold text-xs transition">
+            + Select Plan ($\${Number(plan.priceMonthlyUsd)}/mo)
           </button>
         </div>
       \`).join("");
@@ -511,17 +549,17 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
         <div class="store-card rounded-2xl bg-amber-50/40 border border-amber-200 p-4 flex flex-col justify-between gap-3">
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
-              <span class="text-2xl">\${os.antagonistEmoji}</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">Lvl \${level} • HP \${os.scaledBossHp}</span>
+              <span class="text-2xl">\${escStoreHtml(os.antagonistEmoji)}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 tabular-nums">Lvl \${level} • HP \${Number(os.scaledBossHp)}</span>
             </div>
-            <h3 class="font-black text-sm leading-snug">\${os.title}</h3>
-            <p class="text-[11px] text-stone-600 store-muted">\${os.premise}</p>
+            <h3 class="font-black text-sm leading-snug">\${escStoreHtml(os.title)}</h3>
+            <p class="text-[11px] text-stone-600 store-muted">\${escStoreHtml(os.premise)}</p>
             <div class="text-[10px] text-stone-500 pt-1">
-              <strong>Boss:</strong> \${os.antagonist} • <strong>DC \${os.scaledDc5e}</strong>
+              <strong>Boss:</strong> \${escStoreHtml(os.antagonist)} • <strong>DC \${Number(os.scaledDc5e)}</strong>
             </div>
           </div>
-          <button onclick="addOneShotToCart('\${os.slug}', \${level})" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs">
-            ⚡ Add One-Shot ($\${os.priceUsd})
+          <button data-slug="\${escStoreHtml(os.slug)}" data-level="\${level}" onclick="addOneShotToCart(this.dataset.slug, Number(this.dataset.level))" class="w-full py-2 min-h-[38px] rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs">
+            ⚡ Add One-Shot ($\${Number(os.priceUsd)})
           </button>
         </div>
       \`).join("");
@@ -554,16 +592,16 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
         container.innerHTML = lines.map((line) => \`
           <div class="p-3 rounded-xl border border-stone-200 flex items-center justify-between gap-2">
             <div class="flex-1 min-w-0">
-              <div class="font-bold truncate">\${line.title}</div>
+              <div class="font-bold truncate">\${escStoreHtml(line.title)}</div>
               <div class="text-[11px] text-stone-500">\${fmtUsd(line.unitPriceCents)} each</div>
             </div>
             <div class="flex items-center gap-1.5">
               \${line.itemType !== 'SUBSCRIPTION' ? \`
-                <button onclick="setCartItemQty('\${line.productId}', '\${line.oneShotSlug || ''}', \${line.quantity - 1})" class="w-6 h-6 rounded-md bg-stone-200 text-stone-800 font-bold">-</button>
-                <span class="w-5 text-center font-mono font-bold">\${line.quantity}</span>
-                <button onclick="setCartItemQty('\${line.productId}', '\${line.oneShotSlug || ''}', \${line.quantity + 1})" class="w-6 h-6 rounded-md bg-stone-200 text-stone-800 font-bold">+</button>
-              \` : '<span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[10px] font-bold">MONTHLY</span>'}
-              <button onclick="removeCartItem('\${line.productId}', '\${line.oneShotSlug || ''}')" class="ml-1 text-rose-600 font-bold text-xs">✕</button>
+                <button data-pid="\${escStoreHtml(line.productId)}" data-slug="\${escStoreHtml(line.oneShotSlug || '')}" data-qty="\${Number(line.quantity) - 1}" onclick="setCartItemQty(this.dataset.pid, this.dataset.slug, Number(this.dataset.qty))" class="w-9 h-9 rounded-lg bg-stone-200 text-stone-800 font-bold">-</button>
+                <span class="w-6 text-center font-mono font-bold tabular-nums">\${Number(line.quantity)}</span>
+                <button data-pid="\${escStoreHtml(line.productId)}" data-slug="\${escStoreHtml(line.oneShotSlug || '')}" data-qty="\${Number(line.quantity) + 1}" onclick="setCartItemQty(this.dataset.pid, this.dataset.slug, Number(this.dataset.qty))" class="w-9 h-9 rounded-lg bg-stone-200 text-stone-800 font-bold">+</button>
+              \` : '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">MONTHLY</span>'}
+              <button data-pid="\${escStoreHtml(line.productId)}" data-slug="\${escStoreHtml(line.oneShotSlug || '')}" onclick="removeCartItem(this.dataset.pid, this.dataset.slug)" aria-label="Remove item" class="ml-1 w-9 h-9 rounded-lg text-rose-600 font-bold text-xs">✕</button>
             </div>
           </div>
         \`).join("");
@@ -667,14 +705,15 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
           receiptBox.className = "p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs";
           receiptBox.innerText = data.error || "Checkout failed";
         } else {
+          const safeKitUrl = (u) => (typeof u === "string" && u.startsWith("/printable-kit")) ? escStoreHtml(u + (u.includes("?") ? "&" : "?") + "email=" + encodeURIComponent(email)) : "#";
           const orderLinks = (data.orders || []).map((o) =>
-            "<div class='font-mono text-[11px]'>Order: <strong>" + o.id + "</strong> (<a class='underline font-bold' target='_blank' href='" + o.printableBundleUrl + "'>Printable Kit</a>)</div>"
+            "<div class='font-mono text-[11px]'>Order: <strong>" + escStoreHtml(o.id) + "</strong> (<a class='underline font-bold' target='_blank' rel='noopener noreferrer' href='" + safeKitUrl(o.printableBundleUrl) + "'>Printable Kit</a>)</div>"
           ).join("");
           receiptBox.className = "p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-1.5 text-xs";
           receiptBox.innerHTML =
-            "<div class='font-black'>🎉 Order Confirmed! Receipt " + data.receiptNumber + " (" + fmtUsd(data.quote.totalCents) + ")</div>" +
+            "<div class='font-black'>🎉 Order Confirmed! Receipt " + escStoreHtml(data.receiptNumber) + " (" + fmtUsd(data.quote.totalCents) + ")</div>" +
             orderLinks +
-            (data.licenseKey ? "<div class='font-mono text-[11px]'>License Key: <strong>" + data.licenseKey + "</strong></div>" : "");
+            (data.licenseKey ? "<div class='font-mono text-[11px]'>License Key: <strong>" + escStoreHtml(data.licenseKey) + "</strong></div>" : "");
           if (data.licenseKey) {
             localStorage.setItem("hq_store_license_key", data.licenseKey);
             const inp = document.getElementById("trial-license-input");
@@ -705,12 +744,13 @@ export function renderStorefrontHtml(initialPartyLevel = 2): string {
         return;
       }
       const o = data.order;
+      const safeKitUrl = (typeof o.printableBundleUrl === "string" && o.printableBundleUrl.startsWith("/printable-kit")) ? escStoreHtml(o.printableBundleUrl + (o.printableBundleUrl.includes("?") ? "&" : "?") + "email=" + encodeURIComponent(email)) : "#";
       box.innerHTML =
-        "<div class='flex flex-wrap justify-between gap-2'><strong>" + o.packageTitle + "</strong><span class='px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-bold'>" + o.status + "</span></div>" +
-        "<div>Shipping To: " + o.shippingName + " — " + o.shippingAddress + "</div>" +
-        (o.trackingNumber ? "<div>Tracking Number: <span class='font-mono font-bold'>" + o.trackingNumber + "</span></div>" : "<div class='text-stone-500'>Tracking number will appear once status moves to SHIPPED.</div>") +
-        (data.householdLicenseKey ? "<div>License Key: <span class='font-mono font-bold'>" + data.householdLicenseKey + "</span></div>" : "") +
-        "<div><a href='" + o.printableBundleUrl + "' target='_blank' class='inline-block mt-1 px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 font-bold'>🖨️ Open Printable Home Kit & Packing Slip</a></div>";
+        "<div class='flex flex-wrap justify-between gap-2'><strong>" + escStoreHtml(o.packageTitle) + "</strong><span class='px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold'>" + escStoreHtml(o.status) + "</span></div>" +
+        "<div>Shipping To: " + escStoreHtml(o.shippingName) + " — " + escStoreHtml(o.shippingAddress) + "</div>" +
+        (o.trackingNumber ? "<div>Tracking Number: <span class='font-mono font-bold'>" + escStoreHtml(o.trackingNumber) + "</span></div>" : "<div class='text-stone-500'>Tracking number will appear once status moves to SHIPPED.</div>") +
+        (data.householdLicenseKey ? "<div>License Key: <span class='font-mono font-bold'>" + escStoreHtml(data.householdLicenseKey) + "</span></div>" : "") +
+        "<div><a href='" + safeKitUrl + "' target='_blank' rel='noopener noreferrer' class='inline-block mt-1 px-3 py-2 rounded-lg bg-amber-500 text-stone-950 font-bold'>🖨️ Open Printable Home Kit & Packing Slip</a></div>";
     }
 
     async function loadInitialCart() {

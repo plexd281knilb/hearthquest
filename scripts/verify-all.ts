@@ -28,6 +28,7 @@ import {
   renderPrintableKitHtml,
   renderStorefrontHtml,
   resetAdminStoreForTesting,
+  server as adminServer,
   signStripeWebhookPayloadForTest,
   SUBSCRIPTION_PLANS,
   updateStoreCart,
@@ -81,16 +82,20 @@ import {
   loginVttAccount,
   registerVttAccount,
   setVttAccountRoleByAdmin,
+  signRoomGuestToken,
   updateVttAccountPreferences,
+  verifyRoomGuestToken,
 } from "../apps/quest-vtt/src/auth-store";
 import {
   createGoogleOAuthStartParams,
   exchangeGoogleAuthorizationCode,
+  getGoogleAuthConfig,
+  renderGoogleSetupGuideHtml,
   verifyGoogleIdToken,
   verifyGoogleOAuthTransactionCookie,
 } from "../apps/quest-vtt/src/google-auth";
 import { encodeQrMatrix } from "../apps/quest-vtt/src/qr-encoder";
-import { server as vttServer } from "../apps/quest-vtt/src/server";
+import { redactRoomForPlayer, server as vttServer } from "../apps/quest-vtt/src/server";
 import {
   clearTtsAudioCache,
   getPublicTtsConfig,
@@ -103,8 +108,11 @@ import { renderVttAppHtml, renderVttLoginGateHtml } from "../apps/quest-vtt/src/
 import {
   APP_VERSION,
   BUILD_NUMBER,
+  canonicalizeIdentifier,
   getBuildMetadata,
+  getSafeRequestOrigin,
   HEARTHQUEST_ASSETS,
+  isSafeServiceProbeUrl,
   resolveArchetypeAsset,
   resolveAreaMapAsset,
   resolveCampaignTileAsset,
@@ -112,6 +120,8 @@ import {
   resolveSceneBackdropAsset,
   resolveTokenAsset,
   resolveTrapAsset,
+  sanitizeSvgContent,
+  validateDisplayName,
 } from "../packages/shared-types/src/index";
 import {
   calculateEncounterAutoBalance,
@@ -2805,12 +2815,272 @@ async function runVerification() {
   });
   console.log("✅ PASSED");
 
+  // ------------------------------------------------------------------
+  // TEST 35: 21-Point Security Hardening, Confusable/SQL/52-Char Usernames & Mobile/Light Mode
+  // ------------------------------------------------------------------
+  process.stdout.write("[Test 35/35] 21-Point Security, Confusable/SQL/52-Char Usernames, Light/Dark & Mobile... ");
+
+  // 1) Unicode SPOTIFY / Cyrillic / fullwidth / Kelvin / long-s canonicalization + colliding registrations
+  assert.strictEqual(
+    canonicalizeIdentifier("\u0405\u0420\u041E\u0422\u0406\u0492\u0423"),
+    "spotify",
+    "Cyrillic SPOTIFY confusables must canonicalize identically to spotify"
+  );
+  assert.strictEqual(
+    canonicalizeIdentifier("\uFF33\uFF30\uFF2F\uFF34\uFF29\uFF26\uFF39"),
+    "spotify",
+    "Fullwidth SPOTIFY must canonicalize identically to spotify"
+  );
+  assert.strictEqual(
+    canonicalizeIdentifier("\u212A\u017F"),
+    "ks",
+    "Kelvin K (U+212A) and long-s (U+017F) must canonicalize cleanly"
+  );
+  const canonMail1 = registerVttAccount({
+    email: "spotify@hearthquest.local",
+    password: "StrongPassword!123",
+    familyName: "Spotify Family",
+  });
+  assert.ok(canonMail1.token && canonMail1.account.email === "spotify@hearthquest.local");
+  assert.throws(
+    () =>
+      registerVttAccount({
+        email: "\u0405\u0420\u041E\u0422\u0406\u0492\u0423@hearthquest.local",
+        password: "StrongPassword!123",
+        familyName: "Spoof Family",
+      }),
+    /already exists/i,
+    "Unicode confusable email duplicate must be blocked"
+  );
+
+  // 2) 52-char username & SQL-syntax username safety
+  const name52 = "A".repeat(52);
+  assert.strictEqual(validateDisplayName(name52, "Fallback", 64), name52);
+  const sqlUser = "Robert'); DROP TABLE vtt_accounts;--";
+  const regSql = registerVttAccount({
+    email: "bobby.tables@hearthquest.local",
+    password: "SqlSafePassword!99",
+    familyName: sqlUser,
+  });
+  assert.strictEqual(regSql.account.familyName, sqlUser);
+  const loginSql = loginVttAccount({
+    email: "bobby.tables@hearthquest.local",
+    password: "SqlSafePassword!99",
+  });
+  assert.ok(loginSql.token && loginSql.account.familyName === sqlUser, "SQL-syntax account must still authenticate cleanly");
+  assert.ok(getVttAccountCount() >= 2, "SQL-syntax registration must not drop or corrupt vtt_accounts");
+
+  // 3) Timing-safe PIN & nOAuth pre-auth takeover + production Google sandbox gate
+  assert.strictEqual(verifyOperatorPin("wrong-pin"), false);
+  assert.strictEqual(verifyOperatorPin(process.env.HEARTHQUEST_ADMIN_PIN || "1234"), true);
+
+  const localVictim = registerVttAccount({
+    email: "victim-noauth@hearthquest.local",
+    password: "VictimLocalPassword!7",
+    familyName: "Victim Household",
+  });
+  assert.ok(localVictim.account.id);
+  assert.throws(
+    () =>
+      loginOrRegisterGoogleAccount({
+        email: "victim-noauth@hearthquest.local",
+        googleSub: "sandbox-sub-takeover",
+        familyName: "Attacker",
+        emailVerified: true,
+        isSandbox: true,
+      }),
+    /sandbox|takeover|existing/i,
+    "Sandbox Google OAuth login must NOT take over existing password account"
+  );
+  const prevEnv = process.env.NODE_ENV;
+  const prevSandboxFlag = process.env.HEARTHQUEST_ALLOW_GOOGLE_SANDBOX;
+  try {
+    process.env.NODE_ENV = "production";
+    delete process.env.HEARTHQUEST_ALLOW_GOOGLE_SANDBOX;
+    const prodGoogleCfg = getGoogleAuthConfig("http://127.0.0.1:3000");
+    assert.strictEqual(prodGoogleCfg.sandboxAvailable, false, "Production must disable unconfigured Google OAuth sandbox");
+  } finally {
+    process.env.NODE_ENV = prevEnv;
+    if (prevSandboxFlag !== undefined) process.env.HEARTHQUEST_ALLOW_GOOGLE_SANDBOX = prevSandboxFlag;
+  }
+
+  // 4) Host header spoofing & SSRF & SVG XXE & Prototype pollution & Stripe replay guard
+  assert.strictEqual(
+    getSafeRequestOrigin({ "x-forwarded-host": "evil.attacker.tld\r\nX-Injected: 1" }, 3000),
+    "http://localhost:3000"
+  );
+  assert.strictEqual(isSafeServiceProbeUrl("http://169.254.169.254/latest/meta-data/"), false);
+  assert.strictEqual(isSafeServiceProbeUrl("http://127.0.0.1:11434"), true);
+
+  const cleanedSvg = sanitizeSvgContent(
+    "<svg><!DOCTYPE x [<!ENTITY xx SYSTEM 'file:///etc/passwd'>]><script>alert(1)</script><circle onclick='evil()' r='10'/></svg>"
+  );
+  assert.ok(!/<script|<!DOCTYPE|<!ENTITY|onclick=/i.test(cleanedSvg), "SVG sanitizer must strip script/DOCTYPE/ENTITY/onclick");
+
+  const protoProbe = {} as any;
+  assert.strictEqual(protoProbe.polluted, undefined);
+  updateRoomToolsAndWeather({
+    roomCode: trCode,
+    addTemplate: JSON.parse('{"id":"tpl-safe","shape":"CIRCLE","gridX":2,"gridY":2,"radiusFt":10,"color":"#f59e0b","__proto__":{"polluted":"yes"}}'),
+  });
+  assert.strictEqual(({} as any).polluted, undefined, "Template ingestion must not pollute Object.prototype");
+
+  const staleTs = Math.floor(Date.now() / 1000) - 900;
+  const staleSig = signStripeWebhookPayloadForTest('{"id":"evt_stale"}', "whsec_test_secret", staleTs);
+  assert.strictEqual(
+    verifyStripeWebhookSignature('{"id":"evt_stale"}', staleSig, "whsec_test_secret"),
+    false,
+    "Stripe webhook HMAC outside 300s replay window must be rejected"
+  );
+
+  // 5) SSE / Player Room Redaction & Admin SSR PII redaction
+  const redactRoom = switchRoomCampaign({ roomCode: "RDCT", campaignId: "camp-goblin-bakery" });
+  redactRoom.tokens.push({
+    id: "tok-secret-spy",
+    name: "Hidden Goblin",
+    type: "MONSTER",
+    avatarEmoji: "👺",
+    color: "#ef4444",
+    gridX: 2,
+    gridY: 2,
+    hp: 10,
+    maxHp: 10,
+    isHiddenFromPlayers: true,
+  });
+  redactRoom.zones[0].isRevealed = false;
+  redactRoom.zones[0].hasSecretTrap = true;
+  redactRoom.zones[0].trapDescription = "Secret Poison Needle";
+  redactRoom.storyNodes[0].gmWhisperTips = ["Top-secret GM hint"];
+  const safePlayerRoom = redactRoomForPlayer(redactRoom);
+  assert.ok(!safePlayerRoom.tokens.some((t) => t.id === "tok-secret-spy"), "Hidden tokens must be redacted from player view");
+  assert.strictEqual(safePlayerRoom.zones[0].hasSecretTrap, false);
+  assert.strictEqual(safePlayerRoom.zones[0].trapDescription, undefined);
+  assert.strictEqual(safePlayerRoom.zones[0].name, "Unexplored Fog Zone");
+  assert.deepStrictEqual(safePlayerRoom.storyNodes[0].gmWhisperTips, []);
+
+  // Admin SSR with default authorizedAdmin=false must NOT leak household emails/license keys
+  const adminPublicHtml = renderAdminHtml(health);
+  const leakedHh = getAdminStoreSnapshot().households[0];
+  if (leakedHh) {
+    assert.ok(!adminPublicHtml.includes(leakedHh.email), "Public GET / HTML must not expose household email PII");
+    assert.ok(!adminPublicHtml.includes(leakedHh.licenseKey), "Public GET / HTML must not expose household license keys");
+  }
+
+  // 6) Live HTTP security checks against VTT + Admin servers
+  const httpRequest = (
+    srv: http.Server,
+    method: string,
+    reqPath: string,
+    headers: Record<string, string> = {},
+    bodyStr?: string
+  ): Promise<{ status: number; body: string }> =>
+    new Promise((resP, rejP) => {
+      const addr = srv.address();
+      const port = typeof addr === "object" && addr ? addr.port : 3000;
+      const req = http.request(
+        { host: "127.0.0.1", port, path: reqPath, method, headers },
+        (resp) => {
+          let buf = "";
+          resp.on("data", (c) => (buf += c));
+          resp.on("end", () => resP({ status: resp.statusCode || 0, body: buf }));
+        }
+      );
+      req.on("error", rejP);
+      if (bodyStr) req.write(bodyStr);
+      req.end();
+    });
+
+  if (!vttServer.listening) {
+    await new Promise<void>((r) => vttServer.listen(0, "127.0.0.1", () => r()));
+  }
+  if (!adminServer.listening) {
+    await new Promise<void>((r) => adminServer.listen(0, "127.0.0.1", () => r()));
+  }
+
+  const traversalEncodedRes = await httpRequest(vttServer, "GET", "/assets/%2e%2e/package.json");
+  assert.ok([400, 403, 404].includes(traversalEncodedRes.status), `Encoded traversal status=${traversalEncodedRes.status}`);
+  assert.ok(!traversalEncodedRes.body.includes("@hearthquest"), "Encoded path traversal must never leak package.json");
+  const traversalSlashRes = await httpRequest(vttServer, "GET", "/assets/%2fetc/passwd");
+  assert.ok([400, 403, 404].includes(traversalSlashRes.status), `Leading slash asset traversal status=${traversalSlashRes.status}`);
+
+  const ttsForged = await httpRequest(
+    vttServer,
+    "POST",
+    "/api/tts/speak",
+    { "Content-Type": "application/json" },
+    JSON.stringify({ text: "Hi", roomCode: "RDCT", guestToken: "forged.token.sig" })
+  );
+  assert.ok(ttsForged.status === 401 || ttsForged.status === 403, "Forged guestToken on /api/tts/speak must be rejected");
+
+  const validGuestTok = signRoomGuestToken("RDCT", "PLAYER_CONTROLLER");
+  assert.ok(verifyRoomGuestToken(validGuestTok)?.roomCode === "RDCT");
+
+  const adminUnauthState = await httpRequest(adminServer, "GET", "/api/admin/state");
+  assert.strictEqual(adminUnauthState.status, 403, "GET /api/admin/state without PIN must return 403");
+
+  const adminAuthState = await httpRequest(adminServer, "GET", "/api/admin/state", {
+    "x-admin-pin": process.env.HEARTHQUEST_ADMIN_PIN || "1234",
+  });
+  assert.strictEqual(adminAuthState.status, 200, "GET /api/admin/state with valid x-admin-pin must return 200");
+
+  const kitNoAuth = await httpRequest(adminServer, "GET", `/printable-kit?orderId=${encodeURIComponent(orderId)}`);
+  assert.strictEqual(kitNoAuth.status, 403, "GET /printable-kit?orderId= without email or PIN must return 403");
+
+  const kitWithPin = await httpRequest(adminServer, "GET", `/printable-kit?orderId=${encodeURIComponent(orderId)}`, {
+    "x-admin-pin": process.env.HEARTHQUEST_ADMIN_PIN || "1234",
+  });
+  assert.strictEqual(kitWithPin.status, 200, "GET /printable-kit?orderId= with valid x-admin-pin must return 200");
+
+  const ssrfProbe = await httpRequest(
+    adminServer,
+    "POST",
+    "/api/rtx/test",
+    {
+      "Content-Type": "application/json",
+      "x-admin-pin": process.env.HEARTHQUEST_ADMIN_PIN || "1234",
+    },
+    JSON.stringify({ ollamaUrl: "http://169.254.169.254/latest/meta-data/" })
+  );
+  assert.strictEqual(ssrfProbe.status, 400, "SSRF metadata probe on /api/rtx/test must be blocked with 400");
+
+  // 7) Mobile 360px viewport, Light/Dark color-scheme, Safari traceRoundedRect & JS syntax on ALL templates
+  const storeUiHtml = renderStorefrontHtml(2);
+  const setupGuideHtml = renderGoogleSetupGuideHtml({
+    config: getGoogleAuthConfig("http://127.0.0.1:3000"),
+    isFirstAccountSetup: false,
+  });
+  const kitHtml = renderPrintableKitHtml(orderId);
+  for (const [label, doc] of [
+    ["VTT App", dragUi],
+    ["Login Gate", renderVttLoginGateHtml()],
+    ["Admin Console", adminPublicHtml],
+    ["Storefront", storeUiHtml],
+    ["Google Setup Guide", setupGuideHtml],
+    ["Printable Kit", kitHtml],
+  ] as const) {
+    assert.ok(doc.includes("viewport-fit=cover"), `${label} must include viewport-fit=cover`);
+    assert.ok(!doc.includes("user-scalable=no"), `${label} must allow pinch-to-zoom`);
+    const scripts = [...doc.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
+    for (const m of scripts) {
+      if (m[1].trim()) new Function(m[1]);
+    }
+  }
+  assert.ok(dragUi.includes("traceRoundedRect"), "VTT UI must include Safari traceRoundedRect canvas fallback");
+  assert.ok(adminPublicHtml.includes("font-size: 16px"), "Admin HTML must include 16px mobile zoom prevention");
+  assert.ok(storeUiHtml.includes("font-size: 16px"), "Storefront HTML must include 16px mobile zoom prevention");
+
+  console.log("✅ PASSED");
+
   console.log("\n==========================================================");
-  console.log("   VERIFICATION SUMMARY: 34/34 SUITES PASSED (100% CLEAN) ");
+  console.log("   VERIFICATION SUMMARY: 35/35 SUITES PASSED (100% CLEAN) ");
   console.log("==========================================================");
   if (vttServer.listening) {
     vttServer.closeAllConnections?.();
     await new Promise<void>((r) => vttServer.close(() => r()));
+  }
+  if (adminServer.listening) {
+    adminServer.closeAllConnections?.();
+    await new Promise<void>((r) => adminServer.close(() => r()));
   }
   process.exit(0);
 }

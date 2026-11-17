@@ -1,9 +1,18 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { URL } from "node:url";
 import { probeRtx3080Health } from "@hearthquest/quest-ai-bridge";
-import { getBuildMetadata } from "@hearthquest/shared-types";
+import {
+  checkHearthQuestRateLimit,
+  constantTimeEquals,
+  escapeHtml,
+  getBuildMetadata,
+  getOrCreateRuntimeSecret,
+  isSafeServiceProbeUrl,
+  safeParseRequestUrl,
+} from "@hearthquest/shared-types";
 import { SRD_51_CC_BY_40_ATTRIBUTION } from "@hearthquest/srd-rules";
 import {
   advanceFulfillmentOrder,
@@ -65,11 +74,82 @@ export {
 
 const PORT = Number(process.env.PORT_ADMIN || process.env.PORT || 3001);
 
+const ADMIN_SESSION_COOKIE = "hq_admin_session";
+const ADMIN_SESSION_SECRET = getOrCreateRuntimeSecret("signing", [
+  "HEARTHQUEST_ADMIN_SESSION_SECRET",
+  "HEARTHQUEST_SESSION_SECRET",
+]);
+
+function extractCookieValue(req: http.IncomingMessage, name: string): string {
+  const header = String(req.headers.cookie || "");
+  for (const part of header.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) {
+      try {
+        return decodeURIComponent(rest.join("="));
+      } catch {
+        return "";
+      }
+    }
+  }
+  return "";
+}
+
+function createSignedAdminCookieValue(): string {
+  const exp = Date.now() + 8 * 60 * 60 * 1000;
+  const payload = String(exp);
+  const sig = crypto
+    .createHmac("sha256", ADMIN_SESSION_SECRET)
+    .update(payload)
+    .digest("hex");
+  return `${payload}.${sig}`;
+}
+
+function isValidAdminSessionCookie(req: http.IncomingMessage): boolean {
+  const raw = extractCookieValue(req, ADMIN_SESSION_COOKIE);
+  const [payload, sig] = raw.split(".");
+  if (!payload || !sig) return false;
+  const exp = Number(payload);
+  if (!Number.isFinite(exp) || exp < Date.now()) return false;
+  const expected = crypto
+    .createHmac("sha256", ADMIN_SESSION_SECRET)
+    .update(payload)
+    .digest("hex");
+  return constantTimeEquals(sig, expected);
+}
+
+function isOperatorAuthorized(req: http.IncomingMessage, bodyPin?: string): boolean {
+  const headerPin = String(req.headers["x-admin-pin"] || "");
+  const pin = headerPin || String(bodyPin || "");
+  if (pin && verifyOperatorPin(pin)) {
+    return true;
+  }
+  return isValidAdminSessionCookie(req);
+}
+
+function setAdminSessionCookieHeader(res: http.ServerResponse): void {
+  const val = encodeURIComponent(createSignedAdminCookieValue());
+  res.setHeader(
+    "Set-Cookie",
+    `${ADMIN_SESSION_COOKIE}=${val}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800`
+  );
+}
+
+function redactAdminStore(storeSnap: ReturnType<typeof getAdminStoreSnapshot>) {
+  return {
+    ...storeSnap,
+    orders: [],
+    households: [],
+  };
+}
+
 export function renderAdminHtml(
-  rtxStatus: Awaited<ReturnType<typeof probeRtx3080Health>>
+  rtxStatus: Awaited<ReturnType<typeof probeRtx3080Health>>,
+  authorizedAdmin = false
 ): string {
   const buildMeta = getBuildMetadata();
-  const storeSnap = getAdminStoreSnapshot();
+  const rawSnap = getAdminStoreSnapshot();
+  const storeSnap = authorizedAdmin ? rawSnap : redactAdminStore(rawSnap);
   const serializedStore = JSON.stringify(storeSnap).replace(/</g, "\\u003c");
   const isLiveStripe = storeSnap.paymentGatewayMode === "STRIPE_LIVE";
 
@@ -77,7 +157,7 @@ export function renderAdminHtml(
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#f59e0b" />
   <meta name="msapplication-TileColor" content="#f59e0b" />
   <title>HearthQuest Admin — Family Guides, Storefront, Payments & Print-on-Demand</title>
@@ -86,11 +166,15 @@ export function renderAdminHtml(
   <link rel="apple-touch-icon" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    :root { color-scheme: dark; }
+    .hidden { display: none !important; }
     body[data-theme="dark"] {
+      color-scheme: dark;
       background-color: #020617;
       color: #f8fafc;
     }
     body[data-theme="light"] {
+      color-scheme: light;
       background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%);
       color: #1c1917;
     }
@@ -111,7 +195,10 @@ export function renderAdminHtml(
       border-color: #e8e0d4 !important;
       color: #292524 !important;
     }
-    body[data-theme="light"] h1,
+    body[data-theme="light"] .admin-card .text-white,
+    body[data-theme="light"] .admin-inner .text-white {
+      color: #1c1917 !important;
+    }
     body[data-theme="light"] h1,
     body[data-theme="light"] h2,
     body[data-theme="light"] h3 {
@@ -121,8 +208,9 @@ export function renderAdminHtml(
     body[data-theme="light"] .text-slate-200 {
       color: #1c1917 !important;
     }
-    body[data-theme="light"] .text-slate-400 {
-      color: #6b635b !important;
+    body[data-theme="light"] .text-slate-400,
+    body[data-theme="light"] .text-slate-500 {
+      color: #57534e !important;
     }
     body[data-theme="light"] .text-slate-300 {
       color: #44403c !important;
@@ -137,18 +225,17 @@ export function renderAdminHtml(
     body[data-theme="light"] .text-emerald-400 {
       color: #065f46 !important;
     }
-    body[data-theme="light"] .text-indigo-200,
-    body[data-theme="light"] .text-indigo-300,
-    body[data-theme="light"] .text-sky-300,
-    body[data-theme="light"] .text-purple-300 {
-      color: #3730a3 !important;
+    body[data-theme="light"] .text-sky-300 {
+      color: #0369a1 !important;
     }
     body[data-theme="light"] .bg-emerald-950\/90,
-    body[data-theme="light"] .bg-emerald-950 { background-color: #d1fae5 !important; }
+    body[data-theme="light"] .bg-emerald-950\/80,
+    body[data-theme="light"] .bg-emerald-950 { background-color: #d1fae5 !important; color: #065f46 !important; }
     body[data-theme="light"] .bg-amber-950\/90,
-    body[data-theme="light"] .bg-amber-950 { background-color: #fef3c7 !important; }
-    body[data-theme="light"] .bg-indigo-950,
-    body[data-theme="light"] .bg-sky-950\/90 { background-color: #e0e7ff !important; }
+    body[data-theme="light"] .bg-amber-950 { background-color: #fef3c7 !important; color: #92400e !important; }
+    body[data-theme="light"] .bg-sky-950\/90,
+    body[data-theme="light"] .bg-sky-950 { background-color: #e0f2fe !important; color: #075985 !important; }
+    body[data-theme="light"] .bg-black\/30 { background-color: #f3ece1 !important; }
     body[data-theme="light"] .bg-slate-800,
     body[data-theme="light"] .bg-slate-950 { background-color: #f3ece1 !important; color: #1c1917 !important; }
     body[data-theme="light"] input,
@@ -157,10 +244,13 @@ export function renderAdminHtml(
       color: #1c1917 !important;
       border-color: #cbd5e1 !important;
     }
+    @media (max-width: 640px) {
+      input, select, textarea { font-size: 16px !important; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans" data-theme="dark">
-  <header class="border-b border-amber-500/30 bg-slate-900/90 px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur">
+  <header class="border-b border-amber-500/30 bg-slate-900/90 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur">
     <div class="flex items-center gap-3">
       <span class="text-3xl">📦</span>
       <div>
@@ -171,7 +261,7 @@ export function renderAdminHtml(
           </span>
           <span id="payment-gateway-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full ${
             isLiveStripe
-              ? "bg-indigo-950 text-indigo-300 border border-indigo-400/50"
+              ? "bg-sky-950 text-sky-300 border border-sky-400/50"
               : "bg-amber-950/90 text-amber-300 border border-amber-500/40"
           }">
             ${isLiveStripe ? "💳 STRIPE LIVE" : "🧪 SANDBOX PAYMENTS"}
@@ -184,14 +274,14 @@ export function renderAdminHtml(
       </div>
     </div>
     <div class="flex flex-wrap items-center gap-2.5">
-      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-950 border border-slate-700 text-xs">
+      <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs">
         <span>🔐 Operator PIN:</span>
-        <input id="admin-pin-input" type="password" value="1234" class="w-16 bg-transparent font-mono text-amber-300 outline-none text-center" title="Default Dev PIN: 1234 (or HEARTHQUEST_ADMIN_PIN)" />
+        <input id="admin-pin-input" type="password" value="" placeholder="PIN" autocomplete="off" class="w-20 bg-transparent font-mono text-amber-300 outline-none text-center" title="Enter Operator PIN (HEARTHQUEST_ADMIN_PIN)" />
       </div>
-      <button onclick="toggleTheme()" id="admin-theme-btn" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold transition">
+      <button onclick="toggleTheme()" id="admin-theme-btn" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold transition min-h-[38px]">
         🌙 Dark
       </button>
-      <a href="/store" target="_blank" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
+      <a href="/store" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs">
         🛍️ Public Storefront (/store)
       </a>
       <a href="http://localhost:3000" target="_blank" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs">
@@ -203,7 +293,7 @@ export function renderAdminHtml(
   <main class="flex-1 max-w-6xl w-full mx-auto p-6 space-y-8">
     <!-- 1. Unraid Fleet & RTX 3080 AI Bridge Telemetry -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-      <h2 class="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-3">
+      <h2 class="text-sm font-bold text-amber-300 uppercase tracking-wider mb-3">
         ⚡ Unraid Container Fleet & RTX 3080 AI Bridge Status
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
@@ -214,17 +304,17 @@ export function renderAdminHtml(
           }">
             ${
               rtxStatus.rtx3080Online
-                ? "🟢 ONLINE (" + rtxStatus.activeModel + ")"
+                ? "🟢 ONLINE (" + escapeHtml(rtxStatus.activeModel) + ")"
                 : "🟡 STANDBY — Auto-Failover Active"
             }
           </div>
-          <div id="rtx-host-label" class="text-[11px] text-slate-500 mt-1">Host: ${
+          <div id="rtx-host-label" class="text-[11px] text-slate-500 mt-1">Host: ${escapeHtml(
             rtxStatus.rtx3080ConfiguredHost
-          }</div>
+          )}</div>
         </div>
         <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 admin-inner">
           <div class="text-slate-400">Fail-Safe Game Night Engine</div>
-          <div class="text-sm font-bold text-purple-300 mt-1">${rtxStatus.failoverEngine}</div>
+          <div class="text-sm font-bold text-amber-300 mt-1">${escapeHtml(rtxStatus.failoverEngine)}</div>
           <div class="text-[11px] text-slate-500 mt-1">Zero-downtime switchover if gaming PC is asleep</div>
         </div>
         <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 admin-inner">
@@ -235,10 +325,10 @@ export function renderAdminHtml(
       </div>
       <div class="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center gap-3 text-xs">
         <label for="rtx-host-input" class="text-slate-400 font-semibold">Custom OLLAMA_HOST URL:</label>
-        <input id="rtx-host-input" type="text" value="${
+        <input id="rtx-host-input" type="text" value="${escapeHtml(
           rtxStatus.rtx3080ConfiguredHost
-        }" class="flex-1 min-w-[220px] bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs" />
-        <button onclick="testRtxConnection()" id="btn-test-rtx" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition">
+        )}" class="flex-1 min-w-[200px] bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs" />
+        <button onclick="testRtxConnection()" id="btn-test-rtx" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition min-h-[38px]">
           🔍 Test RTX 3080 Connection Now
         </button>
         <span id="rtx-test-result" class="text-xs text-slate-300 font-mono"></span>
@@ -260,22 +350,20 @@ export function renderAdminHtml(
             <div>
               <div class="flex items-center justify-between">
                 <span class="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">${
-                  plan.badge
+                  escapeHtml(plan.badge)
                 }</span>
-                <span class="font-black text-lg text-emerald-400">$${plan.priceMonthlyUsd}<span class="text-xs text-slate-400 font-normal">/mo</span></span>
+                <span class="font-black text-lg text-emerald-400 tabular-nums">$${plan.priceMonthlyUsd}<span class="text-xs text-slate-400 font-normal">/mo</span></span>
               </div>
-              <h3 class="font-extrabold text-base text-white mt-2">${plan.name}</h3>
+              <h3 class="font-extrabold text-base text-white mt-2">${escapeHtml(plan.name)}</h3>
               <ul class="mt-3 space-y-1.5 text-xs text-slate-300">
-                ${plan.features.map((f) => `<li>✅ ${f}</li>`).join("")}
+                ${plan.features.map((f) => `<li>✅ ${escapeHtml(f)}</li>`).join("")}
               </ul>
             </div>
-            <button onclick="openCheckoutModal('SUBSCRIPTION', '${plan.tier}', '${
-            plan.name
-          }', ${plan.priceMonthlyUsd})" class="w-full py-2.5 rounded-xl ${
+            <button data-kind="SUBSCRIPTION" data-id="${escapeHtml(plan.tier)}" data-title="${escapeHtml(plan.name)}" data-price="${Number(plan.priceMonthlyUsd)}" onclick="openCheckoutModal(this.dataset.kind, this.dataset.id, this.dataset.title, Number(this.dataset.price))" class="w-full py-2.5 rounded-xl ${
             plan.priceMonthlyUsd > 0
               ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
               : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-          } font-extrabold text-xs transition">
+          } font-extrabold text-xs transition min-h-[40px]">
               ${
                 plan.priceMonthlyUsd > 0
                   ? "💳 Subscribe / Issue License Key"
@@ -295,7 +383,7 @@ export function renderAdminHtml(
           <h2 class="text-lg font-extrabold text-emerald-300">📬 "Game in a Box" Physical Mailout Kits & Printable Keepsakes</h2>
           <p class="text-xs text-slate-400">Shipped to families via Print-on-Demand (laminated 1-inch dry-erase maps, standees, cards & unplugged camping guide)</p>
         </div>
-        <a href="/printable-kit" target="_blank" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">
+        <a href="/printable-kit" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs">
           🖨️ Preview Printable Home Kit & Storybook PDF
         </a>
       </div>
@@ -306,8 +394,8 @@ export function renderAdminHtml(
           <div class="p-5 rounded-2xl bg-slate-900 border border-emerald-500/30 flex flex-col justify-between gap-4 admin-card">
             <div>
               <div class="flex items-center justify-between">
-                <h3 class="font-extrabold text-base text-amber-300">${pkg.title}</h3>
-                <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-sm">$${pkg.priceUsd}</span>
+                <h3 class="font-extrabold text-base text-amber-300">${escapeHtml(pkg.title)}</h3>
+                <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-sm tabular-nums">$${pkg.priceUsd}</span>
               </div>
               <ul class="mt-3 space-y-1.5 text-xs text-slate-300">
                 <li>🗺️ <strong>${pkg.includedMapsCount} Laminated Dry-Erase Battle Maps</strong> (1-inch tabletop scale + QR audio codes)</li>
@@ -321,10 +409,7 @@ export function renderAdminHtml(
                 }
               </ul>
             </div>
-            <button onclick="openCheckoutModal('PHYSICAL_KIT', '${pkg.id}', '${pkg.title.replace(
-            /'/g,
-            ""
-          )}', ${pkg.priceUsd})" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition">
+            <button data-kind="PHYSICAL_KIT" data-id="${escapeHtml(pkg.id)}" data-title="${escapeHtml(pkg.title)}" data-price="${Number(pkg.priceUsd)}" onclick="openCheckoutModal(this.dataset.kind, this.dataset.id, this.dataset.title, Number(this.dataset.price))" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition min-h-[40px]">
               📦 Order Physical Mailout Box ($${pkg.priceUsd})
             </button>
           </div>
@@ -340,11 +425,11 @@ export function renderAdminHtml(
           <h2 class="text-sm font-bold text-amber-300 uppercase tracking-wider">
             🏭 Operator Print-on-Demand Fulfillment Queue & Household Licenses
           </h2>
-          <p class="text-xs text-slate-400">Requires valid Operator PIN above to advance orders from PAID_QUEUED → RENDERING_PRINT_FILES → SENT_TO_PRINTER → SHIPPED</p>
+          <p class="text-xs text-slate-400">Requires valid Operator PIN above to sync &amp; advance orders from PAID_QUEUED → RENDERING_PRINT_FILES → SENT_TO_PRINTER → SHIPPED</p>
         </div>
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
           <input id="license-verify-input" type="text" placeholder="Verify Key: HQ-PRO-..." class="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs" />
-          <button onclick="checkLicenseKey()" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold">🔑 Verify Key</button>
+          <button onclick="checkLicenseKey()" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold">🔑 Verify Key</button>
           <span id="license-verify-result" class="font-mono text-xs"></span>
         </div>
       </div>
@@ -355,7 +440,7 @@ export function renderAdminHtml(
           <div id="orders-queue-list" class="space-y-2"></div>
         </div>
         <div class="lg:col-span-5 space-y-2">
-          <h3 class="font-bold text-indigo-300">👨‍👩‍👧‍👦 Registered Households & License Keys (<span id="households-count">0</span>)</h3>
+          <h3 class="font-bold text-amber-300">👨‍👩‍👧‍👦 Registered Households & License Keys (<span id="households-count">0</span>)</h3>
           <div id="households-list" class="space-y-2"></div>
         </div>
       </div>
@@ -365,12 +450,12 @@ export function renderAdminHtml(
     <section id="lore-registry-section" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 admin-card">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 class="text-sm font-bold text-purple-300 uppercase tracking-wider">
+          <h2 class="text-sm font-bold text-amber-300 uppercase tracking-wider">
             🗺️ Lore &amp; Map Continuity Registry (Anti-Overlap Guard)
           </h2>
           <p class="text-xs text-slate-400">Tracks every created campaign plot, boss, and map zone in SQLite so procedural one-shots never repeat or overlap.</p>
         </div>
-        <button onclick="refreshAdminState()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-purple-300 border border-slate-700">🔄 Sync Ledger</button>
+        <button onclick="refreshAdminState()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700">🔄 Sync Ledger</button>
       </div>
       <div id="lore-registry-list" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs"></div>
     </section>
@@ -406,17 +491,17 @@ export function renderAdminHtml(
 
   <!-- STOREFRONT CHECKOUT & SANDBOX RECEIPT MODAL -->
   <div id="checkout-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 admin-card">
+    <div class="bg-slate-900 border-2 border-amber-400 rounded-3xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 admin-card">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
           <h3 id="checkout-modal-title" class="text-base font-extrabold text-amber-300">💳 Storefront Checkout</h3>
           <p class="text-[11px] text-slate-400">Authoritative server-side pricing • Signed HMAC Webhook pipeline</p>
         </div>
-        <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-white font-bold">✕</button>
+        <button onclick="closeCheckoutModal()" aria-label="Close Checkout" class="w-10 h-10 rounded-xl text-slate-400 hover:text-white font-bold">✕</button>
       </div>
 
       <div class="space-y-2.5 text-xs">
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
             <label class="block text-slate-400 mb-1">Family / Household Name</label>
             <input id="checkout-family" type="text" value="The Starlight Family" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white" />
@@ -445,8 +530,8 @@ export function renderAdminHtml(
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-        <button onclick="closeCheckoutModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-xs font-bold">Close</button>
-        <button id="btn-submit-checkout" onclick="submitCheckoutSession()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg">
+        <button onclick="closeCheckoutModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-xs font-bold min-h-[40px]">Close</button>
+        <button id="btn-submit-checkout" onclick="submitCheckoutSession()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg min-h-[40px]">
           ✅ Complete Checkout
         </button>
       </div>
@@ -460,6 +545,11 @@ export function renderAdminHtml(
     let adminStore = ${serializedStore};
     let activeCheckout = { kind: "PHYSICAL_KIT", itemId: "pkg-starter-box", title: "", priceUsd: 34 };
 
+    function escAdmin(v) {
+      return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    const safeKitUrl = (u) => (typeof u === "string" && u.startsWith("/printable-kit")) ? escAdmin(u) : "#";
+
     function renderAdminQueues() {
       const ordersCountEl = document.getElementById("orders-count");
       const ordersListEl = document.getElementById("orders-queue-list");
@@ -471,7 +561,7 @@ export function renderAdminHtml(
 
       if (ordersListEl) {
         if (!adminStore.orders || adminStore.orders.length === 0) {
-          ordersListEl.innerHTML = '<div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 italic admin-inner">No Print-on-Demand orders queued yet. Click any Physical Box or Subscription above to test the checkout pipeline!</div>';
+          ordersListEl.innerHTML = '<div class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 italic admin-inner">No Print-on-Demand orders visible yet. Enter Operator PIN above and click Sync Ledger to view live customer orders!</div>';
         } else {
           ordersListEl.innerHTML = adminStore.orders.map((o) => {
             const nextMap = {
@@ -484,18 +574,18 @@ export function renderAdminHtml(
               <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 admin-inner">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <span class="font-extrabold text-amber-300">\${o.packageTitle}</span>
-                    <span class="ml-2 font-mono text-[10px] text-slate-400">(\${o.id})</span>
+                    <span class="font-extrabold text-amber-300">\${escAdmin(o.packageTitle)}</span>
+                    <span class="ml-2 font-mono text-[10px] text-slate-400">(\${escAdmin(o.id)})</span>
                   </div>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">\${o.status} • $\${(o.amountCents / 100).toFixed(2)}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 tabular-nums">\${escAdmin(o.status)} • $\${(Number(o.amountCents || 0) / 100).toFixed(2)}</span>
                 </div>
                 <div class="text-[11px] text-slate-300">
-                  <strong>Ship To:</strong> \${o.shippingName} — \${o.shippingAddress}
-                  \${o.trackingNumber ? \` • <span class="text-amber-300 font-mono">Tracking: \${o.trackingNumber}</span>\` : ""}
+                  <strong>Ship To:</strong> \${escAdmin(o.shippingName)} — \${escAdmin(o.shippingAddress)}
+                  \${o.trackingNumber ? \` • <span class="text-amber-300 font-mono">Tracking: \${escAdmin(o.trackingNumber)}</span>\` : ""}
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-                  <a href="\${o.printableBundleUrl}" target="_blank" class="text-[11px] font-bold text-indigo-400 hover:underline">📄 Open Printable Kit &amp; Manifest</a>
-                  \${nextStep ? \`<button onclick="advanceOrder('\${o.id}', '\${nextStep[0]}')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px]">\${nextStep[1]}</button>\` : '<span class="text-emerald-400 font-bold text-[11px]">✅ Fulfilled</span>'}
+                  <a href="\${safeKitUrl(o.printableBundleUrl)}" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-amber-300 hover:underline">📄 Open Printable Kit &amp; Manifest</a>
+                  \${nextStep ? \`<button data-order-id="\${escAdmin(o.id)}" data-next-status="\${escAdmin(nextStep[0])}" onclick="advanceOrder(this.dataset.orderId, this.dataset.nextStatus)" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px]">\${escAdmin(nextStep[1])}</button>\` : '<span class="text-emerald-400 font-bold text-[11px]">✅ Fulfilled</span>'}
                 </div>
               </div>
             \`;
@@ -507,11 +597,11 @@ export function renderAdminHtml(
         hhListEl.innerHTML = (adminStore.households || []).map((h) => \`
           <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 admin-inner">
             <div class="flex items-center justify-between">
-              <span class="font-bold text-white">\${h.familyName}</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">\${h.subscriptionTier}</span>
+              <span class="font-bold text-white">\${escAdmin(h.familyName)}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">\${escAdmin(h.subscriptionTier)}</span>
             </div>
-            <div class="text-[11px] text-slate-400">\${h.email} • Status: \${h.subscriptionStatus}</div>
-            <div class="font-mono text-[11px] text-amber-300 bg-black/30 px-2 py-1 rounded border border-amber-500/20">🔑 \${h.licenseKey}</div>
+            <div class="text-[11px] text-slate-400">\${escAdmin(h.email)} • Status: \${escAdmin(h.subscriptionStatus)}</div>
+            <div class="font-mono text-[11px] text-amber-300 bg-black/30 px-2 py-1 rounded border border-amber-500/20">🔑 \${escAdmin(h.licenseKey)}</div>
           </div>
         \`).join("");
       }
@@ -521,19 +611,26 @@ export function renderAdminHtml(
         loreListEl.innerHTML = (adminStore.loreEntries || []).map((l) => \`
           <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 admin-inner">
             <div class="flex items-center justify-between gap-1">
-              <span class="font-bold text-amber-300 truncate">\${l.title}</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 shrink-0">\${l.entryType} (Lv.\${l.levelRange})</span>
+              <span class="font-bold text-amber-300 truncate">\${escAdmin(l.title)}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 shrink-0">\${escAdmin(l.entryType)} (Lv.\${escAdmin(l.levelRange)})</span>
             </div>
-            <div class="text-[11px] text-slate-400">Boss: \${l.mainAntagonist} • Biome: \${l.biome}</div>
-            <div class="text-[10px] text-slate-300">Zones: \${(l.keyLocations || []).join(", ")}</div>
+            <div class="text-[11px] text-slate-400">Boss: \${escAdmin(l.mainAntagonist)} • Biome: \${escAdmin(l.biome)}</div>
+            <div class="text-[10px] text-slate-300">Zones: \${(l.keyLocations || []).map((z) => escAdmin(z)).join(", ")}</div>
           </div>
         \`).join("");
       }
     }
 
     async function refreshAdminState() {
-      const res = await fetch("/api/admin/state");
+      const adminPin = (document.getElementById("admin-pin-input") || {}).value || "";
+      const res = await fetch("/api/admin/state", {
+        headers: adminPin ? { "x-admin-pin": adminPin } : {}
+      });
       const data = await res.json();
+      if (!res.ok) {
+        alert((data && data.error) || "Enter valid Operator PIN to sync protected orders & household ledger.");
+        return;
+      }
       if (data && data.store) {
         adminStore = data.store;
         renderAdminQueues();
@@ -586,9 +683,9 @@ export function renderAdminHtml(
         const hh = data.session && data.session.household;
         const ord = data.session && data.session.order;
         receiptEl.innerHTML = \`
-          <div class="font-extrabold text-sm">🎉 Order &amp; Entitlement Confirmed (\${data.session.mode})</div>
-          \${hh ? \`<div>🔑 <strong>Signed License Key:</strong> <code class="text-amber-300 font-mono">\${hh.licenseKey}</code></div>\` : ""}
-          \${ord ? \`<div>📦 <strong>Order Queued:</strong> <code>\${ord.id}</code> (<a href="\${ord.printableBundleUrl}" target="_blank" class="underline font-bold">Open Printable Order Manifest</a>)</div>\` : ""}
+          <div class="font-extrabold text-sm">🎉 Order &amp; Entitlement Confirmed (\${escAdmin(data.session.mode)})</div>
+          \${hh ? \`<div>🔑 <strong>Signed License Key:</strong> <code class="text-amber-300 font-mono">\${escAdmin(hh.licenseKey)}</code></div>\` : ""}
+          \${ord ? \`<div>📦 <strong>Order Queued:</strong> <code>\${escAdmin(ord.id)}</code> (<a href="\${safeKitUrl(ord.printableBundleUrl)}" target="_blank" rel="noopener noreferrer" class="underline font-bold">Open Printable Order Manifest</a>)</div>\` : ""}
         \`;
         receiptEl.classList.remove("hidden");
       }
@@ -637,14 +734,19 @@ export function renderAdminHtml(
       const badgeEl = document.getElementById("rtx-online-badge");
       const hostLabel = document.getElementById("rtx-host-label");
       const ollamaUrl = hostInput ? hostInput.value.trim() : "";
+      const adminPin = (document.getElementById("admin-pin-input") || {}).value || "";
       if (resultEl) resultEl.innerText = "⏳ Probing RTX 3080...";
       try {
         const res = await fetch("/api/rtx/test", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: Object.assign({ "Content-Type": "application/json" }, adminPin ? { "x-admin-pin": adminPin } : {}),
           body: JSON.stringify({ ollamaUrl })
         });
         const data = await res.json();
+        if (!res.ok) {
+          if (resultEl) resultEl.innerText = "❌ " + ((data && data.error) || "Unauthorized or invalid host");
+          return;
+        }
         if (data && data.rtxStatus) {
           const st = data.rtxStatus;
           if (badgeEl) {
@@ -692,16 +794,19 @@ export function renderPrintableKitHtml(orderId?: string): string {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f59e0b" />
   <title>HearthQuest — Printable Family Tabletop Kit & Storybook Keepsake</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-white text-slate-900 p-8 max-w-4xl mx-auto space-y-8">
-  <div class="flex items-center justify-between border-b-2 border-slate-900 pb-4 print:hidden">
+<body class="bg-stone-50 text-slate-900 p-4 sm:p-8 max-w-4xl mx-auto space-y-8">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-900 pb-4 print:hidden">
     <div>
       <h1 class="text-2xl font-black">🖨️ HearthQuest Print-at-Home Tabletop Pack</h1>
       <p class="text-xs text-slate-600">Cut out these Action Cards, Standees, and Unplugged Camping Flowchart for kitchen-table play!</p>
     </div>
-    <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs">
+    <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs min-h-[40px]">
       🖨️ Print Kit / Save as PDF
     </button>
   </div>
@@ -710,17 +815,17 @@ export function renderPrintableKitHtml(orderId?: string): string {
     order
       ? `
   <section class="border-2 border-slate-900 rounded-2xl p-5 bg-amber-50/60 space-y-2 text-xs">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <h2 class="text-sm font-black uppercase tracking-wider">📦 Print-on-Demand Packing Slip &amp; License Manifest</h2>
-      <span class="font-mono font-bold">Order ID: ${order.id} (${order.status})</span>
+      <span class="font-mono font-bold">Order ID: ${escapeHtml(order.id)} (${escapeHtml(order.status)})</span>
     </div>
-    <div><strong>Package:</strong> ${order.packageTitle} ($${(
+    <div><strong>Package:</strong> ${escapeHtml(order.packageTitle)} ($${(
           order.amountCents / 100
-        ).toFixed(2)}) • <strong>Campaign:</strong> ${order.campaignId}</div>
-    <div><strong>Ship To:</strong> ${order.shippingName} — ${order.shippingAddress}</div>
+        ).toFixed(2)}) • <strong>Campaign:</strong> ${escapeHtml(order.campaignId)}</div>
+    <div><strong>Ship To:</strong> ${escapeHtml(order.shippingName)} — ${escapeHtml(order.shippingAddress)}</div>
     ${
       household
-        ? `<div><strong>Household License Key:</strong> <code class="font-mono font-bold">${household.licenseKey}</code> (${household.subscriptionTier})</div>`
+        ? `<div><strong>Household License Key:</strong> <code class="font-mono font-bold">${escapeHtml(household.licenseKey)}</code> (${escapeHtml(household.subscriptionTier)})</div>`
         : ""
     }
   </section>
@@ -756,21 +861,39 @@ export function renderPrintableKitHtml(orderId?: string): string {
 </html>`;
 }
 
-function readRawBody(req: http.IncomingMessage): Promise<string> {
-  return new Promise((resolve) => {
-    let raw = "";
-    req.on("data", (chunk) => {
-      raw += chunk;
+function readRawBody(req: http.IncomingMessage, maxBytes = 2_097_152): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    let settled = false;
+    req.on("data", (chunk: Buffer | string) => {
+      if (settled) return;
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += buf.length;
+      if (total > maxBytes) {
+        settled = true;
+        req.destroy();
+        reject(new Error("Payload too large"));
+        return;
+      }
+      chunks.push(buf);
     });
     req.on("end", () => {
-      resolve(raw);
+      if (settled) return;
+      settled = true;
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    });
+    req.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      reject(err);
     });
   });
 }
 
-async function readJsonBody(req: http.IncomingMessage): Promise<any> {
-  const raw = await readRawBody(req);
+async function readJsonBody(req: http.IncomingMessage, maxBytes = 2_097_152): Promise<any> {
   try {
+    const raw = await readRawBody(req, maxBytes);
     return JSON.parse(raw || "{}");
   } catch {
     return {};
@@ -778,13 +901,18 @@ async function readJsonBody(req: http.IncomingMessage): Promise<any> {
 }
 
 const server = http.createServer(async (req, res) => {
-  const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const parsedUrl = safeParseRequestUrl(req.url, req.headers.host, PORT);
   const pathname = parsedUrl.pathname;
+  const clientIp = req.socket?.remoteAddress || "local";
 
   if (pathname === "/" && req.method === "GET") {
     const rtxStatus = await probeRtx3080Health();
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderAdminHtml(rtxStatus));
+    const authorized = isOperatorAuthorized(req);
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "private, no-store",
+    });
+    res.end(renderAdminHtml(rtxStatus, authorized));
     return;
   }
 
@@ -804,12 +932,20 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/api/store/cart" && req.method === "GET") {
     const sessionId = parsedUrl.searchParams.get("sessionId") || "default-guest";
-    res.writeHead(200, { "Content-Type": "application/json" });
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Cache-Control": "private, no-store",
+    });
     res.end(JSON.stringify({ ok: true, cart: getStoreCart(sessionId) }));
     return;
   }
 
   if (pathname === "/api/store/cart" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_cart", clientIp, 120, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many cart requests" }));
+      return;
+    }
     const body = await readJsonBody(req);
     const cart = updateStoreCart({
       sessionId: body.sessionId || "default-guest",
@@ -820,7 +956,10 @@ const server = http.createServer(async (req, res) => {
       quantity: body.quantity,
       promoCode: body.promoCode,
     });
-    res.writeHead(200, { "Content-Type": "application/json" });
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Cache-Control": "private, no-store",
+    });
     res.end(JSON.stringify({ ok: true, cart }));
     return;
   }
@@ -834,6 +973,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/store/checkout" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_checkout", clientIp, 25, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many checkout requests" }));
+      return;
+    }
     try {
       const body = await readJsonBody(req);
       const result = await checkoutStoreCart({
@@ -845,7 +989,10 @@ const server = http.createServer(async (req, res) => {
         shippingName: body.shippingName,
         shippingAddress: body.shippingAddress,
       });
-      res.writeHead(200, { "Content-Type": "application/json" });
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      });
       res.end(JSON.stringify(result));
     } catch (err: any) {
       res.writeHead(400, { "Content-Type": "application/json" });
@@ -855,9 +1002,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/store/orders/lookup" && req.method === "GET") {
+    if (!checkHearthQuestRateLimit("admin_lookup", clientIp, 30, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many lookup attempts" }));
+      return;
+    }
     const orderId = parsedUrl.searchParams.get("orderId") || "";
     const email = parsedUrl.searchParams.get("email") || "";
-    res.writeHead(200, { "Content-Type": "application/json" });
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Cache-Control": "private, no-store",
+    });
     res.end(JSON.stringify({ ok: true, ...lookupCustomerOrder({ orderId, email }) }));
     return;
   }
@@ -891,13 +1046,52 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === "/printable-kit" && req.method === "GET") {
     const orderId = parsedUrl.searchParams.get("orderId") || undefined;
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    if (orderId) {
+      const emailParam = parsedUrl.searchParams.get("email") || "";
+      const customerMatch = emailParam
+        ? lookupCustomerOrder({ orderId, email: emailParam }).found
+        : false;
+      if (!customerMatch && !isOperatorAuthorized(req)) {
+        res.writeHead(403, {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store",
+        });
+        res.end(
+          JSON.stringify({
+            ok: false,
+            error: "Order manifest requires matching customer email or valid Operator PIN session.",
+          })
+        );
+        return;
+      }
+    }
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "private, no-store",
+    });
     res.end(renderPrintableKitHtml(orderId));
     return;
   }
 
   if (pathname === "/api/admin/state" && req.method === "GET") {
-    res.writeHead(200, { "Content-Type": "application/json" });
+    if (!checkHearthQuestRateLimit("admin_pin", clientIp, 30, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many authentication attempts" }));
+      return;
+    }
+    if (!isOperatorAuthorized(req)) {
+      res.writeHead(403, {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      });
+      res.end(JSON.stringify({ ok: false, error: "Valid Operator PIN required" }));
+      return;
+    }
+    setAdminSessionCookieHeader(res);
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Cache-Control": "private, no-store",
+    });
     res.end(JSON.stringify({ ok: true, store: getAdminStoreSnapshot() }));
     return;
   }
@@ -909,12 +1103,18 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/admin/lore" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_pin", clientIp, 30, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many authentication attempts" }));
+      return;
+    }
     const body = await readJsonBody(req);
-    if (!verifyOperatorPin(body.adminPin || "")) {
+    if (!isOperatorAuthorized(req, body.adminPin || "")) {
       res.writeHead(403, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Invalid Operator PIN" }));
       return;
     }
+    setAdminSessionCookieHeader(res);
     const created = registerLoreEntry({
       entryType: body.entryType || "CAMPAIGN_ARC",
       title: body.title || "Untitled Plot",
@@ -931,6 +1131,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/checkout/create-session" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_checkout", clientIp, 25, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many checkout requests" }));
+      return;
+    }
     try {
       const body = await readJsonBody(req);
       const session = await createCheckoutSession({
@@ -943,8 +1148,17 @@ const server = http.createServer(async (req, res) => {
         shippingName: body.shippingName,
         shippingAddress: body.shippingAddress,
       });
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, session, store: getAdminStoreSnapshot() }));
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          session,
+          store: isOperatorAuthorized(req) ? getAdminStoreSnapshot() : redactAdminStore(getAdminStoreSnapshot()),
+        })
+      );
     } catch (err: any) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: err?.message || "Checkout failed" }));
@@ -955,7 +1169,11 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/webhooks/stripe" && req.method === "POST") {
     const rawBody = await readRawBody(req);
     const sigHeader = String(req.headers["stripe-signature"] || "");
-    const secret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_hearthquest_dev_secret";
+    const secret =
+      process.env.STRIPE_WEBHOOK_SECRET ||
+      (process.env.NODE_ENV === "production"
+        ? getOrCreateRuntimeSecret("webhook", ["STRIPE_WEBHOOK_SECRET"])
+        : "whsec_hearthquest_dev_secret");
     if (!verifyStripeWebhookSignature(rawBody, sigHeader, secret)) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Invalid Stripe-Signature HMAC" }));
@@ -974,15 +1192,32 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/admin/orders/advance" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_pin", clientIp, 30, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many operator PIN attempts" }));
+      return;
+    }
     try {
       const body = await readJsonBody(req);
+      const pinCandidate =
+        String(req.headers["x-admin-pin"] || body.adminPin || "") ||
+        (isValidAdminSessionCookie(req)
+          ? process.env.HEARTHQUEST_ADMIN_PIN ||
+            (process.env.NODE_ENV === "production"
+              ? getOrCreateRuntimeSecret("admin_pin", ["HEARTHQUEST_ADMIN_PIN"])
+              : "1234")
+          : "");
       const order = advanceFulfillmentOrder({
         orderId: body.orderId,
         nextStatus: body.nextStatus,
         trackingNumber: body.trackingNumber,
-        adminPin: body.adminPin || "",
+        adminPin: pinCandidate,
       });
-      res.writeHead(200, { "Content-Type": "application/json" });
+      setAdminSessionCookieHeader(res);
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Cache-Control": "private, no-store",
+      });
       res.end(JSON.stringify({ ok: true, order, store: getAdminStoreSnapshot() }));
     } catch (err: any) {
       res.writeHead(403, { "Content-Type": "application/json" });
@@ -992,6 +1227,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/license/verify" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_license", clientIp, 60, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many license checks" }));
+      return;
+    }
     const body = await readJsonBody(req);
     const result = verifyLicenseKey(body.licenseKey || "");
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -1000,9 +1240,25 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/api/rtx/test" && req.method === "POST") {
+    if (!checkHearthQuestRateLimit("admin_rtx", clientIp, 20, 60_000)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Too many probe requests" }));
+      return;
+    }
     const body = await readJsonBody(req);
-    const customUrl =
-      body.ollamaUrl || body.host || process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
+    if (!isOperatorAuthorized(req, body.adminPin)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Operator PIN required to probe hosts" }));
+      return;
+    }
+    const customUrl = String(
+      body.ollamaUrl || body.host || process.env.OLLAMA_HOST || "http://127.0.0.1:11434"
+    );
+    if (!isSafeServiceProbeUrl(customUrl)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Unsafe or invalid Ollama probe URL" }));
+      return;
+    }
     const rtxStatus = await probeRtx3080Health(customUrl);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, rtxStatus }));
@@ -1073,6 +1329,10 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ ok: false, error: "Route not found" }));
 });
+
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
 
 if (process.env.NODE_ENV !== "test") {
   server.listen(PORT, "0.0.0.0", () => {

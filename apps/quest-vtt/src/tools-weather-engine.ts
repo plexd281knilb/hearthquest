@@ -356,6 +356,7 @@ export function renderToolsAndWeatherEngineScript(): string {
               selectedTokenId = this.tokenDrag.token.id;
             }
           }
+          if (e.cancelable) e.preventDefault();
           const tile = clientToTile(e);
           if (!tile) return;
           if (tile.x !== this.tokenDrag.hoverX || tile.y !== this.tokenDrag.hoverY || !this.tokenDrag.pathInfo) {
@@ -368,6 +369,10 @@ export function renderToolsAndWeatherEngineScript(): string {
               this.tokenDrag.budget.maxSq
             );
           }
+        }, { passive: false });
+
+        window.addEventListener("pointercancel", () => {
+          this.tokenDrag = null;
         });
 
         window.addEventListener("pointerup", async () => {
@@ -495,8 +500,7 @@ export function renderToolsAndWeatherEngineScript(): string {
         ctx.fillStyle = "rgba(2, 6, 23, 0.92)";
         ctx.strokeStyle = "#f59e0b";
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(midX - tw / 2, midY - 14, tw, 26, 8);
+        this.traceRoundedRect(ctx, midX - tw / 2, midY - 14, tw, 26, 8);
         ctx.fill();
         ctx.stroke();
 
@@ -505,6 +509,21 @@ export function renderToolsAndWeatherEngineScript(): string {
         ctx.textBaseline = "middle";
         ctx.fillText(label, midX, midY - 1);
         ctx.restore();
+      },
+
+      traceRoundedRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(x, y, w, h, r);
+          return;
+        }
+        const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
       },
 
       drawTokenDragPreview(ctx, cellW, cellH) {
@@ -614,8 +633,7 @@ export function renderToolsAndWeatherEngineScript(): string {
         ctx.fillStyle = "rgba(2, 6, 23, 0.92)";
         ctx.strokeStyle = mainColor;
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(bx - tw / 2, by - 12, tw, 24, 8);
+        this.traceRoundedRect(ctx, bx - tw / 2, by - 12, tw, 24, 8);
         ctx.fill();
         ctx.stroke();
 

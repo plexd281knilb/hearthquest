@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { isSafeServiceProbeUrl } from "@hearthquest/shared-types";
 
 export type TtsPreferredMode = "AUTO" | "LOCAL_NEURAL" | "CLOUD_AI" | "BROWSER_NATURAL";
 export type TtsCloudProvider = "NONE" | "OPENAI" | "ELEVENLABS";
@@ -298,7 +299,13 @@ function readCachedAudio(key: string): { buffer: Buffer; contentType: string } |
   return null;
 }
 
+const MAX_MEMORY_AUDIO_CACHE_ENTRIES = 128;
+
 function writeCachedAudio(key: string, buffer: Buffer, contentType: string): void {
+  if (inMemoryAudioCache.size >= MAX_MEMORY_AUDIO_CACHE_ENTRIES) {
+    const oldestKey = inMemoryAudioCache.keys().next().value;
+    if (oldestKey) inMemoryAudioCache.delete(oldestKey);
+  }
   inMemoryAudioCache.set(key, { buffer, contentType });
   if (process.env.NODE_ENV === "test") return;
   try {
@@ -313,9 +320,13 @@ export async function probeLocalTtsHealth(
   fetchImpl?: FetchLike
 ): Promise<{ online: boolean; url: string; latencyMs: number; detail: string }> {
   const settings = getTtsSettings();
-  const baseUrl = (overrideUrl || settings.localTtsUrl || "").trim().replace(/\/+$/, "");
+  let baseUrl = (overrideUrl || settings.localTtsUrl || "").trim();
+  while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
   if (!baseUrl) {
     return { online: false, url: "", latencyMs: 0, detail: "No TTS_HOST URL configured." };
+  }
+  if (!isSafeServiceProbeUrl(baseUrl)) {
+    return { online: false, url: baseUrl, latencyMs: 0, detail: "Blocked unsafe TTS host URL." };
   }
   const f = fetchImpl || (globalThis.fetch as unknown as FetchLike);
   const start = Date.now();

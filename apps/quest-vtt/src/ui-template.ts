@@ -35,12 +35,17 @@ export function renderVttLoginGateHtml(options?: {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f59e0b" />
   <title>HearthQuest VTT — ${isFirstSetup ? "Admin First-Time Setup" : "Sign In"}</title>
   <link rel="icon" type="image/png" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    :root { color-scheme: dark; }
+    .hidden { display: none !important; }
+    body[data-theme="dark"] { color-scheme: dark; }
     body[data-theme="light"] {
+      color-scheme: light;
       background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%) !important;
       color: #1c1917 !important;
     }
@@ -61,13 +66,18 @@ export function renderVttLoginGateHtml(options?: {
     body[data-theme="light"] .text-slate-400 { color: #57534e !important; }
     body[data-theme="light"] .text-amber-200 { color: #78350f !important; }
     body[data-theme="light"] .text-emerald-300 { color: #065f46 !important; }
+    body[data-theme="light"] .text-rose-200 { color: #9f1239 !important; }
     body[data-theme="light"] .bg-amber-950\/70,
     body[data-theme="light"] .bg-amber-950\/50 { background-color: #fef3c7 !important; }
+    body[data-theme="light"] .bg-rose-950\/70 { background-color: #ffe4e6 !important; }
     body[data-theme="light"] .bg-emerald-950 { background-color: #d1fae5 !important; }
     body[data-theme="light"] .bg-slate-800 { background-color: #e7e5e4 !important; color: #1c1917 !important; }
+    @media (max-width: 640px) {
+      input, select { font-size: 16px !important; }
+    }
   </style>
 </head>
-<body data-theme="dark" class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+<body data-theme="dark" class="min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 flex items-center justify-center p-4">
   <div id="vtt-login-gate" class="w-full max-w-md bg-slate-900 border-2 ${isFirstSetup ? "border-amber-400" : "border-amber-500/60"} rounded-3xl p-6 shadow-2xl space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
@@ -108,14 +118,14 @@ export function renderVttLoginGateHtml(options?: {
     </div>
 
     <div class="flex gap-2 text-xs">
-      <button type="button" onclick="switchGateTab('login')" id="gate-tab-login" class="flex-1 py-2 rounded-xl ${isFirstSetup ? "bg-slate-800 text-slate-300 font-bold" : "bg-indigo-600 text-white font-extrabold"}">🔑 Sign In</button>
-      <button type="button" onclick="switchGateTab('register')" id="gate-tab-register" class="flex-1 py-2 rounded-xl ${isFirstSetup ? "bg-amber-500 text-slate-950 font-extrabold" : "bg-slate-800 text-slate-300 font-bold"}">${isFirstSetup ? "👑 Create Admin Account" : "✨ Create Account"}</button>
+      <button type="button" onclick="switchGateTab('login')" id="gate-tab-login" class="flex-1 py-2.5 min-h-[40px] rounded-xl ${isFirstSetup ? "bg-slate-800 text-slate-300 font-bold" : "bg-amber-500 text-slate-950 font-extrabold"}">🔑 Sign In</button>
+      <button type="button" onclick="switchGateTab('register')" id="gate-tab-register" class="flex-1 py-2.5 min-h-[40px] rounded-xl ${isFirstSetup ? "bg-amber-500 text-slate-950 font-extrabold" : "bg-slate-800 text-slate-300 font-bold"}">${isFirstSetup ? "👑 Create Admin Account" : "✨ Create Account"}</button>
     </div>
 
     <form id="gate-form-login" onsubmit="submitGateLogin(event)" class="${isFirstSetup ? "hidden " : ""}space-y-3 text-xs">
       <input id="gate-login-email" type="email" required placeholder="Email Address" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100" />
       <input id="gate-login-password" type="password" required placeholder="Password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100" />
-      <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">🔓 Sign In to My Session</button>
+      <button type="submit" class="w-full py-2.5 min-h-[42px] rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">🔓 Sign In to My Session</button>
     </form>
 
     <form id="gate-form-register" onsubmit="submitGateRegister(event)" class="${isFirstSetup ? "" : "hidden "}space-y-2.5 text-xs">
@@ -154,7 +164,7 @@ export function renderVttLoginGateHtml(options?: {
 
   <script>
     (function initGateTheme() {
-      const t = localStorage.getItem("hearthquest-theme") || "dark";
+      const t = localStorage.getItem("hearthquest_theme") || localStorage.getItem("hearthquest-theme") || "dark";
       document.body.setAttribute("data-theme", t);
       const b = document.getElementById("gate-theme-btn");
       if (b) b.innerText = t === "light" ? "☀️" : "🌙";
@@ -163,6 +173,7 @@ export function renderVttLoginGateHtml(options?: {
       const cur = document.body.getAttribute("data-theme") || "dark";
       const nxt = cur === "dark" ? "light" : "dark";
       document.body.setAttribute("data-theme", nxt);
+      localStorage.setItem("hearthquest_theme", nxt);
       localStorage.setItem("hearthquest-theme", nxt);
       const b = document.getElementById("gate-theme-btn");
       if (b) b.innerText = nxt === "light" ? "☀️" : "🌙";
@@ -178,11 +189,11 @@ export function renderVttLoginGateHtml(options?: {
       document.getElementById("gate-form-login").classList.toggle("hidden", isReg);
       document.getElementById("gate-form-register").classList.toggle("hidden", !isReg);
       document.getElementById("gate-tab-login").className = !isReg
-        ? "flex-1 py-2 rounded-xl bg-indigo-600 text-white font-extrabold"
-        : "flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold";
+        ? "flex-1 py-2.5 min-h-[40px] rounded-xl bg-amber-500 text-slate-950 font-extrabold"
+        : "flex-1 py-2.5 min-h-[40px] rounded-xl bg-slate-800 text-slate-300 font-bold";
       document.getElementById("gate-tab-register").className = isReg
-        ? "flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 font-extrabold"
-        : "flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold";
+        ? "flex-1 py-2.5 min-h-[40px] rounded-xl bg-amber-500 text-slate-950 font-extrabold"
+        : "flex-1 py-2.5 min-h-[40px] rounded-xl bg-slate-800 text-slate-300 font-bold";
     }
 
     // If local token exists from prior browser session, verify cleanly via /api/auth/me cookie-sync
@@ -291,25 +302,35 @@ export function renderVttAppHtml(
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#f59e0b" />
   <meta name="msapplication-TileColor" content="#f59e0b" />
   <title>HearthQuest VTT — Room ${initialState.roomCode}</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%231e1b4b' stroke='%23f59e0b' stroke-width='6'/%3E%3Cpath d='M50 18 C70 18 80 24 80 50 C80 72 64 84 50 90 C36 84 20 72 20 50 C20 24 30 18 50 18 Z' fill='%230f172a' stroke='%23fbbf24' stroke-width='4'/%3E%3Cpath d='M50 32 C58 44 68 52 66 68 C64 80 54 82 50 82 C46 82 36 80 34 68 C32 52 42 44 50 32 Z' fill='%23ea580c'/%3E%3Cpath d='M50 44 C54 52 60 58 58 70 C56 78 52 80 50 80 C48 80 44 78 42 70 C40 58 46 52 50 44 Z' fill='%23fde047'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230f172a' stroke='%23f59e0b' stroke-width='6'/%3E%3Cpath d='M50 18 C70 18 80 24 80 50 C80 72 64 84 50 90 C36 84 20 72 20 50 C20 24 30 18 50 18 Z' fill='%230f172a' stroke='%23fbbf24' stroke-width='4'/%3E%3Cpath d='M50 32 C58 44 68 52 66 68 C64 80 54 82 50 82 C46 82 36 80 34 68 C32 52 42 44 50 32 Z' fill='%23ea580c'/%3E%3Cpath d='M50 44 C54 52 60 58 58 70 C56 78 52 80 50 80 C48 80 44 78 42 70 C40 58 46 52 50 44 Z' fill='%23fde047'/%3E%3C/svg%3E" />
   <link rel="alternate icon" type="image/png" href="/assets/hearthquest-icon.png" />
   <link rel="apple-touch-icon" href="/assets/hearthquest-icon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <style>
+    :root { color-scheme: dark; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; min-height: 100vh; min-height: 100dvh; -webkit-tap-highlight-color: transparent; }
+    .min-h-screen, .min-h-dvh { min-height: 100vh; min-height: 100dvh; }
+    .hidden { display: none !important; }
+    .backdrop-blur, .backdrop-blur-sm, .backdrop-blur-md { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    @media (max-width: 640px) {
+      input, select, textarea { font-size: 16px !important; }
+    }
     /* Dark Mode (Midnight Hearth) */
     body[data-theme="dark"] {
-      background: radial-gradient(circle at top, #1e1b4b 0%, #090d16 100%);
+      color-scheme: dark;
+      background: radial-gradient(circle at top, #1e293b 0%, #090d16 100%);
       color: #f8fafc;
       font-family: system-ui, -apple-system, sans-serif;
     }
     body[data-theme="dark"] .theme-header {
       background-color: rgba(9, 13, 22, 0.95);
-      border-color: rgba(99, 102, 241, 0.3);
+      border-color: rgba(245, 158, 11, 0.28);
     }
     body[data-theme="dark"] .theme-card {
       background-color: rgba(15, 23, 42, 0.9);
@@ -329,6 +350,7 @@ export function renderVttAppHtml(
 
     /* Light Mode (Storybook Parchment) */
     body[data-theme="light"] {
+      color-scheme: light;
       background: radial-gradient(circle at top, #fdfbf7 0%, #f4ede4 100%);
       color: #1c1917;
       font-family: system-ui, -apple-system, sans-serif;
@@ -398,37 +420,58 @@ export function renderVttAppHtml(
     }
     body[data-theme="light"] .theme-card .bg-slate-800,
     body[data-theme="light"] .theme-header .bg-slate-800,
+    body[data-theme="light"] .theme-card .bg-slate-900,
+    body[data-theme="light"] .theme-card .bg-slate-900\/70,
     body[data-theme="light"] .theme-card .bg-slate-900\/80,
-    body[data-theme="light"] .theme-header .bg-slate-900\/80 {
+    body[data-theme="light"] .theme-header .bg-slate-900\/80,
+    body[data-theme="light"] .theme-card .bg-slate-950,
+    body[data-theme="light"] .theme-card .bg-slate-950\/60,
+    body[data-theme="light"] .theme-card .bg-slate-950\/70,
+    body[data-theme="light"] .theme-card .bg-slate-700 {
       background-color: #f3ece1 !important;
-      color: #292524 !important;
+      color: #1c1917 !important;
       border-color: #d6cbba !important;
+    }
+    body[data-theme="light"] .theme-header button,
+    body[data-theme="light"] .theme-card button.bg-slate-800 {
+      color: #1c1917;
     }
     body[data-theme="light"] .bg-amber-950\/40,
     body[data-theme="light"] .bg-amber-950\/50,
-    body[data-theme="light"] .bg-amber-950\/70 {
+    body[data-theme="light"] .bg-amber-950\/70,
+    body[data-theme="light"] .bg-amber-950\/85 {
       background-color: #fef3c7 !important;
       color: #78350f !important;
+    }
+    body[data-theme="light"] .bg-rose-950\/80,
+    body[data-theme="light"] .bg-rose-950\/90 {
+      background-color: #ffe4e6 !important;
+      color: #881337 !important;
     }
     body[data-theme="light"] .bg-purple-950,
     body[data-theme="light"] .bg-purple-950\/40,
     body[data-theme="light"] .bg-purple-950\/60,
     body[data-theme="light"] .bg-purple-950\/70,
     body[data-theme="light"] .bg-purple-950\/80 {
-      background-color: #f3e8ff !important;
-      color: #581c87 !important;
+      background-color: #fef3c7 !important;
+      color: #78350f !important;
     }
     body[data-theme="light"] .bg-indigo-950,
     body[data-theme="light"] .bg-indigo-950\/40,
-    body[data-theme="light"] .bg-indigo-950\/50 {
-      background-color: #e0e7ff !important;
-      color: #312e81 !important;
+    body[data-theme="light"] .bg-indigo-950\/50,
+    body[data-theme="light"] .bg-indigo-950\/70,
+    body[data-theme="light"] .bg-indigo-950\/95 {
+      background-color: #f5efe6 !important;
+      color: #1c1917 !important;
     }
     body[data-theme="light"] .bg-emerald-950,
     body[data-theme="light"] .bg-emerald-950\/30,
+    body[data-theme="light"] .bg-emerald-950\/40,
     body[data-theme="light"] .bg-emerald-950\/50,
+    body[data-theme="light"] .bg-emerald-950\/60,
     body[data-theme="light"] .bg-emerald-950\/70,
-    body[data-theme="light"] .bg-emerald-950\/80 {
+    body[data-theme="light"] .bg-emerald-950\/80,
+    body[data-theme="light"] .bg-emerald-950\/90 {
       background-color: #d1fae5 !important;
       color: #065f46 !important;
     }
@@ -588,43 +631,43 @@ export function renderVttAppHtml(
 </head>
 <body class="min-h-screen flex flex-col" data-theme="dark">
   <!-- Top Navigation & 3-Screen Mode Switcher -->
-  <header class="theme-header border-b px-4 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-40 backdrop-blur">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl animate-pulse">🛡️</span>
-      <div>
-        <div class="flex items-center gap-2">
+  <header class="theme-header border-b px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 sticky top-0 z-40 backdrop-blur">
+    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 max-w-full">
+      <svg class="w-7 h-7 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <h1 class="font-extrabold text-lg tracking-tight text-amber-400">HearthQuest</h1>
-          <span id="room-code-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-indigo-600 text-white border border-indigo-400 shadow-sm">
+          <span id="room-code-badge" class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-full bg-amber-500 text-slate-950 border border-amber-400 shadow-sm tabular-nums">
             ROOM: ${initialState.roomCode}
           </span>
           <span id="build-version-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-bold rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40" title="Build updated ${buildMeta.updatedAt}">
             ${buildMeta.badgeText}
           </span>
-          <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
+          <button onclick="toggleQrJoinModal()" id="btn-qr-join" class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/50 transition">
             📲 QR Join
           </button>
-          <button onclick="openSessionWalkthroughModal(0); toggleStartHereGuideBar(true);" id="btn-session-walkthrough" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 transition">
+          <button onclick="openSessionWalkthroughModal(0); toggleStartHereGuideBar(true);" id="btn-session-walkthrough" class="px-2.5 py-1 text-xs font-bold rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/50 transition">
             🧭 Start Here Guide
           </button>
-          <button onclick="openFeatureTourModal()" id="btn-feature-tour" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-400/50 transition">
+          <button onclick="openFeatureTourModal()" id="btn-feature-tour" class="px-2.5 py-1 text-xs font-bold rounded-full theme-inner-box border hover:border-amber-400 transition">
             ❓ What Things Do
           </button>
-          <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
+          <a id="btn-open-storefront" href="http://localhost:3001/store" onclick="this.href=window.location.protocol+'//'+window.location.hostname+':3001/store'" target="_blank" class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 transition">
             🛍️ Store
           </a>
-          <button onclick="toggleVttAuthModal(true)" id="btn-vtt-account" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-purple-500/25 hover:bg-purple-500/40 text-purple-200 border border-purple-400/50 transition">
+          <button onclick="toggleVttAuthModal(true)" id="btn-vtt-account" class="px-2.5 py-1 text-xs font-bold rounded-full theme-inner-box border hover:border-amber-400 transition">
             👤 Demo Account (Session 1 Free)
           </button>
-          <button onclick="openVttAdminModal()" id="btn-open-vtt-admin" class="hidden px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 border border-amber-400/60 transition">
+          <button onclick="openVttAdminModal()" id="btn-open-vtt-admin" class="hidden px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 border border-amber-400/60 transition">
             👑 Admin Console
           </button>
         </div>
-        <p id="campaign-subtitle" class="text-xs text-slate-400">${initialState.campaignTitle}</p>
+        <p id="campaign-subtitle" class="text-xs text-slate-400 truncate">${initialState.campaignTitle}</p>
       </div>
     </div>
 
     <!-- 3-Screen Ecosystem Switcher -->
-    <div class="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-700/80">
+    <div class="flex flex-wrap items-center gap-1.5 theme-inner-box p-1 rounded-xl border max-w-full">
       <button onclick="setDisplayMode('GM_COMMAND')" id="btn-mode-gm" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">
         👑 GM Command
       </button>
@@ -637,23 +680,23 @@ export function renderVttAppHtml(
     </div>
 
     <!-- Theme, Sound & Settings Controls -->
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2 max-w-full">
       <!-- Theme Toggle (Light / Dark) -->
-      <button onclick="toggleTheme()" id="btn-theme-toggle" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-600 transition flex items-center gap-1.5" title="Switch Theme (Light Parchment vs. Dark Midnight)">
+      <button onclick="toggleTheme()" id="btn-theme-toggle" class="px-2.5 py-2 rounded-lg text-xs font-bold theme-inner-box border hover:border-amber-400 text-amber-300 transition flex items-center gap-1.5" title="Switch Theme (Light Parchment vs. Dark Midnight)">
         🌙 Dark
       </button>
 
       <!-- Audio SFX Mute / Unmute Toggle -->
-      <button onclick="toggleAudioMute()" id="btn-audio-toggle" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-600 transition flex items-center gap-1.5" title="Toggle Dice & Sound Effects">
+      <button onclick="toggleAudioMute()" id="btn-audio-toggle" class="px-2.5 py-2 rounded-lg text-xs font-bold theme-inner-box border hover:border-emerald-400 text-emerald-300 transition flex items-center gap-1.5" title="Toggle Dice & Sound Effects">
         🔊 SFX: ON
       </button>
 
       <!-- Always-Accessible Music Player (On/Off + Track Picker) -->
-      <div class="inline-flex items-center gap-1 rounded-lg bg-slate-800/90 border border-slate-600 p-0.5">
-        <button onclick="toggleMusicPlayback()" id="btn-music-toggle" class="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Turn Background Music On or Off">
+      <div class="inline-flex items-center gap-1 rounded-lg theme-inner-box border p-0.5">
+        <button onclick="toggleMusicPlayback()" id="btn-music-toggle" class="px-2.5 py-1.5 rounded-md text-xs font-bold theme-inner-box transition" title="Turn Background Music On or Off">
           🔇 Music: OFF
         </button>
-        <select id="header-music-select" onchange="selectMusicTrack(this.value)" class="theme-input border-0 rounded-md px-1.5 py-1 text-xs font-bold text-indigo-300 cursor-pointer" title="Choose Background Music Track">
+        <select id="header-music-select" onchange="selectMusicTrack(this.value)" class="theme-input border-0 rounded-md px-1.5 py-1 text-xs font-bold text-amber-300 cursor-pointer" title="Choose Background Music Track">
           <option value="COZY_TAVERN">🎻 Tavern</option>
           <option value="WHISPERING_WOODS">🍃 Woods</option>
           <option value="GOBLIN_KITCHEN">🥁 March</option>
@@ -681,7 +724,7 @@ export function renderVttAppHtml(
         <option value="CLASSIC_PG13">🔥 Classic PG-13</option>
       </select>
 
-      <button onclick="toggleBedtime()" id="btn-bedtime" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-950 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/40 transition">
+      <button onclick="toggleBedtime()" id="btn-bedtime" class="px-3 py-2 rounded-lg text-xs font-bold theme-inner-box border hover:border-amber-400 text-amber-300 transition">
         🌙 Pause for Bedtime
       </button>
     </div>
@@ -1088,13 +1131,13 @@ export function renderVttAppHtml(
           </div>
           <div id="vtt-dpad-pad" class="grid grid-cols-3 grid-rows-3 gap-1 shrink-0 select-none" style="touch-action: manipulation;">
             <div></div>
-            <button id="dpad-btn-up" type="button" onclick="moveSelectedHero(0, -1)" aria-label="Move North" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">▲</button>
+            <button id="dpad-btn-up" type="button" onclick="moveSelectedHero(0, -1)" aria-label="Move North" class="w-11 h-11 rounded-xl theme-inner-box hover:bg-amber-500 hover:text-slate-950 active:scale-95 border font-black text-base shadow transition flex items-center justify-center">▲</button>
             <div></div>
-            <button id="dpad-btn-left" type="button" onclick="moveSelectedHero(-1, 0)" aria-label="Move West" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">◀</button>
-            <button id="dpad-btn-center" type="button" onclick="openHeroSheetModal()" title="Open Selected Hero Sheet" class="w-10 h-10 rounded-xl bg-slate-900 border border-amber-500/50 text-amber-300 font-black text-sm flex items-center justify-center shadow-inner">🛡️</button>
-            <button id="dpad-btn-right" type="button" onclick="moveSelectedHero(1, 0)" aria-label="Move East" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">▶</button>
+            <button id="dpad-btn-left" type="button" onclick="moveSelectedHero(-1, 0)" aria-label="Move West" class="w-11 h-11 rounded-xl theme-inner-box hover:bg-amber-500 hover:text-slate-950 active:scale-95 border font-black text-base shadow transition flex items-center justify-center">◀</button>
+            <button id="dpad-btn-center" type="button" onclick="openHeroSheetModal()" title="Open Selected Hero Sheet" class="w-11 h-11 rounded-xl theme-inner-box border border-amber-500/50 text-amber-300 font-black text-sm flex items-center justify-center shadow-inner">🛡️</button>
+            <button id="dpad-btn-right" type="button" onclick="moveSelectedHero(1, 0)" aria-label="Move East" class="w-11 h-11 rounded-xl theme-inner-box hover:bg-amber-500 hover:text-slate-950 active:scale-95 border font-black text-base shadow transition flex items-center justify-center">▶</button>
             <div></div>
-            <button id="dpad-btn-down" type="button" onclick="moveSelectedHero(0, 1)" aria-label="Move South" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 active:scale-95 border border-slate-600 text-white font-black text-base shadow transition flex items-center justify-center">▼</button>
+            <button id="dpad-btn-down" type="button" onclick="moveSelectedHero(0, 1)" aria-label="Move South" class="w-11 h-11 rounded-xl theme-inner-box hover:bg-amber-500 hover:text-slate-950 active:scale-95 border font-black text-base shadow transition flex items-center justify-center">▼</button>
             <div></div>
           </div>
         </div>
@@ -1115,13 +1158,13 @@ export function renderVttAppHtml(
           <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">🎲 3D Dice Tray & Log</h3>
           <span class="text-[10px] text-amber-400 font-semibold">3D WebGL</span>
         </div>
-        <div id="quick-dice-tray" class="grid grid-cols-6 gap-1">
-          <button onclick="quickRoll3D('d4')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d4</button>
-          <button onclick="quickRoll3D('d6')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d6</button>
-          <button onclick="quickRoll3D('d8')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d8</button>
-          <button onclick="quickRoll3D('d10')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d10</button>
-          <button onclick="quickRoll3D('d12')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d12</button>
-          <button onclick="quickRoll3D('d20')" class="py-1.5 rounded-lg bg-indigo-950/70 hover:bg-amber-500 hover:text-slate-950 border border-indigo-500/40 text-xs font-extrabold text-amber-300 transition">d20</button>
+        <div id="quick-dice-tray" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+          <button onclick="quickRoll3D('d4')" class="py-2 rounded-lg theme-inner-box hover:bg-amber-500 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold text-amber-300 transition">d4</button>
+          <button onclick="quickRoll3D('d6')" class="py-2 rounded-lg theme-inner-box hover:bg-amber-500 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold text-amber-300 transition">d6</button>
+          <button onclick="quickRoll3D('d8')" class="py-2 rounded-lg theme-inner-box hover:bg-amber-500 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold text-amber-300 transition">d8</button>
+          <button onclick="quickRoll3D('d10')" class="py-2 rounded-lg theme-inner-box hover:bg-amber-500 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold text-amber-300 transition">d10</button>
+          <button onclick="quickRoll3D('d12')" class="py-2 rounded-lg theme-inner-box hover:bg-amber-500 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold text-amber-300 transition">d12</button>
+          <button onclick="quickRoll3D('d20')" class="py-2 rounded-lg theme-inner-box hover:bg-amber-500 hover:text-slate-950 border border-amber-500/40 text-xs font-extrabold text-amber-300 transition">d20</button>
         </div>
         <div id="dice-log-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
@@ -1131,11 +1174,11 @@ export function renderVttAppHtml(
   ${renderDice3DOverlayHtml()}
 
   <!-- HYBRID REAL DICE vs. DIGITAL DICE MODAL -->
-  <div id="dice-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+  <div id="dice-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
         <h3 id="dice-modal-title" class="text-lg font-extrabold text-amber-400"></h3>
-        <button onclick="closeDiceModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <button onclick="closeDiceModal()" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
       <p id="dice-modal-desc" class="text-xs text-slate-300"></p>
 
@@ -1155,22 +1198,22 @@ export function renderVttAppHtml(
   </div>
 
   <!-- INTERACTIVE CHARACTER SHEET MODAL -->
-  <div id="hero-sheet-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border-2 border-indigo-400 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+  <div id="hero-sheet-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
-        <h3 id="modal-hero-title" class="text-lg font-extrabold text-indigo-400">📜 Storybook Character Sheet</h3>
-        <button onclick="closeHeroSheetModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <h3 id="modal-hero-title" class="text-lg font-extrabold text-amber-400">📜 Storybook Character Sheet</h3>
+        <button onclick="closeHeroSheetModal()" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
       <div id="modal-hero-content" class="space-y-3 text-xs"></div>
     </div>
   </div>
 
   <!-- 5-MINUTE VISUAL HERO CREATOR MODAL -->
-  <div id="hero-creator-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border-2 border-emerald-400 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-3">
+  <div id="hero-creator-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border-2 border-emerald-400 rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-extrabold text-emerald-400">✨ 5-Minute Kid Hero Creator</h3>
-        <button onclick="toggleHeroCreatorModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <button onclick="toggleHeroCreatorModal()" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
       <div class="space-y-2 text-xs">
         <label class="block text-slate-300">Kid's First Name & Age:</label>
@@ -1201,11 +1244,11 @@ export function renderVttAppHtml(
   ${renderTokenForgeModalHtml()}
 
   <!-- QR JOIN MODAL -->
-  <div id="qr-join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+  <div id="qr-join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border-2 border-amber-400 rounded-3xl max-w-sm w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 text-center">
       <div class="flex items-center justify-between">
         <h3 id="qr-modal-title" class="text-lg font-extrabold text-amber-400">📲 Scan to Join Room ${initialState.roomCode}</h3>
-        <button onclick="toggleQrJoinModal()" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <button onclick="toggleQrJoinModal()" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
       <p class="text-xs text-slate-300">
         Kids & family members can scan this QR badge or tap the link to open the Kid Tablet Controller:
@@ -1224,18 +1267,18 @@ export function renderVttAppHtml(
   </div>
 
   <!-- Demo Account Creation, Login & License Key Modal -->
-  <div id="vtt-auth-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+  <div id="vtt-auth-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl">
       <div class="flex items-center justify-between">
         <h3 class="text-lg font-extrabold text-amber-400">👤 Sign In for Your Private VTT Session</h3>
-        <button id="btn-close-auth-modal" onclick="toggleVttAuthModal(false)" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <button id="btn-close-auth-modal" onclick="toggleVttAuthModal(false)" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
       <div id="vtt-auth-required-banner" class="hidden p-2.5 rounded-xl bg-amber-950/70 border border-amber-500/50 text-[11px] font-semibold text-amber-200">
         🔐 Each user must sign in (or create a free account) to get their own isolated room code &amp; saved adventure!
       </div>
       <div id="vtt-account-summary" class="hidden p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-2"></div>
 
-      <button type="button" onclick="window.location.assign('/api/auth/google/start')" class="w-full py-2 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs flex items-center justify-center gap-2 shadow">
+      <button type="button" onclick="window.location.assign('/api/auth/google/start')" class="w-full py-2.5 px-3 min-h-[44px] rounded-xl bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 font-extrabold text-xs flex items-center justify-center gap-2 shadow">
         ${GOOGLE_ICON_SVG}
         <span>Continue with Google</span>
       </button>
@@ -1450,14 +1493,14 @@ export function renderVttAppHtml(
   </div>
 
   <!-- MODAL: LOCKED DOOR LOCKPICK CHECK -->
-  <div id="lockpick-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border-2 border-rose-500/60 rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-3">
+  <div id="lockpick-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border-2 border-rose-500/60 rounded-2xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-5 shadow-2xl flex flex-col gap-3">
       <div class="flex items-center justify-between">
         <div>
           <h3 id="lockpick-door-title" class="text-base font-extrabold text-amber-400">🔐 Locked Door</h3>
           <p id="lockpick-door-subtitle" class="text-xs text-slate-300 mt-0.5">Roll Sleight of Hand to pick the tumbler lock!</p>
         </div>
-        <button onclick="document.getElementById('lockpick-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <button onclick="document.getElementById('lockpick-modal').classList.add('hidden')" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
       <div class="theme-inner-box border rounded-xl p-3 flex flex-col gap-2">
         <label class="text-[11px] font-bold text-slate-300">Picking Character (Sleight of Hand / Thieves' Tools)</label>
@@ -1485,18 +1528,18 @@ export function renderVttAppHtml(
   </div>
 
   <!-- MODAL: GROUP READ-ALOUD & SPOKEN ROLEPLAY PROMPT -->
-  <div id="rp-readout-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="theme-card border-2 border-purple-500/70 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+  <div id="rp-readout-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+    <div class="theme-card border-2 border-amber-500/70 rounded-3xl max-w-lg w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-center gap-3">
-          <div id="rp-modal-emoji" class="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-400/60 flex items-center justify-center text-2xl shadow-md">📖</div>
+          <div id="rp-modal-emoji" class="w-12 h-12 rounded-2xl bg-amber-950/80 border border-amber-400/60 flex items-center justify-center text-2xl shadow-md">📖</div>
           <div>
             <span id="rp-modal-badge" class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">STORYTELLER HOOK</span>
             <h3 id="rp-modal-title" class="text-base font-extrabold text-amber-400 mt-1">Session Opening</h3>
             <p id="rp-modal-speaker" class="text-[11px] text-slate-400">Speaking to the Group</p>
           </div>
         </div>
-        <button onclick="dismissRpPrompt()" class="text-slate-400 hover:text-white text-sm">✕</button>
+        <button onclick="dismissRpPrompt()" class="text-slate-400 hover:text-amber-400 min-w-[40px] min-h-[40px] flex items-center justify-center text-base">✕</button>
       </div>
 
       <div id="rp-modal-art-strip" class="grid grid-cols-2 gap-2">
@@ -1596,23 +1639,23 @@ export function renderVttAppHtml(
             Your room is completely isolated to your account (<strong id="walkthrough-room-code" class="font-mono text-amber-300">${initialState.roomCode}</strong>). Other players don't need separate accounts—they join strictly as table players using your signed invite!
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700/70 space-y-1">
+            <div class="p-3 rounded-xl theme-inner-box border space-y-1">
               <div class="font-bold text-emerald-300">📱 Kid Tablets &amp; Phones</div>
               <p class="text-[11px] text-slate-300">Click <strong>📲 Open Scannable QR Code</strong> below and let players scan the QR with their camera—or copy &amp; text the Kid Controller link directly. They only see revealed rooms &amp; player controls!</p>
             </div>
-            <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-700/70 space-y-1">
+            <div class="p-3 rounded-xl theme-inner-box border space-y-1">
               <div class="font-bold text-sky-300">📺 Shared Table / Living Room TV</div>
               <p class="text-[11px] text-slate-300">Open the invite link with <code class="text-amber-300">&amp;mode=tv</code> on a TV browser (or switch tabs with <strong>📺 TV Display</strong>) to keep GM whispers and hidden fog zones secret.</p>
             </div>
           </div>
-          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+          <div class="p-2.5 rounded-xl theme-inner-box border space-y-1.5">
             <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Signed Kid Tablet Invite Link</div>
             <div id="walkthrough-join-url" class="font-mono text-[11px] text-emerald-300 break-all"></div>
             <div class="flex flex-wrap gap-2 pt-1">
               <button type="button" onclick="toggleQrJoinModal()" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black">
                 📲 Open Scannable QR Code
               </button>
-              <button type="button" onclick="copyWalkthroughJoinUrl()" id="btn-copy-wt-link" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold border border-slate-600">
+              <button type="button" onclick="copyWalkthroughJoinUrl()" id="btn-copy-wt-link" class="px-3 py-1.5 rounded-xl theme-inner-box border hover:border-amber-400 font-bold">
                 📋 Copy Invite Link
               </button>
             </div>
@@ -1791,8 +1834,8 @@ export function renderVttAppHtml(
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           if (AudioContextClass) this.ctx = new AudioContextClass();
         }
-        if (this.ctx && this.ctx.state === "suspended") {
-          this.ctx.resume();
+        if (this.ctx && this.ctx.state === "suspended" && this.ctx.resume) {
+          this.ctx.resume().catch(() => {});
         }
       },
       playDiceRoll() {
@@ -1991,16 +2034,30 @@ export function renderVttAppHtml(
     })();
 
     /* ==========================================================
-       2. LIGHT MODE & DARK MODE THEME SYSTEM
+       2. LIGHT MODE, DARK MODE & HTML ESCAPING UTILITIES
        ========================================================== */
-    let currentTheme = localStorage.getItem("hearthquest_theme") || "dark";
+    function escHtml(val) {
+      return String(val == null ? "" : val)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+    function safeAssetSrc(url) {
+      const s = String(url || "").trim();
+      const l = s.toLowerCase();
+      return ((s.startsWith("/") && !s.startsWith("//")) || l.startsWith("https://") || l.startsWith("http://") || l.startsWith("data:image/png;base64,") || l.startsWith("data:image/jpeg;base64,") || l.startsWith("data:image/webp;base64,")) ? s : "";
+    }
+    let currentTheme = localStorage.getItem("hearthquest_theme") || localStorage.getItem("hearthquest-theme") || "dark";
     function applyTheme(theme) {
-      currentTheme = theme;
-      localStorage.setItem("hearthquest_theme", theme);
-      document.body.setAttribute("data-theme", theme);
+      currentTheme = theme === "light" ? "light" : "dark";
+      localStorage.setItem("hearthquest_theme", currentTheme);
+      localStorage.setItem("hearthquest-theme", currentTheme);
+      document.body.setAttribute("data-theme", currentTheme);
       const btn = document.getElementById("btn-theme-toggle");
       if (btn) {
-        btn.innerText = theme === "light" ? "☀️ Light" : "🌙 Dark";
+        btn.innerText = currentTheme === "light" ? "☀️ Light" : "🌙 Dark";
       }
       const modal = document.getElementById("hero-sheet-modal");
       if (modal && !modal.classList.contains("hidden")) {
@@ -2094,11 +2151,11 @@ export function renderVttAppHtml(
         const providerBadge = currentAccount.authProvider === "GOOGLE" ? "Google SSO" : "Email";
         const roleBadge = isAdmin
           ? "<span class='px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-400/50 font-black text-[10px]'>👑 ADMIN</span>"
-          : "<span class='px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[10px]'>USER</span>";
+          : "<span class='px-1.5 py-0.5 rounded theme-inner-box border font-bold text-[10px]'>USER</span>";
         summary.classList.remove("hidden");
         summary.innerHTML =
-          "<div class='flex justify-between items-center gap-2'><strong>" + currentAccount.familyName + " " + roleBadge + "</strong><button onclick='logoutVttAccountUi()' class='text-rose-400 underline font-bold'>Sign Out</button></div>" +
-          "<div>Personal Room: <strong class='font-mono text-amber-300'>" + currentAccount.trialRoomCode + "</strong> • Mode: <strong>" + rulesShort + "</strong> • Auth: <strong>" + providerBadge + "</strong></div>";
+          "<div class='flex justify-between items-center gap-2'><strong>" + escHtml(currentAccount.familyName) + " " + roleBadge + "</strong><button onclick='logoutVttAccountUi()' class='text-rose-400 underline font-bold'>Sign Out</button></div>" +
+          "<div>Personal Room: <strong class='font-mono text-amber-300'>" + escHtml(currentAccount.trialRoomCode) + "</strong> • Mode: <strong>" + escHtml(rulesShort) + "</strong> • Auth: <strong>" + escHtml(providerBadge) + "</strong></div>";
       }
       if (prefsBox) {
         prefsBox.classList.remove("hidden");
@@ -2170,16 +2227,16 @@ export function renderVttAppHtml(
       const gBox = document.getElementById("vtt-admin-google-status");
       if (gBox && data.googleConfig) {
         gBox.innerHTML =
-          "<div class='font-extrabold text-indigo-300'>Google OAuth 2.0 Status: " +
+          "<div class='font-extrabold text-amber-300'>Google OAuth 2.0 Status: " +
           (data.googleConfig.configured ? "<span class='text-emerald-400'>CONFIGURED (Live OIDC)</span>" : "<span class='text-amber-300'>UNCONFIGURED (Local Dev Preview Active)</span>") +
           "</div>" +
-          "<div class='text-slate-400'>Callback Redirect URI: <code class='text-emerald-300 font-mono'>" + data.googleConfig.redirectUri + "</code></div>";
+          "<div class='text-slate-400'>Callback Redirect URI: <code class='text-emerald-300 font-mono'>" + escHtml(data.googleConfig.redirectUri) + "</code></div>";
       }
       const targetSel = document.getElementById("admin-send-target-room");
       if (targetSel) {
         const prev = targetSel.value;
         targetSel.innerHTML = (data.accounts || []).map((a) =>
-          "<option value='" + a.trialRoomCode + "'>" + a.familyName + " (" + a.role + ") — Room " + a.trialRoomCode + "</option>"
+          "<option value='" + escHtml(a.trialRoomCode) + "'>" + escHtml(a.familyName) + " (" + escHtml(a.role) + ") — Room " + escHtml(a.trialRoomCode) + "</option>"
         ).join("");
         if (prev && Array.from(targetSel.options).some((o) => o.value === prev)) {
           targetSel.value = prev;
@@ -2192,10 +2249,10 @@ export function renderVttAppHtml(
           const nextRole = isAdmin ? "USER" : "ADMIN";
           return "<div class='p-3 rounded-xl theme-inner-box border flex items-center justify-between gap-2'>" +
             "<div>" +
-              "<div class='font-bold text-slate-100'>" + (isAdmin ? "👑 " : "👤 ") + a.familyName + " <span class='font-mono text-slate-400'>(" + a.email + ")</span></div>" +
-              "<div class='text-[11px] text-slate-400'>Room: <strong class='text-amber-300 font-mono'>" + a.trialRoomCode + "</strong> • Auth: <strong>" + a.authProvider + "</strong> • Tier: <strong>" + a.subscriptionTier + "</strong></div>" +
+              "<div class='font-bold text-slate-100'>" + (isAdmin ? "👑 " : "👤 ") + escHtml(a.familyName) + " <span class='font-mono text-slate-400'>(" + escHtml(a.email) + ")</span></div>" +
+              "<div class='text-[11px] text-slate-400'>Room: <strong class='text-amber-300 font-mono'>" + escHtml(a.trialRoomCode) + "</strong> • Auth: <strong>" + escHtml(a.authProvider) + "</strong> • Tier: <strong>" + escHtml(a.subscriptionTier) + "</strong></div>" +
             "</div>" +
-            "<button type='button' data-acct-id='" + a.id + "' data-next-role='" + nextRole + "' onclick='toggleAccountRoleByAdmin(this.dataset.acctId, this.dataset.nextRole)' class='px-2.5 py-1 rounded-lg text-[11px] font-bold " + (isAdmin ? "bg-slate-800 hover:bg-slate-700 text-slate-200" : "bg-amber-500 hover:bg-amber-400 text-slate-950") + "'>" +
+            "<button type='button' data-acct-id='" + escHtml(a.id) + "' data-next-role='" + escHtml(nextRole) + "' onclick='toggleAccountRoleByAdmin(this.dataset.acctId, this.dataset.nextRole)' class='px-2.5 py-1.5 rounded-lg text-[11px] font-bold " + (isAdmin ? "theme-inner-box border" : "bg-amber-500 hover:bg-amber-400 text-slate-950") + "'>" +
               (isAdmin ? "Demote to User" : "Make Admin") +
             "</button>" +
           "</div>";
@@ -2892,7 +2949,11 @@ export function renderVttAppHtml(
 
       const res = await fetch("/api/room/door-interact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
+          ...(vttGuestToken ? { "x-hearthquest-guest": vttGuestToken } : {}),
+        },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
@@ -3237,7 +3298,7 @@ export function renderVttAppHtml(
           headers: {
             "Content-Type": "application/json",
             ...(vttAuthToken ? { Authorization: "Bearer " + vttAuthToken } : {}),
-            ...(vttGuestToken ? { "x-vtt-guest": vttGuestToken } : {}),
+            ...(vttGuestToken ? { "x-hearthquest-guest": vttGuestToken } : {}),
           },
           body: JSON.stringify({
             text: clean,
@@ -3334,20 +3395,20 @@ export function renderVttAppHtml(
       document.getElementById("msb-name").innerText = (tok.avatarEmoji || "👹") + " " + (sb.creatureName || tok.name);
       document.getElementById("msb-meta").innerText = sb.sizeTypeAlignment || "Creature";
       document.getElementById("msb-vitals").innerHTML =
-        '<div>🛡️ AC <span class="text-amber-300">' + sb.armorClass + '</span></div>' +
-        '<div>❤️ HP <span class="text-emerald-300">' + tok.hp + '/' + tok.maxHp + '</span> (' + sb.hitDice + ')</div>' +
-        '<div>⚔️ CR <span class="text-sky-300">' + sb.challengeRating + '</span> (' + sb.xp + ' XP)</div>';
+        '<div>🛡️ AC <span class="text-amber-300">' + Number(sb.armorClass || 10) + '</span></div>' +
+        '<div>❤️ HP <span class="text-emerald-300">' + Number(tok.hp || 0) + '/' + Number(tok.maxHp || 0) + '</span> (' + escHtml(sb.hitDice) + ')</div>' +
+        '<div>⚔️ CR <span class="text-sky-300">' + escHtml(sb.challengeRating) + '</span> (' + Number(sb.xp || 0) + ' XP)</div>';
       const ab = sb.abilities || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
       document.getElementById("msb-abilities").innerHTML =
         [["STR", ab.str], ["DEX", ab.dex], ["CON", ab.con], ["INT", ab.int], ["WIS", ab.wis], ["CHA", ab.cha]]
-          .map(([k, v]) => '<div class="p-1 rounded-lg bg-slate-900/70 border border-slate-700/60"><div class="text-[9px] text-slate-400">' + k + '</div><div class="font-bold text-slate-100">' + v + ' (' + modStr(v) + ')</div></div>')
+          .map(([k, v]) => '<div class="p-1 rounded-lg theme-inner-box border"><div class="text-[9px] text-slate-400">' + escHtml(k) + '</div><div class="font-bold text-slate-100">' + Number(v || 10) + ' (' + escHtml(modStr(v)) + ')</div></div>')
           .join("");
       document.getElementById("msb-traits").innerHTML = (sb.traits || [])
-        .map(t => '<div>• ' + t + '</div>')
+        .map(t => '<div>• ' + escHtml(t) + '</div>')
         .join("");
-      document.getElementById("msb-actions").innerHTML = '<div class="font-extrabold text-amber-300 uppercase text-[10px]">Actions • Speed ' + (sb.speed || "30 ft.") + '</div>' +
+      document.getElementById("msb-actions").innerHTML = '<div class="font-extrabold text-amber-300 uppercase text-[10px]">Actions • Speed ' + escHtml(sb.speed || "30 ft.") + '</div>' +
         (sb.actions || [])
-          .map(a => '<div class="mt-0.5"><strong>' + a.name + '</strong> (' + (a.attackBonus >= 0 ? "+" : "") + a.attackBonus + ' to hit, ' + a.damageDice + ' ' + a.damageType + '): ' + a.description + '</div>')
+          .map(a => '<div class="mt-0.5"><strong>' + escHtml(a.name) + '</strong> (' + (a.attackBonus >= 0 ? "+" : "") + Number(a.attackBonus || 0) + ' to hit, ' + escHtml(a.damageDice) + ' ' + escHtml(a.damageType) + '): ' + escHtml(a.description) + '</div>')
           .join("");
       const rpBtn = document.getElementById("msb-rp-btn");
       if (rpBtn) {
@@ -3805,31 +3866,32 @@ export function renderVttAppHtml(
     function openHeroSheetModal() {
       const hero = state.heroes.find(h => h.id === selectedHeroId) || state.heroes[0];
       if (!hero) return;
-      document.getElementById("modal-hero-title").innerHTML = \`\${hero.avatarEmoji} \${hero.name} — Character Sheet\`;
+      document.getElementById("modal-hero-title").innerText = (hero.avatarEmoji || "🛡️") + " " + (hero.name || "Hero") + " — Character Sheet";
       const stars = "⭐".repeat(hero.levelStars || 1);
       const content = document.getElementById("modal-hero-content");
       const isLight = document.body.getAttribute("data-theme") === "light";
       const profSet = new Set(hero.proficientSkills || []);
       const profBonus = state.rulesTier === "STORYBOOK_D6" ? 1 : 2;
       const calcMod = (score) => Math.floor((score - 10) / 2);
-      const modalPortrait = hero.assetPath
-        ? \`<img src="\${hero.assetPath}" class="w-12 h-12 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${hero.name}" />\`
-        : \`<span class="text-3xl shrink-0">\${hero.avatarEmoji}</span>\`;
+      const heroAsset = safeAssetSrc(hero.assetPath);
+      const modalPortrait = heroAsset
+        ? \`<img src="\${escHtml(heroAsset)}" class="w-12 h-12 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${escHtml(hero.name)}" />\`
+        : \`<span class="text-3xl shrink-0">\${escHtml(hero.avatarEmoji)}</span>\`;
 
       const abilitiesHtml = state.rulesTier === "STORYBOOK_D6"
         ? \`
           <div class="grid grid-cols-3 gap-2">
-            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">BRAWN</div><div class="text-base font-extrabold text-amber-500">+\${hero.storybookStats.brawn}</div></div>
-            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">BRAINS</div><div class="text-base font-extrabold text-sky-500">+\${hero.storybookStats.brains}</div></div>
-            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">CHARM</div><div class="text-base font-extrabold text-rose-500">+\${hero.storybookStats.charm}</div></div>
+            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">BRAWN</div><div class="text-base font-extrabold text-amber-500">+\${Number(hero.storybookStats.brawn || 0)}</div></div>
+            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">BRAINS</div><div class="text-base font-extrabold text-sky-500">+\${Number(hero.storybookStats.brains || 0)}</div></div>
+            <div class="p-2 rounded-xl theme-inner-box border text-center"><div class="text-[10px] text-slate-400 font-bold">CHARM</div><div class="text-base font-extrabold text-rose-500">+\${Number(hero.storybookStats.charm || 0)}</div></div>
           </div>
         \`
         : \`
-          <div class="grid grid-cols-6 gap-1.5">
+          <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
             \${["str", "dex", "con", "int", "wis", "cha"].map(k => {
-              const sc = hero.attributes5e[k];
+              const sc = Number(hero.attributes5e[k] || 10);
               const m = calcMod(sc);
-              return \`<div class="p-1.5 rounded-xl theme-inner-box border text-center"><div class="text-[9px] uppercase font-bold text-slate-400">\${k}</div><div class="text-sm font-extrabold">\${m >= 0 ? "+" + m : m}</div><div class="text-[10px] text-slate-400">\${sc}</div></div>\`;
+              return \`<div class="p-1.5 rounded-xl theme-inner-box border text-center"><div class="text-[9px] uppercase font-bold text-slate-400">\${k}</div><div class="text-sm font-extrabold tabular-nums">\${m >= 0 ? "+" + m : m}</div><div class="text-[10px] text-slate-400 tabular-nums">\${sc}</div></div>\`;
             }).join("")}
           </div>
         \`;
@@ -3843,23 +3905,23 @@ export function renderVttAppHtml(
         const modLabel = totalMod >= 0 ? "+" + totalMod : "" + totalMod;
         const themeCls = isLight ? sk.accentLightClass : sk.accentDarkClass;
         return \`
-          <button onclick="rollHeroSkill('\${sk.id}')" class="p-2 rounded-xl border text-left flex items-center justify-between gap-1 hover:scale-[1.02] transition shadow-sm \${themeCls}">
-            <span class="font-bold flex items-center gap-1 truncate"><span>\${sk.icon}</span><span class="truncate">\${sk.name}</span>\${isProf ? "<span title='Proficient'>★</span>" : ""}</span>
-            <span class="font-mono font-extrabold px-1.5 py-0.5 rounded bg-black/15 text-[11px]">\${modLabel}</span>
+          <button type="button" data-skill-id="\${escHtml(sk.id)}" onclick="rollHeroSkill(this.dataset.skillId)" class="p-2 rounded-xl border text-left flex items-center justify-between gap-1 hover:scale-[1.02] transition shadow-sm \${themeCls}">
+            <span class="font-bold flex items-center gap-1 truncate"><span>\${escHtml(sk.icon)}</span><span class="truncate">\${escHtml(sk.name)}</span>\${isProf ? "<span title='Proficient'>★</span>" : ""}</span>
+            <span class="font-mono font-extrabold px-1.5 py-0.5 rounded bg-black/15 text-[11px] tabular-nums">\${escHtml(modLabel)}</span>
           </button>
         \`;
       }).join("");
 
       content.innerHTML = \`
-        <div class="flex items-center gap-3 p-3 rounded-xl theme-inner-box border">
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 p-3 rounded-xl theme-inner-box border">
           \${modalPortrait}
-          <div class="flex-1">
-            <div class="font-extrabold text-sm text-amber-500">\${hero.archetype}</div>
-            <div class="text-slate-400">Played by \${hero.playerName} • Mode: \${isLight ? "☀️ Light Parchment" : "🌙 Dark Midnight"}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-extrabold text-sm text-amber-500 truncate">\${escHtml(hero.archetype)}</div>
+            <div class="text-slate-400">Played by \${escHtml(hero.playerName)} • Mode: \${isLight ? "☀️ Light Parchment" : "🌙 Dark Midnight"}</div>
           </div>
           <div class="text-right shrink-0">
             <div class="text-xs font-bold text-amber-400">Level: \${stars}</div>
-            <div class="text-xs text-rose-500 font-bold">\${hero.rulesTier === "STORYBOOK_D6" ? "❤️".repeat(hero.storybookStats.hearts) + " Hearts" : "❤️ " + hero.attributes5e.hp + " HP • 🛡️ AC " + hero.attributes5e.armorClass}</div>
+            <div class="text-xs text-rose-500 font-bold tabular-nums">\${hero.rulesTier === "STORYBOOK_D6" ? "❤️".repeat(hero.storybookStats.hearts) + " Hearts" : "❤️ " + Number(hero.attributes5e.hp) + " HP • 🛡️ AC " + Number(hero.attributes5e.armorClass)}</div>
           </div>
         </div>
 
@@ -3867,15 +3929,15 @@ export function renderVttAppHtml(
 
         <div class="p-3 rounded-xl theme-inner-box border space-y-2">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-indigo-400">🎯 Click Any Skill to Roll in 3D:</span>
+            <span class="font-bold text-amber-400">🎯 Click Any Skill to Roll in 3D:</span>
             <span class="text-[10px] text-slate-400">★ Proficient (+\${profBonus})</span>
           </div>
-          <div class="grid grid-cols-2 gap-1.5">\${skillsHtml}</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">\${skillsHtml}</div>
         </div>
 
         <div class="p-3 rounded-xl theme-inner-box border space-y-1">
-          <div class="font-bold text-amber-500">🐾 Pet Companion: \${hero.companionPet}</div>
-          <p class="text-slate-300">\${hero.petTrait || "Always loyal and ready to assist during family adventures!"}</p>
+          <div class="font-bold text-amber-500">🐾 Pet Companion: \${escHtml(hero.companionPet)}</div>
+          <p class="text-slate-300">\${escHtml(hero.petTrait || "Always loyal and ready to assist during family adventures!")}</p>
         </div>
 
         <div class="p-3 rounded-xl theme-inner-box border space-y-2">
@@ -3883,10 +3945,10 @@ export function renderVttAppHtml(
           <div class="space-y-1.5">
             \${hero.inventory.map(item => \`
               <div class="p-2 rounded-lg theme-inner-box border flex items-center gap-2">
-                <span class="text-xl">\${item.icon}</span>
+                <span class="text-xl">\${escHtml(item.icon)}</span>
                 <div>
-                  <div class="font-bold text-amber-500">\${item.name}</div>
-                  <div class="text-[11px] text-slate-400">\${item.description}</div>
+                  <div class="font-bold text-amber-500">\${escHtml(item.name)}</div>
+                  <div class="text-[11px] text-slate-400">\${escHtml(item.description)}</div>
                 </div>
               </div>
             \`).join("")}
@@ -3932,7 +3994,7 @@ export function renderVttAppHtml(
       const maxVal = state.rulesTier === "STORYBOOK_D6" ? 6 : 20;
       for (let v = 1; v <= maxVal; v++) {
         const b = document.createElement("button");
-        b.className = "py-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white font-extrabold text-xs transition border border-slate-700";
+        b.className = "py-2.5 rounded-xl theme-inner-box hover:bg-emerald-600 hover:text-white font-extrabold text-xs transition border";
         b.innerText = v;
         b.onclick = () => submitActionRoll("PHYSICAL_DICE_TABLE", v);
         btnGrid.appendChild(b);
@@ -4021,7 +4083,7 @@ export function renderVttAppHtml(
         if (m === displayMode) {
           el.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 text-slate-950 shadow";
         } else {
-          el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white";
+          el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-amber-400";
         }
       }
 
@@ -4200,7 +4262,7 @@ export function renderVttAppHtml(
 
           if (x === zone?.gridX && y === 0) {
             const label = document.createElement("span");
-            label.className = "absolute top-1 left-1.5 text-[10px] font-bold text-slate-400 pointer-events-none whitespace-nowrap";
+            label.className = "absolute top-1 left-1.5 right-1 text-[10px] font-bold text-slate-400 pointer-events-none truncate";
             label.innerText = isFogged ? "🌫️ Unexplored" : zone.name;
             cell.appendChild(label);
           }
@@ -4244,7 +4306,7 @@ export function renderVttAppHtml(
               const isDpadSelected = controllableTok && controllableTok.id === tok.id;
               const badge = document.createElement("div");
               badge.className =
-                "token-standee w-9 h-9 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 text-base sm:text-lg font-bold select-none" +
+                "token-standee w-7 h-7 sm:w-11 sm:h-11 rounded-full flex flex-col items-center justify-center shadow-lg border-2 text-sm sm:text-lg font-bold select-none" +
                 (isDpadSelected ? " border-amber-300 ring-4 ring-amber-400/75" : " border-white") +
                 (isTurnActive ? " active-turn-ring" : "");
               badge.style.backgroundColor = tok.color || "#f59e0b";
@@ -4264,16 +4326,18 @@ export function renderVttAppHtml(
                 statusOverlay = \`<span class="absolute -top-1.5 -right-1.5 text-xs z-20">💫</span>\`;
               }
 
-              const portraitContent = tok.assetPath
-                ? \`<img src="\${tok.assetPath}" class="token-portrait-img" alt="\${tok.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" /><span style="display:none;">\${tok.avatarEmoji}</span>\`
-                : \`<span>\${tok.avatarEmoji}</span>\`;
+              const tokSrc = safeAssetSrc(tok.assetPath);
+              const portraitContent = tokSrc
+                ? \`<img src="\${escHtml(tokSrc)}" class="token-portrait-img" alt="\${escHtml(tok.name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';" /><span style="display:none;">\${escHtml(tok.avatarEmoji)}</span>\`
+                : \`<span>\${escHtml(tok.avatarEmoji)}</span>\`;
 
+              const firstWord = String(tok.name || "Hero").split(" ")[0];
               badge.innerHTML = \`
                 \${statusOverlay}
                 <div class="w-full h-full relative rounded-full overflow-hidden flex items-center justify-center">
                   \${portraitContent}
                 </div>
-                <span class="absolute -bottom-2 text-[8px] font-bold bg-slate-900/90 text-white px-1 rounded shadow-sm leading-tight truncate max-w-[46px] pointer-events-none">\${tok.name.split(" ")[0]}</span>
+                <span class="absolute -bottom-2 text-[8px] font-bold bg-slate-900/90 text-white px-1 rounded shadow-sm leading-tight truncate max-w-[46px] pointer-events-none">\${escHtml(firstWord)}</span>
               \`;
 
               badge.style.touchAction = "none";
@@ -4486,7 +4550,7 @@ export function renderVttAppHtml(
             const lockBtn = document.createElement("button");
             lockBtn.onclick = () => gmToggleDoorLock(d.id);
             lockBtn.title = d.isLocked ? "Unlock this door as GM" : "Lock this door (requires Sleight of Hand Lockpick Check)";
-            lockBtn.className = "px-2 py-1 rounded-lg text-[11px] font-bold border bg-slate-900 border-slate-600 text-slate-300 hover:border-amber-400";
+            lockBtn.className = "px-2 py-1 rounded-lg text-[11px] font-bold border theme-inner-box hover:border-amber-400";
             lockBtn.innerText = d.isLocked ? "🔓 GM Unlock" : "🔐 GM Lock";
             wrap.appendChild(lockBtn);
           }
@@ -4512,7 +4576,7 @@ export function renderVttAppHtml(
               ? \`Locked Door (\${d.lockLabel || "Brass Tumbler Lock"}, DC \${dcTag}) — Click to roll Lockpick Check!\`
               : \`Unlocked Door #\${idx + 1} — Click to open!\`;
             hitbox.className =
-              "pointer-events-auto absolute w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-lg border transition hover:scale-115 " +
+              "pointer-events-auto absolute w-9 h-9 rounded-full flex items-center justify-center text-xs shadow-lg border transition hover:scale-115 " +
               (d.isOpen
                 ? "bg-emerald-950/70 border-emerald-400/70 text-emerald-200 opacity-75 hover:opacity-100"
                 : d.isLocked
@@ -4531,8 +4595,8 @@ export function renderVttAppHtml(
         const btn = document.createElement("button");
         btn.onclick = () => chooseBranch(ch.targetNodeId, ch.consequenceTag);
         btn.className =
-          "p-2.5 rounded-xl bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-500/40 text-left transition";
-        btn.innerHTML = \`<div class="text-xs font-bold text-amber-300">\${ch.label}</div><div class="text-[11px] text-indigo-300 mt-0.5">🎲 Check: \${ch.requiredCheck || "Story Choice"}</div>\`;
+          "p-2.5 rounded-xl theme-inner-box hover:border-amber-400 border text-left transition";
+        btn.innerHTML = \`<div class="text-xs font-bold text-amber-300">\${escHtml(ch.label)}</div><div class="text-[11px] text-slate-400 mt-0.5">🎲 Check: \${escHtml(ch.requiredCheck || "Story Choice")}</div>\`;
         choicesEl.appendChild(btn);
       }
 
@@ -4546,8 +4610,8 @@ export function renderVttAppHtml(
           (sp.needsSpotlightNudge
             ? "bg-amber-950/60 border-amber-400 text-amber-200"
             : "theme-inner-box border text-slate-300");
-        row.innerHTML = \`<div class="flex justify-between font-semibold"><span>\${sp.characterName} (\${sp.playerName})</span><span>\${sp.turnsTaken} turns</span></div>\` +
-          (sp.suggestedSpotlightHook ? \`<div class="text-[11px] text-amber-300">\${sp.suggestedSpotlightHook}</div>\` : "");
+        row.innerHTML = \`<div class="flex justify-between font-semibold"><span>\${escHtml(sp.characterName)} (\${escHtml(sp.playerName)})</span><span class="tabular-nums">\${Number(sp.turnsTaken || 0)} turns</span></div>\` +
+          (sp.suggestedSpotlightHook ? \`<div class="text-[11px] text-amber-300">\${escHtml(sp.suggestedSpotlightHook)}</div>\` : "");
         spotEl.appendChild(row);
       }
 
@@ -4567,10 +4631,11 @@ export function renderVttAppHtml(
           (active
             ? "bg-amber-500/20 border-amber-400 text-amber-300"
             : "theme-inner-box border text-slate-400");
-        const tabPortrait = h.assetPath
-          ? \`<img src="\${h.assetPath}" class="w-8 h-8 rounded-full border border-amber-400/60 object-cover shrink-0" alt="\${h.name}" />\`
-          : \`<span class="text-xl shrink-0">\${h.avatarEmoji}</span>\`;
-        t.innerHTML = \`\${tabPortrait}<div class="truncate"><div class="text-xs font-bold truncate">\${h.name}</div><div class="text-[10px] text-slate-400">\${h.playerName}</div></div>\`;
+        const tabSrc = safeAssetSrc(h.assetPath);
+        const tabPortrait = tabSrc
+          ? \`<img src="\${escHtml(tabSrc)}" class="w-8 h-8 rounded-full border border-amber-400/60 object-cover shrink-0" alt="\${escHtml(h.name)}" />\`
+          : \`<span class="text-xl shrink-0">\${escHtml(h.avatarEmoji)}</span>\`;
+        t.innerHTML = \`\${tabPortrait}<div class="truncate"><div class="text-xs font-bold truncate">\${escHtml(h.name)}</div><div class="text-[10px] text-slate-400 truncate">\${escHtml(h.playerName)}</div></div>\`;
         tabsEl.appendChild(t);
       }
 
@@ -4610,22 +4675,23 @@ export function renderVttAppHtml(
             ? "❤️".repeat(currentHero.storybookStats.hearts) + " (" + currentHero.storybookStats.hearts + "/3 Hearts)"
             : \`❤️ \${currentHero.attributes5e.hp}/\${currentHero.attributes5e.maxHp} HP • 🛡️ AC \${currentHero.attributes5e.armorClass}\`;
 
-        const headerPortrait = currentHero.assetPath
-          ? \`<img src="\${currentHero.assetPath}" class="w-10 h-10 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${currentHero.name}" />\`
-          : \`<span class="text-2xl shrink-0">\${currentHero.avatarEmoji}</span>\`;
+        const headerSrc = safeAssetSrc(currentHero.assetPath);
+        const headerPortrait = headerSrc
+          ? \`<img src="\${escHtml(headerSrc)}" class="w-10 h-10 rounded-full border-2 border-amber-400 shadow-md object-cover shrink-0" alt="\${escHtml(currentHero.name)}" />\`
+          : \`<span class="text-2xl shrink-0">\${escHtml(currentHero.avatarEmoji)}</span>\`;
 
         sheetEl.innerHTML = \`
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2.5 min-w-0">
               \${headerPortrait}
               <div class="min-w-0">
-                <div class="text-sm font-bold text-amber-400 truncate">\${currentHero.name}</div>
-                <div class="text-[11px] text-slate-400 truncate">\${currentHero.archetype} • Pet: \${currentHero.companionPet}</div>
+                <div class="text-sm font-bold text-amber-400 truncate">\${escHtml(currentHero.name)}</div>
+                <div class="text-[11px] text-slate-400 truncate">\${escHtml(currentHero.archetype)} • Pet: \${escHtml(currentHero.companionPet)}</div>
               </div>
             </div>
             <div class="text-right shrink-0 space-y-1">
-              <div class="text-xs font-bold text-rose-400">\${healthDisplay}</div>
-              <button type="button" onclick="openHeroSheetModal()" class="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-bold text-slate-200">
+              <div class="text-xs font-bold text-rose-400 tabular-nums">\${healthDisplay}</div>
+              <button type="button" onclick="openHeroSheetModal()" class="px-2.5 py-1 rounded-md theme-inner-box border hover:border-amber-400 text-[10px] font-bold">
                 📋 Sheet & Skills
               </button>
             </div>
@@ -4643,13 +4709,13 @@ export function renderVttAppHtml(
             "w-full p-3 rounded-xl theme-inner-box hover:border-amber-400 border text-left transition flex items-center justify-between";
           cardBtn.innerHTML = \`
             <div class="flex items-center gap-2.5">
-              <span class="text-2xl">\${c.icon}</span>
+              <span class="text-2xl">\${escHtml(c.icon)}</span>
               <div>
-                <div class="text-xs font-extrabold text-amber-400">\${c.title}</div>
-                <div class="text-[11px] text-slate-300">\${c.description}</div>
+                <div class="text-xs font-extrabold text-amber-400">\${escHtml(c.title)}</div>
+                <div class="text-[11px] text-slate-300">\${escHtml(c.description)}</div>
               </div>
             </div>
-            <span class="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-mono text-xs font-bold whitespace-nowrap">🎲 \${dieLabel}</span>
+            <span class="px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 font-mono text-xs font-bold whitespace-nowrap tabular-nums">🎲 \${escHtml(dieLabel)}</span>
           \`;
           cardsEl.appendChild(cardBtn);
         }
@@ -4670,11 +4736,11 @@ export function renderVttAppHtml(
               : "bg-amber-950/40 border-amber-500/40 text-amber-200");
           const srcBadge = r.source === "PHYSICAL_DICE_TABLE" ? "🎲 Real Table Die" : "📱 Digital 3D Die";
           item.innerHTML = \`
-            <div class="flex justify-between font-bold">
-              <span>\${r.characterName}: \${r.actionTitle}</span>
-              <span>Rolled \${r.total} (\${srcBadge})</span>
+            <div class="flex justify-between font-bold gap-2">
+              <span>\${escHtml(r.characterName)}: \${escHtml(r.actionTitle)}</span>
+              <span class="tabular-nums shrink-0">Rolled \${Number(r.total || 0)} (\${srcBadge})</span>
             </div>
-            <div class="text-[11px] mt-1">\${r.narrativeOutcome}</div>
+            <div class="text-[11px] mt-1">\${escHtml(r.narrativeOutcome)}</div>
           \`;
           logEl.appendChild(item);
         }

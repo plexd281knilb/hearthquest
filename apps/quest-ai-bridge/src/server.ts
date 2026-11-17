@@ -32,10 +32,32 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url === "/api/copilot/whisper" && req.method === "POST") {
     let body = "";
-    req.on("data", (chunk) => {
+    let totalBytes = 0;
+    let aborted = false;
+    const MAX_BODY_BYTES = 1_048_576;
+    req.on("error", () => {
+      if (!aborted) {
+        aborted = true;
+        if (!res.headersSent) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: false, error: "Request stream error" }));
+        }
+      }
+    });
+    req.on("data", (chunk: Buffer | string) => {
+      if (aborted) return;
+      totalBytes += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+      if (totalBytes > MAX_BODY_BYTES) {
+        aborted = true;
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Request payload too large" }));
+        req.destroy();
+        return;
+      }
       body += chunk;
     });
     req.on("end", async () => {
+      if (aborted) return;
       try {
         const parsed = JSON.parse(body || "{}");
         const session = parsed.session || createStarterFamilySession();
@@ -56,6 +78,10 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ ok: false, error: "Route not found" }));
 });
+
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
 
 if (process.env.NODE_ENV !== "test") {
   server.listen(PORT, "0.0.0.0", () => {

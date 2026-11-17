@@ -7,6 +7,7 @@
 
 export * from "./version";
 export * from "./assets";
+export * from "./security";
 
 export type RulesTier = "STORYBOOK_D6" | "APPRENTICE_5E_LITE" | "STANDARD_5E";
 

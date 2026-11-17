@@ -10,7 +10,15 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { AgeGroupPreset, RoomSessionState, RulesTier, SubscriptionTier } from "@hearthquest/shared-types";
+import {
+  AgeGroupPreset,
+  RoomSessionState,
+  RulesTier,
+  SubscriptionTier,
+  canonicalizeIdentifier,
+  getOrCreateRuntimeSecret,
+  validateDisplayName,
+} from "@hearthquest/shared-types";
 import { generateTailoredAccountSession } from "@hearthquest/srd-rules";
 import {
   getOrCreateRoom,
@@ -41,11 +49,10 @@ export interface VttPublicAccount {
 }
 
 function getAuthSecret(): string {
-  return (
-    process.env.HEARTHQUEST_LICENSE_SECRET ||
-    process.env.STRIPE_WEBHOOK_SECRET ||
-    "hearthquest-default-unraid-signing-secret-2026"
-  );
+  return getOrCreateRuntimeSecret("signing", [
+    "HEARTHQUEST_LICENSE_SECRET",
+    "STRIPE_WEBHOOK_SECRET",
+  ]);
 }
 
 function withAuthDb<T>(fn: (db: DatabaseSync) => T): T {
@@ -329,13 +336,13 @@ export function registerVttAccount(params: {
   preferredAgeGroup?: AgeGroupPreset;
   roomCode?: string;
 }): { account: VttPublicAccount; token: string; room: RoomSessionState } {
-  const email = (params.email || "").trim().toLowerCase();
-  const familyName = (params.familyName || "Adventuring Family").trim();
+  const email = canonicalizeIdentifier(params.email || "");
+  const familyName = validateDisplayName(params.familyName, "Adventuring Family", 64);
   const password = String(params.password || "");
   const preferredRulesTier: RulesTier = params.preferredRulesTier || "STORYBOOK_D6";
   const preferredAgeGroup: AgeGroupPreset = params.preferredAgeGroup || "AGES_8_10";
 
-  if (!email || !email.includes("@")) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("Please enter a valid email address.");
   }
   if (password.length < 6) {
@@ -349,7 +356,11 @@ export function registerVttAccount(params: {
     const existing = db
       .prepare("SELECT id FROM vtt_accounts WHERE LOWER(email) = ?")
       .get(email);
-    if (existing) {
+    const allEmails = db.prepare("SELECT id, email FROM vtt_accounts").all() as Array<{
+      id: string;
+      email: string;
+    }>;
+    if (existing || allEmails.some((r) => canonicalizeIdentifier(r.email) === email)) {
       throw new Error("An account with this email already exists. Please sign in.");
     }
 
@@ -464,16 +475,20 @@ export function loginVttAccount(params: {
   email: string;
   password: string;
 }): { account: VttPublicAccount; token: string; room: RoomSessionState } {
-  const email = (params.email || "").trim().toLowerCase();
+  const email = canonicalizeIdentifier(params.email || "");
   const password = String(params.password || "");
   if (!email || !password) {
     throw new Error("Email and password are required.");
   }
 
   const account = withAuthDb((db) => {
-    const row = db
+    let row = db
       .prepare("SELECT * FROM vtt_accounts WHERE LOWER(email) = ?")
       .get(email) as Record<string, any> | undefined;
+    if (!row) {
+      const candidates = db.prepare("SELECT * FROM vtt_accounts").all() as Array<Record<string, any>>;
+      row = candidates.find((c) => canonicalizeIdentifier(c.email) === email);
+    }
     if (!row) {
       throw new Error("Invalid email or password.");
     }
@@ -505,11 +520,16 @@ export function loginOrRegisterGoogleAccount(params: {
   preferredRulesTier?: RulesTier;
   preferredAgeGroup?: AgeGroupPreset;
   roomCode?: string;
+  isSandbox?: boolean;
 }): { account: VttPublicAccount; token: string; room: RoomSessionState; isNewAccount: boolean } {
-  const email = (params.email || "").trim().toLowerCase();
+  const email = canonicalizeIdentifier(params.email || "");
   const googleSub = String(params.googleSub || "").trim();
-  const familyName = (params.familyName || email.split("@")[0] || "Adventurer").trim();
-  if (!email || !email.includes("@") || !googleSub) {
+  const familyName = validateDisplayName(
+    params.familyName || email.split("@")[0] || "Adventurer",
+    "Adventurer",
+    64
+  );
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !googleSub) {
     throw new Error("Verified Google sub and email address are required.");
   }
 
@@ -518,16 +538,30 @@ export function loginOrRegisterGoogleAccount(params: {
     const bySub = db
       .prepare("SELECT * FROM vtt_accounts WHERE google_sub = ?")
       .get(googleSub) as Record<string, any> | undefined;
-    const byEmail = bySub
+    let byEmail = bySub
       ? bySub
       : (db
           .prepare("SELECT * FROM vtt_accounts WHERE LOWER(email) = ?")
           .get(email) as Record<string, any> | undefined);
+    if (!byEmail) {
+      const candidates = db.prepare("SELECT * FROM vtt_accounts").all() as Array<Record<string, any>>;
+      byEmail = candidates.find((c) => canonicalizeIdentifier(c.email) === email);
+    }
 
     if (byEmail) {
+      if (params.isSandbox && byEmail.google_sub !== googleSub) {
+        throw new Error("Sandbox Google sign-in cannot claim an existing email account.");
+      }
+      if (byEmail.google_sub && String(byEmail.google_sub) !== googleSub) {
+        throw new Error("Account is already linked to a different Google subject.");
+      }
+      const nextHash =
+        String(byEmail.auth_provider || "").toUpperCase() === "GOOGLE"
+          ? String(byEmail.password_hash || "")
+          : `google_oauth_only$${crypto.randomBytes(24).toString("hex")}`;
       db.prepare(
-        "UPDATE vtt_accounts SET google_sub = ?, auth_provider = 'GOOGLE', avatar_url = COALESCE(?, avatar_url), updated_at = ? WHERE id = ?"
-      ).run(googleSub, params.avatarUrl || null, now, String(byEmail.id));
+        "UPDATE vtt_accounts SET google_sub = ?, auth_provider = 'GOOGLE', password_hash = ?, avatar_url = COALESCE(?, avatar_url), updated_at = ? WHERE id = ?"
+      ).run(googleSub, nextHash, params.avatarUrl || null, now, String(byEmail.id));
       const updated = db
         .prepare("SELECT * FROM vtt_accounts WHERE id = ?")
         .get(String(byEmail.id)) as Record<string, any>;

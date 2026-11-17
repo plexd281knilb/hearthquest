@@ -7,12 +7,15 @@
  * - Customer Self-Service Order Tracking Lookup (`orderId` + `email`)
  */
 
+import crypto from "node:crypto";
 import {
   LoreRegistryEntry,
   PrintFulfillmentOrder,
   PrintFulfillmentPackage,
   SubscriptionPlan,
   SubscriptionTier,
+  secureRandomId,
+  validateDisplayName,
 } from "@hearthquest/shared-types";
 import {
   FAMILY_CAMPAIGNS,
@@ -349,19 +352,24 @@ export function updateStoreCart(params: {
         (add.oneShotSlug ? i.oneShotSlug === add.oneShotSlug : !i.oneShotSlug) &&
         (add.campaignId ? i.campaignId === add.campaignId : true)
     );
+    const safeAdd: StoreCartItem = {
+      itemType: add.itemType,
+      productId: validateDisplayName(add.productId, "", 64),
+      campaignId: add.campaignId ? validateDisplayName(add.campaignId, "", 64) : undefined,
+      oneShotSlug: add.oneShotSlug ? validateDisplayName(add.oneShotSlug, "", 80) : undefined,
+      partyLevel: typeof add.partyLevel === "number" ? Math.max(1, Math.min(20, add.partyLevel)) : undefined,
+      quantity: add.itemType === "SUBSCRIPTION" ? 1 : Math.max(1, Math.min(20, add.quantity || 1)),
+    };
     if (idx >= 0) {
       items[idx] = {
         ...items[idx],
         quantity:
-          add.itemType === "SUBSCRIPTION"
+          safeAdd.itemType === "SUBSCRIPTION"
             ? 1
-            : Math.min(20, items[idx].quantity + Math.max(1, add.quantity || 1)),
+            : Math.min(20, items[idx].quantity + safeAdd.quantity),
       };
     } else {
-      items.push({
-        ...add,
-        quantity: add.itemType === "SUBSCRIPTION" ? 1 : Math.max(1, add.quantity || 1),
-      });
+      items.push(safeAdd);
     }
   }
 
@@ -503,22 +511,22 @@ export async function checkoutStoreCart(params: {
       }
     } else {
       const event = {
-        id: `evt_store_${Date.now().toString(36)}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+        id: secureRandomId(`evt_store_${i}`),
         type: "checkout.session.completed" as const,
         data: {
           object: {
-            id: `cs_store_${Date.now().toString(36)}_${i}`,
+            id: secureRandomId(`cs_store_${i}`),
             customer_email: email,
             metadata: {
               checkoutKind: "PHYSICAL_KIT" as const,
               packageId: line.productId,
               subscriptionTier: latestTier,
               campaignId: line.campaignId || line.oneShotSlug || "camp-goblin-bakery",
-              familyName,
+              familyName: validateDisplayName(familyName, "Family", 64),
               email,
-              shippingName: params.shippingName || familyName,
+              shippingName: validateDisplayName(params.shippingName || familyName, "Family", 64),
               shippingAddress:
-                params.shippingAddress || "123 Hearthstone Lane, Tabletop City",
+                validateDisplayName(params.shippingAddress, "123 Hearthstone Lane, Tabletop City", 180),
               paymentMode: "SANDBOX_SIMULATED" as const,
             },
           },
@@ -687,7 +695,7 @@ export function playFreeTrialEncounter(params: {
   const rolled =
     typeof params.rollValue === "number"
       ? Math.max(1, Math.min(6, Math.round(params.rollValue)))
-      : 1 + Math.floor(Math.random() * 6);
+      : crypto.randomInt(1, 7);
   const outcomeType =
     rolled === 6
       ? "CRITICAL_SUCCESS"

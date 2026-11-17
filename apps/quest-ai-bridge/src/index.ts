@@ -3,6 +3,8 @@ import {
   ContentRating,
   RoomSessionState,
   RulesTier,
+  isSafeServiceProbeUrl,
+  secureRandomId,
 } from "@hearthquest/shared-types";
 import {
   calculateEncounterAutoBalance,
@@ -26,10 +28,23 @@ export async function probeRtx3080Health(
   ollamaUrl = process.env.OLLAMA_HOST || "http://127.0.0.1:11434"
 ): Promise<Rtx3080BridgeHealth> {
   const start = Date.now();
+  let cleanUrl = String(ollamaUrl || "").trim();
+  while (cleanUrl.endsWith("/")) cleanUrl = cleanUrl.slice(0, -1);
+  if (!isSafeServiceProbeUrl(cleanUrl)) {
+    return {
+      rtx3080ConfiguredHost: cleanUrl || "invalid",
+      rtx3080Online: false,
+      activeModel: "standby (Invalid or Unsafe Host URL)",
+      failoverEngine: process.env.GEMINI_API_KEY
+        ? "GEMINI_2_0_FLASH"
+        : "DETERMINISTIC_FAMILY_GM_ENGINE",
+      latencyMs: Date.now() - start,
+    };
+  }
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 800);
-    const res = await fetch(`${ollamaUrl.replace(/\/+$/, "")}/api/tags`, {
+    const res = await fetch(`${cleanUrl}/api/tags`, {
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -89,11 +104,15 @@ export async function generateGmCoPilotWhisper(params: {
       : "Call for a standard 5e Ability Check (DC 12) with proficiency bonus applied.";
 
   // 1. Attempt Local RTX 3080 Inference if online
-  const host = ollamaUrl || process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
+  let host = String(ollamaUrl || process.env.OLLAMA_HOST || "http://127.0.0.1:11434").trim();
+  while (host.endsWith("/")) host = host.slice(0, -1);
   try {
+    if (!isSafeServiceProbeUrl(host)) {
+      throw new Error("Blocked unsafe OLLAMA host");
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 900);
-    const res = await fetch(`${host.replace(/\/+$/, "")}/api/generate`, {
+    const res = await fetch(`${host}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -139,7 +158,7 @@ export async function generateGmCoPilotWhisper(params: {
   const mysteryRaw = `A hush falls over the room as you attempt "${cleanQ}". Ancient runes along the archway flicker with a warm golden glow, revealing a hidden mechanism.`;
 
   return {
-    id: `whisper_${Date.now()}`,
+    id: secureRandomId("whisper"),
     sourceEngine: "DETERMINISTIC_HEURISTIC",
     latencyMs: Date.now() - start,
     contentRating: rating,

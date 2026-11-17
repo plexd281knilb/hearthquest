@@ -10,13 +10,13 @@ export function renderDice3DOverlayHtml(): string {
   <!-- FOUNDRY-STYLE 3D DICE OVERLAY CANVAS -->
   <div id="dice-3d-overlay" class="hidden fixed inset-0 pointer-events-none z-[60] flex flex-col items-center justify-end pb-12 sm:pb-16">
     <canvas id="dice-3d-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-    <div id="dice-3d-banner" class="hidden relative z-10 px-6 py-4 rounded-3xl border-2 shadow-2xl backdrop-blur-md text-center transition-all duration-300 transform scale-95 opacity-0 max-w-md mx-4">
-      <div id="dice-3d-banner-hero" class="text-xs font-bold uppercase tracking-wider text-amber-300"></div>
+    <div id="dice-3d-banner" style="background-color: rgba(15, 23, 42, 0.96); color: #f8fafc;" class="hidden relative z-10 px-6 py-4 rounded-3xl border-2 shadow-2xl backdrop-blur-md text-center transition-all duration-300 transform scale-95 opacity-0 max-w-md mx-4">
+      <div id="dice-3d-banner-hero" style="color: #fcd34d;" class="text-xs font-bold uppercase tracking-wider"></div>
       <div class="flex items-center justify-center gap-3 my-1">
-        <span id="dice-3d-banner-die" class="px-2.5 py-1 rounded-xl bg-black/40 border border-white/20 text-xs font-mono font-bold text-white"></span>
-        <span id="dice-3d-banner-total" class="text-4xl sm:text-5xl font-black tracking-tight text-white drop-shadow-lg"></span>
+        <span id="dice-3d-banner-die" style="background-color: rgba(0, 0, 0, 0.45); color: #ffffff;" class="px-2.5 py-1 rounded-xl border border-white/20 text-xs font-mono font-bold"></span>
+        <span id="dice-3d-banner-total" style="color: #ffffff;" class="text-4xl sm:text-5xl font-black tracking-tight tabular-nums drop-shadow-lg"></span>
       </div>
-      <div id="dice-3d-banner-detail" class="text-xs font-semibold text-slate-200"></div>
+      <div id="dice-3d-banner-detail" style="color: #e2e8f0;" class="text-xs font-semibold"></div>
       <div id="dice-3d-banner-badge" class="mt-1.5 inline-block px-3 py-0.5 rounded-full text-xs font-extrabold"></div>
     </div>
   </div>`;
@@ -370,7 +370,7 @@ export function renderDice3DEngineScript(): string {
 
         if (opts.isCrit) {
           banner.className =
-            "relative z-10 px-6 py-4 rounded-3xl border-2 border-amber-300 bg-gradient-to-br from-amber-950/95 via-indigo-950/95 to-amber-900/95 shadow-2xl backdrop-blur-md text-center transition-all duration-300 transform scale-100 opacity-100 max-w-md mx-4";
+            "relative z-10 px-6 py-4 rounded-3xl border-2 border-amber-300 bg-gradient-to-br from-amber-950/95 via-stone-900/95 to-amber-900/95 shadow-2xl backdrop-blur-md text-center transition-all duration-300 transform scale-100 opacity-100 max-w-md mx-4";
           badgeEl.className =
             "mt-1.5 inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-amber-400 text-slate-950 animate-pulse";
           badgeEl.innerText = "✨ CRITICAL HEROIC ROLL!";
@@ -378,13 +378,15 @@ export function renderDice3DEngineScript(): string {
           banner.className =
             "relative z-10 px-6 py-4 rounded-3xl border-2 border-amber-500/70 bg-slate-900/95 shadow-2xl backdrop-blur-md text-center transition-all duration-300 transform scale-100 opacity-100 max-w-md mx-4";
           badgeEl.className =
-            "mt-1.5 inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/40";
+            "mt-1.5 inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/30 text-amber-200 border border-amber-400/40";
+          badgeEl.style.color = "#fde68a";
           badgeEl.innerText = "😄 Fail Forward! Silly Twist!";
         } else {
           banner.className =
             "relative z-10 px-6 py-4 rounded-3xl border-2 border-emerald-400 bg-slate-900/95 shadow-2xl backdrop-blur-md text-center transition-all duration-300 transform scale-100 opacity-100 max-w-md mx-4";
           badgeEl.className =
             "mt-1.5 inline-block px-3 py-0.5 rounded-full text-xs font-extrabold bg-emerald-500 text-slate-950";
+          badgeEl.style.color = "#020617";
           badgeEl.innerText = opts.succeeded === true ? "✅ HEROIC SUCCESS!" : "🎲 ROLLED!";
         }
 
